@@ -121,9 +121,18 @@ const UserProfileScreen = () => {
     <View>
       {userData ? (
         <>
-          <Text>Nombre de Usuario: {userData.username}</Text>
+          <Text>Usuario: {userData.username}</Text>
           <Text>Email: {userData.email}</Text>
           <Text>Teléfono: {userData.phone}</Text>
+          <Text>Nombre: {userData.nombre}</Text>
+          <Text>Apellido: {userData.apellido}</Text>
+          <Text>Ciudad: {userData.ciudad}</Text>
+          <Text>Provincia: {userData.provincia}</Text>
+          <Text>Edad: {userData.edad}</Text>
+          <Text>Peso: {userData.peso}</Text>
+          <Text>Altura: {userData.altura}</Text>
+          <Text>Cinturon: {userData.cinturon}</Text>
+          <Text>Genero: {userData.genero}</Text>
         </>
       ) : (
         <Text>No se encontraron datos del usuario</Text>
