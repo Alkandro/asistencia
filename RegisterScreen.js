@@ -15,6 +15,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import ButtonGradient from "./ButtonGradient";
 
 const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -61,10 +62,10 @@ const RegisterScreen = ({ navigation }) => {
         username: name,
         email: user.email,
         phone: phone,
-        role: email === 'ale5@hotmail.com' ? 'admin' : 'user', // Asigna "admin" si el correo coincide
+        role: email === "ale5@hotmail.com" ? "admin" : "user", // Asigna "admin" si el correo coincide
       });
 
-      Alert.alert("Registro exitoso", "Usuario creado exitosamente");
+      Alert.alert("Registro exitoso", "Usuario creado");
       navigation.navigate("CheckIn");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
@@ -84,11 +85,16 @@ const RegisterScreen = ({ navigation }) => {
         } catch (signInError) {
           Alert.alert(
             "Error",
-            `No se pudo iniciar sesión: ${signInError.message}`
+            `No se pudo iniciar sesión`
           );
+          // Alert.alert(
+          //   "Error",
+          //   `No se pudo iniciar sesión: ${signInError.message}`
+          // );
         }
       } else {
-        Alert.alert("Error", `Error en el registro: ${error.message}`);
+        Alert.alert("Error", `Error en el registro`);
+        // Alert.alert("Error", `Error en el registro: ${error.message}`);
       }
     }
   };
@@ -98,7 +104,7 @@ const RegisterScreen = ({ navigation }) => {
       <ScrollView style={styles.scrollContainer}>
         <Text style={styles.text}>Nombre</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Nombre"
           placeholderTextColor="gray"
           value={nombre}
@@ -106,7 +112,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Apellido</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Apellido"
           placeholderTextColor="gray"
           value={apellido}
@@ -114,7 +120,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>User Name</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="User Name"
           placeholderTextColor="gray"
           value={name}
@@ -122,7 +128,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Correo electrónico</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Correo electrónico"
           placeholderTextColor="gray"
           keyboardType="email-address"
@@ -132,7 +138,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Teléfono</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Teléfono"
           placeholderTextColor="gray"
           keyboardType="phone-pad"
@@ -142,7 +148,7 @@ const RegisterScreen = ({ navigation }) => {
 
         <Text style={styles.text}>Ciudad</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Ciudad"
           placeholderTextColor="gray"
           value={ciudad}
@@ -150,7 +156,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Provincia</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Provincia"
           placeholderTextColor="gray"
           value={provincia}
@@ -158,7 +164,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Peso</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Peso"
           placeholderTextColor="gray"
           keyboardType="decimal-pad"
@@ -167,7 +173,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Altura</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Altura"
           placeholderTextColor="gray"
           keyboardType="numeric"
@@ -176,7 +182,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Edad</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Edad"
           placeholderTextColor="gray"
           keyboardType="numeric"
@@ -185,7 +191,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Genero</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Mascculino-Femenino"
           placeholderTextColor="gray"
           value={genero}
@@ -193,7 +199,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Cinturon</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Cinturon actual"
           placeholderTextColor="gray"
           value={cinturon}
@@ -201,7 +207,7 @@ const RegisterScreen = ({ navigation }) => {
         />
         <Text style={styles.text}>Contraseña</Text>
         <TextInput
-          style={styles.input}
+          style={styles.textIput}
           placeholder="Contraseña"
           placeholderTextColor="gray"
           keyboardType="numeric"
@@ -213,7 +219,11 @@ const RegisterScreen = ({ navigation }) => {
 
       {/* Botón fijo abajo */}
       <View style={styles.buttonContainer}>
-        <Button title="Registrarse" onPress={registerUser} />
+        <ButtonGradient
+          title="Registrarse"
+          onPress={registerUser}
+          style={styles.button}
+        />
       </View>
     </SafeAreaView>
   );
@@ -226,25 +236,39 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 80,
   },
-  input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 12,
-    paddingHorizontal: 10,
+  textIput: {
+    padding: 10,
+    paddingStart: 15,
+    width: "100%",
+    height: 50,
+    marginTop: 2,
+    borderRadius: 30,
+    backgroundColor: "#fff",
   },
   buttonContainer: {
-    padding: 20,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderColor: "#ccc",
+    
+    
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    backgroundColor: "transparent",
+    padding: 10,
+     borderTopWidth: 0,
   },
   text: {
     fontSize: 15,
     fontStyle: "italic",
     fontWeight: "bold",
+    marginBottom:1,
+  },
+  button: {
+    marginHorizontal: "auto",
+    borderRadius: 25,
+    padding: 30,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

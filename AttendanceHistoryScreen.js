@@ -43,7 +43,7 @@ const AttendanceHistoryScreen = () => {
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Historial de Asistencia</Text>
+      
       {attendanceHistory.length === 0 ? (
         <Text>No hay registros de asistencia disponibles.</Text>
       ) : (

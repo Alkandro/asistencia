@@ -9,9 +9,9 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-export default function ButtonGradient({onPress}) {
+export default function ButtonGradient({onPress, title = "Click Me", style, textStyle, ...props}) {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.container}>
+    <TouchableOpacity onPress={onPress} style={[styles.button, style]} {...props}>
       <LinearGradient
         // Button Linear Gradient
         colors={["#FFB677", "#FF3CBD"]}
@@ -19,7 +19,7 @@ export default function ButtonGradient({onPress}) {
         end={{ x: 1, y: 1 }}
         style={styles.button}
       >
-        <Text style={styles.text}>Sign in </Text>
+        <Text style={styles.text}>{title}</Text>
       </LinearGradient>
     </TouchableOpacity>
   );

@@ -1,32 +1,66 @@
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { ActivityIndicator, View } from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
 import LoginScreen from "./Login";
 import CheckInScreen from "./CheckInScreen";
 import AttendanceHistoryScreen from "./AttendanceHistoryScreen";
 import RegisterScreen from "./RegisterScreen";
 import UserProfileScreen from "./UserProfileScreen";
-import UserListScreen from "./UserListScreen"; // Importa la pantalla para admins
-import { auth, db } from "./firebase"; // Asegúrate de importar Firestore
+import UserListScreen from "./UserListScreen";
+import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+const UserBottomTabs = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+          if (route.name === "CheckIn") {
+            iconName = "checkmark-circle-outline";
+          } else if (route.name === "AttendanceHistory") {
+            iconName = "time-outline";
+          } else if (route.name === "UserProfile") {
+            iconName = "person-outline";
+          }
+          return <Icon name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: "blue",
+        tabBarInactiveTintColor: "gray",
+      })}
+    >
+      <Tab.Screen name="CheckIn" component={CheckInScreen} options={{ title: "Check In" }} />
+      <Tab.Screen 
+      name="AttendanceHistory" 
+      component={AttendanceHistoryScreen} 
+      options={{ title: "Historial de Asistencia", headerTitleAlign: "center" }}
+     
+      
+       />
+      <Tab.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Perfil" }} />
+    </Tab.Navigator>
+  );
+};
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null); // Nuevo estado para almacenar el rol del usuario
+  const [role, setRole] = useState(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
       if (authUser) {
         setUser(authUser);
-        // Obtener el rol del usuario desde Firestore
         const userDocRef = doc(db, "users", authUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setRole(userDoc.data().role); // Establecer el rol del usuario
+          setRole(userDoc.data().role);
         }
       } else {
         setUser(null);
@@ -35,7 +69,7 @@ const App = () => {
       setIsLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup al desmontar el componente
+    return () => unsubscribe();
   }, []);
 
   if (isLoading) {
@@ -48,15 +82,15 @@ const App = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={user ? (role === "admin" ? "UserList" : "CheckIn") : "Login"}>
+      <Stack.Navigator initialRouteName={user ? (role === "admin" ? "UserList" : "UserTabs") : "Login"}>
         {!user ? (
           <>
-            <Stack.Screen 
-            name="Login" 
-            component={LoginScreen}
-            options={{
-             headerShown:false,
-            }}
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{
+                headerShown: false,
+              }}
             />
             <Stack.Screen
               name="Register"
@@ -64,27 +98,32 @@ const App = () => {
               options={{
                 title: "Registro de Usuario",
                 headerTitleAlign: "center",
-                headerStyle: {
-                  backgroundColor: "white",
-                },
+                headerStyle: { backgroundColor: "white" },
                 headerTintColor: "black",
-                headerTitleStyle: {
-                  fontWeight: "bold",
-                },
+                headerTitleStyle: { fontWeight: "bold" },
               }}
             />
           </>
         ) : role === "admin" ? (
           <>
-            <Stack.Screen name="UserListScreen" component={UserListScreen} />
-            <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+            <Stack.Screen name="UserList" component={UserListScreen} />
+            <Stack.Screen 
+            name="UserProfile" 
+            component={UserProfileScreen}
+            options={{
+              title: "User Profile",
+              headerTitleAlign: "center",
+              headerStyle: { backgroundColor: "white" },
+              headerTintColor: "black",
+              headerTitleStyle: { fontWeight: "bold" },
+            }} />
           </>
         ) : (
-          <>
-            <Stack.Screen name="CheckIn" component={CheckInScreen} />
-            <Stack.Screen name="AttendanceHistory" component={AttendanceHistoryScreen} />
-            <Stack.Screen name="UserProfile" component={UserProfileScreen} />
-          </>
+          <Stack.Screen
+            name="UserTabs"
+            component={UserBottomTabs}
+            options={{ headerShown: false }}
+          />
         )}
       </Stack.Navigator>
     </NavigationContainer>
