@@ -10,6 +10,7 @@ import AttendanceHistoryScreen from "./AttendanceHistoryScreen";
 import RegisterScreen from "./RegisterScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import UserListScreen from "./UserListScreen";
+import Information from "./Information";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -92,6 +93,7 @@ const App = () => {
                 headerShown: false,
               }}
             />
+            <Stack.Screen name="Information" component={Information} />
             <Stack.Screen
               name="Register"
               component={RegisterScreen}
@@ -107,6 +109,7 @@ const App = () => {
         ) : role === "admin" ? (
           <>
             <Stack.Screen name="UserList" component={UserListScreen} />
+            
             <Stack.Screen 
             name="UserProfile" 
             component={UserProfileScreen}

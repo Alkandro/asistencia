@@ -1,147 +1,141 @@
-// import React, { useEffect } from "react";
-// import { View, Text, Button, Alert,StyleSheet } from "react-native";
-// import { recordCheckIn } from "./Attendance";
-// import { useNavigation } from "@react-navigation/native";
-// import { auth } from './firebase';
-
-// const CheckInScreen = () => {
-//   const navigation = useNavigation();
-
-//   useEffect(() => {
-//     const checkInNewUser = async () => {
-//       if (auth.currentUser) {
-//         try {
-//           console.log("Usuario autenticado, registrando check-in...");
-//           await recordCheckIn(); // Registra un check-in para el usuario
-//         } catch (error) {
-//           console.error("Error en check-in: ", error);
-//           Alert.alert("Error", `No se pudo registrar el check-in: ${error.message}`);
-//         }
-//       } else {
-//         console.log("Usuario no autenticado");
-//       }
-//     };
-
-//     checkInNewUser();
-//   }, []);
-
-//   const handleCheckIn = async () => {
-//     try {
-//       const checkInId = await recordCheckIn();
-//       Alert.alert("Check-in", `Check-in registrado correctamente con ID: ${checkInId}`);
-//       navigation.navigate("AttendanceHistory");
-//     } catch (error) {
-//       Alert.alert("Error", `No se pudo registrar el check-in: ${error.message}`);
-//     }
-//   };
-
-//   const handleSignOut = async () => {
-//     try {
-//       await auth.signOut(); // Cierra la sesión del usuario
-//       navigation.navigate("Login"); // Redirigir al usuario a la pantalla de Login
-//     } catch (error) {
-//       Alert.alert("Error", `No se pudo cerrar la sesión: ${error.message}`);
-//     }
-//   };
-
-//   return (
-//     <View>
-//       <Text style={{marginHorizontal:"auto",fontStyle:"italic",fontSize:20}}>Menu</Text>
-//       <Button title="Check-in" onPress={handleCheckIn} />
-//       <Button title="Ver historial de asistencia" onPress={() => navigation.navigate("AttendanceHistory")} />
-//       <Button title="Ver Perfil" onPress={() => navigation.navigate("UserProfile")} />
-
-//       {/* Botón de Cerrar Sesión */}
-//       <Button title="Cerrar Sesión" onPress={handleSignOut} />
-//     </View>
-//   );
-// };
-
-// export default CheckInScreen;
-
-import React, { useEffect } from "react";
-import { View, Text, Button, Alert, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Button, Alert, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { recordCheckIn } from "./Attendance";
 import { useNavigation } from "@react-navigation/native";
-import { auth } from './firebase';
+import { auth, db } from './firebase';
+import { doc, getDoc, updateDoc, increment, collection, query, where, getDocs } from "firebase/firestore";
+import dayjs from 'dayjs';
 
 const CheckInScreen = () => {
+  const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const checkInNewUser = async () => {
-      if (auth.currentUser) {
-        try {
-          console.log("Usuario autenticado, registrando check-in...");
-          await recordCheckIn(); // Registra un check-in para el usuario
-        } catch (error) {
-          console.error("Error en check-in: ", error);
-          Alert.alert("Error", `No se pudo registrar el check-in: ${error.message}`);
-        }
-      } else {
-        console.log("Usuario no autenticado");
-      }
-    };
+  const fetchMonthlyCheckIns = async () => {
+    try {
+      const user = auth.currentUser;
 
-    checkInNewUser();
+      if (user) {
+        const q = query(
+          collection(db, 'attendanceHistory'),
+          where('userId', '==', user.uid)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const currentMonthKey = dayjs().format('YYYY-MM');
+        let count = 0;
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const timestamp = data.timestamp?.seconds ? new Date(data.timestamp.seconds * 1000) : null;
+
+          if (timestamp && dayjs(timestamp).format('YYYY-MM') === currentMonthKey) {
+            count++;
+          }
+        });
+
+        setMonthlyCheckIns(count);
+      }
+    } catch (error) {
+      console.error("Error al obtener los check-ins mensuales:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMonthlyCheckIns();
   }, []);
 
   const handleCheckIn = async () => {
-    try {
-      const checkInId = await recordCheckIn();
-      Alert.alert("Check-in", `Check-in registrado correctamente con ID: ${checkInId}`);
-      navigation.navigate("AttendanceHistory");
-    } catch (error) {
-      Alert.alert("Error", `No se pudo registrar el check-in: ${error.message}`);
+    if (auth.currentUser) {
+      const monthKey = dayjs().format('YYYY-MM');
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      
+      try {
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const userName = userData.username || "Usuario";
+          const userBelt = userData.cinturon || "desconocida";
+
+          await recordCheckIn();
+          await updateDoc(userDocRef, {
+            [`checkIns_${monthKey}`]: increment(1)
+          });
+
+          const newCheckInCount = monthlyCheckIns + 1;
+          setMonthlyCheckIns(newCheckInCount);
+
+          Alert.alert(
+            "",
+            `Bienvenido al entrenamiento de hoy, ${userName}!\n
+            Practica mucho para mejorar tus técnicas en tu cinturón color ${userBelt}.\n
+            Check-ins este mes: ${newCheckInCount}`,
+            [
+              {
+                text: "OK",
+                onPress: () => fetchMonthlyCheckIns() // Refresca el contador al presionar OK
+              }
+            ]
+          );
+
+          navigation.navigate("AttendanceHistory");
+        }
+      } catch (error) {
+        Alert.alert("Error", `No se pudo registrar el check-in: ${error.message}`);
+      }
     }
   };
 
   const handleSignOut = async () => {
     try {
-      await auth.signOut(); // Cierra la sesión del usuario
-      navigation.navigate("Login"); // Redirigir al usuario a la pantalla de Login
+      await auth.signOut();
+      navigation.navigate("Login");
     } catch (error) {
       Alert.alert("Error", `No se pudo cerrar la sesión: ${error.message}`);
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchMonthlyCheckIns(); // Refresca los datos
+    setRefreshing(false);
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.contentContainer} // Aplicar estilos aquí
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <Text style={styles.title}>Menu</Text>
-      
-      {/* Barra inferior */}
-      <View >
+      <Text style={styles.counter}>Check-ins este mes: {monthlyCheckIns}</Text>
+      <View>
         <Button title="Check-in" onPress={handleCheckIn} />
-        {/* <Button title="Historial" onPress={() => navigation.navigate("AttendanceHistory")} /> */}
-        {/* <Button title="Perfil" onPress={() => navigation.navigate("UserProfile")} /> */}
         <Button title="Cerrar Sesión" onPress={handleSignOut} />
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
     justifyContent: "center",
     alignItems: "center",
+    paddingBottom: 20, // Agrega espacio en la parte inferior si es necesario
   },
   title: {
     fontSize: 20,
     fontStyle: "italic",
     marginBottom: 20,
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    backgroundColor: '#f2f2f2', // Fondo de la barra
-    borderTopWidth: 1,
-    borderColor: '#ccc',
+  counter: {
+    fontSize: 16,
+    marginBottom: 10,
   },
 });
 

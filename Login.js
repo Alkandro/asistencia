@@ -10,11 +10,13 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Linking,
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "./firebase"; // Asegúrate de importar Firestore
 import { doc, getDoc } from "firebase/firestore"; // Para obtener el rol del usuario
 import ButtonGradient from "./ButtonGradient";
+import Icon from "react-native-vector-icons/FontAwesome"; // Ajusta el icono según tu preferencia
 
 // Obtener las dimensiones de la pantalla
 const { width, height } = Dimensions.get("window");
@@ -62,9 +64,18 @@ const LoginScreen = ({ navigation }) => {
         );
       }
     } catch (error) {
-      Alert.alert("Error", `No se pudo iniciar sesión porque el usuario o contrasena son equivocas o el usuario no existe`);
+      Alert.alert(
+        "Error",
+        `No se pudo iniciar sesión porque el usuario o contrasena son equivocas o el usuario no existe`
+      );
       // Alert.alert("Error", `No se pudo iniciar sesión: ${error.message}`);
     }
+  };
+  const openFacebook = () => {
+    Linking.openURL("https://www.facebook.com/tashas.natura");
+  };
+  const openInstagram = () => {
+    Linking.openURL("https://www.instagram.com/tshr_jiujitsu/");
   };
 
   return (
@@ -77,7 +88,12 @@ const LoginScreen = ({ navigation }) => {
         />
       </View>
       <View style={styles.container}>
-        <Text style={styles.titulo}>Hello</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Information")}>
+          <Image
+            source={require("./assets/fotos/tashiro1.jpg")} // Coloca el nombre de tu imagen de logo aquí
+            style={styles.logo}
+          />
+        </TouchableOpacity>
         <Text style={styles.subTitle}>Sign in to your account</Text>
         <TextInput
           placeholder="overLimit@gmail.com"
@@ -104,6 +120,24 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.forgotPassword}>Don't have an account?</Text>
         </TouchableOpacity>
       </View>
+      {/* Íconos de enlace al final de la pantalla */}
+      <View style={styles.iconContainer}>
+        <TouchableOpacity onPress={openFacebook} style={styles.iconWrapper}>
+          <Icon name="facebook" size={30} color="#3b5998" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          // onPress={() => navigation.navigate("AnotherScreen")}
+          style={styles.iconWrapper}
+        >
+          <Icon name="twitter" size={30} color="#1DA1F2" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={openInstagram} // Cambia 'InstagramScreen' al destino deseado
+          style={styles.iconWrapper}
+        >
+          <Icon name="instagram" size={30} color="#E1306C" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -118,11 +152,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
   },
-
   titulo: {
     fontSize: 80,
     color: "#34434D",
     fontWeight: "bold",
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    marginBottom: 10,
+    marginTop: 10,
+    resizeMode: "contain",
   },
   subTitle: {
     fontSize: 20,
@@ -133,13 +173,13 @@ const styles = StyleSheet.create({
     paddingStart: 30,
     width: "80%",
     height: 50,
-    marginTop: 20,
+    marginTop: 15,
     borderRadius: 30,
     backgroundColor: "#fff",
   },
   forgotPassword: {
     fontSize: 15,
-    marginTop: 20,
+    marginTop: -10,
     color: "gray",
   },
   image: {
@@ -158,8 +198,17 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 50,
+    marginTop: 20,
     marginBottom: 40,
+  },
+  iconContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingVertical: -10, // Reduce el padding vertical para ajustar la altura
+    marginTop: 10, // Añade un margen superior para levantar los íconos
+  },
+  iconWrapper: {
+    marginHorizontal: 15,
   },
 });
 

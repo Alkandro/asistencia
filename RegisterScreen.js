@@ -62,6 +62,15 @@ const RegisterScreen = ({ navigation }) => {
         username: name,
         email: user.email,
         phone: phone,
+        cinturon: cinturon,
+        ciudad: ciudad,
+        provincia: provincia,
+        peso: peso,
+        altura: altura,
+        edad: edad,
+        genero: genero,
+        nombre: nombre,
+        apellido: apellido,
         role: email === "ale5@hotmail.com" ? "admin" : "user", // Asigna "admin" si el correo coincide
       });
 
