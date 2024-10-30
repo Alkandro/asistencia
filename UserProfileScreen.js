@@ -1,89 +1,17 @@
-// import React, { useEffect, useState } from 'react';
-// import { View, Text, ActivityIndicator, StyleSheet, Alert } from 'react-native';
-// import { auth, db } from './firebase'; // Asegúrate de importar correctamente
-// import { doc, getDoc } from 'firebase/firestore';
-
-// const UserProfileScreen = () => {
-//   const [userData, setUserData] = useState(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null); // Estado para manejar errores
-
-//   // Función para obtener los datos del usuario desde Firestore
-//   const fetchUserData = async () => {
-//     try {
-//       const user = auth.currentUser; // Obtener usuario autenticado
-
-//       if (user) {
-//         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        
-//         if (userDoc.exists()) {
-//           setUserData(userDoc.data());
-//         } else {
-//           console.log('No se encontraron datos para este usuario');
-//           setError('No se encontraron datos para este usuario.');
-//         }
-//       } else {
-//         setError('No hay usuario autenticado.');
-//       }
-//     } catch (error) {
-//       console.error('Error al obtener los datos del usuario:', error);
-//       setError('Hubo un problema al cargar los datos del perfil.');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // Llamar a la función para obtener los datos cuando el componente se monta
-//   useEffect(() => {
-//     fetchUserData();
-//   }, []);
-
-//   if (loading) {
-//     return <ActivityIndicator size="large" color="#0000ff" />;
-//   }
-
-//   return (
-//     <View style={styles.container}>
-//       {error ? (
-//         <Text style={styles.error}>{error}</Text>
-//       ) : userData ? (
-//         <>
-//           <Text style={styles.title}>Perfil del Usuario</Text>
-//           <Text>Nombre: {userData.name}</Text>
-//           <Text>Email: {userData.email}</Text>
-//           <Text>Teléfono: {userData.phone}</Text>
-//         </>
-//       ) : (
-//         <Text>No se encontraron datos del usuario</Text>
-//       )}
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 20,
-//     justifyContent: 'center',
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     marginBottom: 20,
-//   },
-//   error: {
-//     color: 'red',
-//     marginBottom: 20,
-//   },
-// });
-
-// export default UserProfileScreen;
-
-
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet,Image } from 'react-native';
 import { auth, db } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { MaterialIcons } from '@expo/vector-icons';
+
+// import BlueBelt from './assets/fotos/jiujitsuBlue.png';
+import WhiteBelt from './assets/fotos/whiteBelt.png';
+import BlueBelt from './assets/fotos/blueBelt.png';
+import PurpleBelt from './assets/fotos/purpleBelt.png';
+import BrownBelt from './assets/fotos/brownBelt.png';
+import BlackBelt from './assets/fotos/blackBelt.png';
+
+
 
 const UserProfileScreen = () => {
   const [userData, setUserData] = useState(null);
@@ -109,6 +37,24 @@ const UserProfileScreen = () => {
     }
   };
 
+  // Función para obtener la imagen del cinturón según el valor de 'cinturon'
+  const getBeltImage = (beltColor) => {
+    switch (beltColor) {
+      case 'white':
+        return WhiteBelt;
+      case 'blue':
+        return BlueBelt;
+      case 'purple':
+        return PurpleBelt;
+      case 'brown':
+        return BrownBelt;
+      case 'black':
+        return BlackBelt;
+      default:
+        return null; // Imagen por defecto o deja en blanco
+    }
+  };
+
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -118,21 +64,69 @@ const UserProfileScreen = () => {
   }
 
   return (
-    <View>
+    <View style={styles.container}>
       {userData ? (
         <>
-          <Text>Usuario: {userData.username}</Text>
-          <Text>Email: {userData.email}</Text>
-          <Text>Teléfono: {userData.phone}</Text>
-          <Text>Nombre: {userData.nombre}</Text>
-          <Text>Apellido: {userData.apellido}</Text>
-          <Text>Ciudad: {userData.ciudad}</Text>
-          <Text>Provincia: {userData.provincia}</Text>
-          <Text>Edad: {userData.edad}</Text>
-          <Text>Peso: {userData.peso}</Text>
-          <Text>Altura: {userData.altura}</Text>
-          <Text>Cinturon: {userData.cinturon}</Text>
-          <Text>Genero: {userData.genero}</Text>
+          <View style={styles.infoRow}>
+            <MaterialIcons name="person" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.username}</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <MaterialIcons name="email" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.email}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="phone" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.phone}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="badge" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.nombre}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="badge" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.apellido}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="location-city" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.ciudad} 市</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="location-on" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.provincia} 県</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="schedule" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.edad} years old</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="scale" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.peso} kg</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="height" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.altura} cm</Text>
+          </View>
+
+          {/* Muestra la imagen del cinturón */}
+          <View style={styles.infoRow}>
+            <Image source={getBeltImage(userData.cinturon)} style={styles.icon1} />
+            <Text style={styles.text}>{userData.cinturon}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <MaterialIcons name="wc" size={20} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{userData.genero}</Text>
+          </View>
         </>
       ) : (
         <Text>No se encontraron datos del usuario</Text>
@@ -140,5 +134,31 @@ const UserProfileScreen = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  icon: {
+    marginRight: 8,
+  },
+  text: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  icon1: {
+    width: 60, // Ajusta el ancho
+    height: 20, // Ajusta la altura
+    marginRight: 8,
+    resizeMode: 'contain',
+  },
+});
 
 export default UserProfileScreen;

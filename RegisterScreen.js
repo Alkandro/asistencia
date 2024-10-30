@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   Button,
+  Image,
   Alert,
   StyleSheet,
   SafeAreaView,
@@ -32,6 +33,18 @@ const RegisterScreen = ({ navigation }) => {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
 
+ // Mapeo de imágenes de cinturones
+ const beltImages = {
+  white: require("./assets/fotos/whiteBelt.png"),
+  blue: require("./assets/fotos/blueBelt.png"),
+  purple: require("./assets/fotos/purpleBelt.png"),
+  brown: require("./assets/fotos/brownBelt.png"),
+  black: require("./assets/fotos/blackBelt.png"),
+};
+
+const getBeltImage = (belt) => beltImages[belt.toLowerCase()] || beltImages["white"];
+
+
   // Función de registro
   const registerUser = async () => {
     try {
@@ -43,21 +56,21 @@ const RegisterScreen = ({ navigation }) => {
       const user = userCredential.user;
 
       const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, {
-        username: name,
-        email: user.email,
-        phone: phone,
-        cinturon: cinturon,
-        ciudad: ciudad,
-        provincia: provincia,
-        peso: peso,
-        altura: altura,
-        edad: edad,
-        genero: genero,
-        nombre: nombre,
-        apellido: apellido,
-        role: "user",
-      });
+      // await setDoc(userDocRef, {
+      //   username: name,
+      //   email: user.email,
+      //   phone: phone,
+      //   cinturon: cinturon,
+      //   ciudad: ciudad,
+      //   provincia: provincia,
+      //   peso: peso,
+      //   altura: altura,
+      //   edad: edad,
+      //   genero: genero,
+      //   nombre: nombre,
+      //   apellido: apellido,
+      //   role: "user",
+      // });
       await setDoc(userDocRef, {
         username: name,
         email: user.email,
@@ -206,14 +219,26 @@ const RegisterScreen = ({ navigation }) => {
           value={genero}
           onChangeText={setGenero}
         />
-        <Text style={styles.text}>Cinturon</Text>
+        {/* <Text style={styles.text}>Cinturon</Text>
         <TextInput
           style={styles.textIput}
-          placeholder="Cinturon actual"
+          placeholder="Ej. white,blue,purpple,brown,black"
+          placeholderTextColor="gray"
+          value={cinturon}
+          onChangeText={setCinturon}
+        /> */}
+         <Text style={styles.text}>Cinturon</Text>
+        <TextInput
+          style={styles.textIput}
+          placeholder="Ej. white, blue, purple, brown, black"
           placeholderTextColor="gray"
           value={cinturon}
           onChangeText={setCinturon}
         />
+        {/* Imagen del cinturón */}
+        {cinturon ? (
+          <Image source={getBeltImage(cinturon)} style={styles.beltImage} />
+        ) : null}
         <Text style={styles.text}>Contraseña</Text>
         <TextInput
           style={styles.textIput}
@@ -257,8 +282,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   buttonContainer: {
-    
-    
     left: 0,
     right: 0,
     alignItems: "center",

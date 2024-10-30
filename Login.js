@@ -77,6 +77,9 @@ const LoginScreen = ({ navigation }) => {
   const openInstagram = () => {
     Linking.openURL("https://www.instagram.com/tshr_jiujitsu/");
   };
+  const openTwiter = () => {
+    Linking.openURL("https://overlimit-bjj.sakura.ne.jp/fsj41442/");
+  };
 
   return (
     <View style={styles.mainContainer}>
@@ -125,10 +128,7 @@ const LoginScreen = ({ navigation }) => {
         <TouchableOpacity onPress={openFacebook} style={styles.iconWrapper}>
           <Icon name="facebook" size={30} color="#3b5998" />
         </TouchableOpacity>
-        <TouchableOpacity
-          // onPress={() => navigation.navigate("AnotherScreen")}
-          style={styles.iconWrapper}
-        >
+        <TouchableOpacity onPress={openTwiter} style={styles.iconWrapper}>
           <Icon name="twitter" size={30} color="#1DA1F2" />
         </TouchableOpacity>
         <TouchableOpacity
