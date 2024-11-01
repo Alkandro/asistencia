@@ -150,6 +150,7 @@
 
 // export default App;
 
+
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -166,12 +167,12 @@ import UserListScreen from "./UserListScreen";
 import Information from "./Information";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
+import AppSplashScreen from "./SplashScreen"; // Importa tu componente de SplashScreen
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
-// Tabs de navegación para CheckIn, AttendanceHistory, y UserProfile
 const UserBottomTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
@@ -192,19 +193,26 @@ const UserBottomTabs = () => (
   </Tab.Navigator>
 );
 
-// Drawer principal que contiene las pestañas y otras pantallas
 const AppDrawer = () => (
   <Drawer.Navigator initialRouteName="UserTabs">
     <Drawer.Screen name="UserTabs" component={UserBottomTabs} options={{ title: "Inicio", headerTitleAlign: "center" }} />
     <Drawer.Screen name="Information" component={Information} options={{ title: "Información" }} />
-    {/* Aquí puedes agregar más pantallas si es necesario */}
   </Drawer.Navigator>
 );
 
 const App = () => {
+  const [isSplashLoading, setIsSplashLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
+
+  // Controla la duración del splash screen
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsSplashLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
@@ -222,6 +230,10 @@ const App = () => {
 
     return () => unsubscribe();
   }, []);
+
+  if (isSplashLoading) {
+    return <AppSplashScreen />; // Splash screen mientras carga
+  }
 
   if (isLoading) {
     return (
@@ -242,15 +254,15 @@ const App = () => {
               options={{ headerShown: false }}
             />
             <Stack.Screen 
-            name="Information" 
-            component={Information}
-            options={{
-              title: "Information",
-              headerTitleAlign: "center",
-              headerStyle: { backgroundColor: "black" },
-              headerTintColor: "white",
-              headerTitleStyle: { fontWeight: "bold" },
-            }} 
+              name="Information" 
+              component={Information}
+              options={{
+                title: "Information",
+                headerTitleAlign: "center",
+                headerStyle: { backgroundColor: "black" },
+                headerTintColor: "white",
+                headerTitleStyle: { fontWeight: "bold" },
+              }} 
             />
             <Stack.Screen
               name="Register"
@@ -280,7 +292,7 @@ const App = () => {
             />
           </>
         ) : (
-          <Stack.Screen name="Drawer" component={AppDrawer} options={{ headerShown: false,headerTitleAlign: "center" }} />
+          <Stack.Screen name="Drawer" component={AppDrawer} options={{ headerShown: false, headerTitleAlign: "center" }} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
