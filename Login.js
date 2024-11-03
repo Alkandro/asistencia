@@ -83,7 +83,6 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar hidden={true} />
       <View style={styles.imageContainer}>
         <Image
           source={require("./assets/fotos/IMG_5240.jpeg")} // para imagen local
