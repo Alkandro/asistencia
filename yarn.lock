@@ -3799,6 +3799,18 @@ expo-font@~12.0.10:
   dependencies:
     fontfaceobserver "^2.1.0"
 
+expo-image-loader@~4.7.0:
+  version "4.7.0"
+  resolved "https://registry.yarnpkg.com/expo-image-loader/-/expo-image-loader-4.7.0.tgz#d403106822de80bda12d644c82b7a3b7983c0f0b"
+  integrity sha512-cx+MxxsAMGl9AiWnQUzrkJMJH4eNOGlu7XkLGnAXSJrRoIiciGaKqzeaD326IyCTV+Z1fXvIliSgNW+DscvD8g==
+
+expo-image-picker@^15.0.7:
+  version "15.0.7"
+  resolved "https://registry.yarnpkg.com/expo-image-picker/-/expo-image-picker-15.0.7.tgz#eb25abfdb03cb940f0418add3d9814439526b025"
+  integrity sha512-u8qiPZNfDb+ap6PJ8pq2iTO7JKX+ikAUQ0K0c7gXGliKLxoXgDdDmXxz9/6QdICTshJBJlBvI0MwY5NWu7A/uw==
+  dependencies:
+    expo-image-loader "~4.7.0"
+
 expo-json-utils@~0.13.0:
   version "0.13.1"
   resolved "https://registry.yarnpkg.com/expo-json-utils/-/expo-json-utils-0.13.1.tgz#e49b697198e11c573d346f08ab91c467095934a9"
@@ -6083,6 +6095,11 @@ pngjs@^3.3.0:
   version "3.4.0"
   resolved "https://registry.npmjs.org/pngjs/-/pngjs-3.4.0.tgz"
   integrity sha512-NCrCHhWmnQklfH4MtJMRjZ2a8c80qXeMlQMv2uVp9ISJMTt562SbGd6n2oq0PaPgKm7Z6pL9E2UlLIhC+SHL3w==
+
+pod-install@^0.2.2:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/pod-install/-/pod-install-0.2.2.tgz#3375026ff1e317f87140b8f51ed955084d0c35e5"
+  integrity sha512-NgQpKiuWZo8mWU+SVxmrn+ARy9+fFYzW53ze6CDTo70u5Ie8AVSn7FqolDC/c7+N4/kQ1BldAnXEab6SNYA8xw==
 
 possible-typed-array-names@^1.0.0:
   version "1.0.0"

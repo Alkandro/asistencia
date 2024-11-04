@@ -290,8 +290,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-import { launchImageLibrary } from "react-native-image-picker";
+import * as ImagePicker from "expo-image-picker";
 import RNPickerSelect from "react-native-picker-select";
 import { auth, db } from "./firebase";
 import {
@@ -330,41 +332,22 @@ const RegisterScreen = ({ navigation }) => {
     beltImages[belt.toLowerCase()] || beltImages["white"];
 
   // Función para seleccionar una imagen
-  const selectImage = () => {
-    launchImageLibrary(
-    {
-      mediaType: 'photo',
-      quality: 1,
-    },
-    (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.error) {
-        console.log('ImagePicker Error: ', response.error);
-      } else {
-        const source = { uri: response.assets[0].uri };
-        setImageUri(source); // Asigna la imagen seleccionada a tu estado o úsala como prefieras
-      }
+  const selectImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert("Permiso requerido", "Se necesita permiso para acceder a la galería.");
+      return;
     }
-  );
-};
-// launchImageLibrary(
-//   {
-//     mediaType: 'photo',
-//     quality: 1,
-//   },
-//   (response) => {
-//     if (response.didCancel) {
-//       console.log('User cancelled image picker');
-//     } else if (response.error) {
-//       console.log('ImagePicker Error: ', response.error);
-//     } else {
-//       const source = { uri: response.assets[0].uri };
-//       setImageUri(source); // Asigna la imagen seleccionada a tu estado o úsala como prefieras
-//     }
-//   }
-// );
-// };
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.uri);
+    }
+  };
 
   // Función de registro
   const registerUser = async () => {
@@ -421,6 +404,10 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   return (
+    <KeyboardAvoidingView
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    style={styles.container}
+  >
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
         <Text style={styles.text}>Nombre</Text>
@@ -548,14 +535,16 @@ const RegisterScreen = ({ navigation }) => {
           onChangeText={setPassword}
         />
 
-        {/* Selección de imagen */}
-        <Text style={styles.text}>Foto de perfil</Text>
-        <TouchableOpacity onPress={selectImage} style={styles.imageButton}>
-          <Text style={styles.imageButtonText}>Seleccionar Imagen</Text>
+         {/* Botón para seleccionar una imagen */}
+         <TouchableOpacity onPress={selectImage}>
+          <View style={styles.imageContainer}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.profileImage} />
+            ) : (
+              <Text style={styles.text}>Seleccionar Imagen</Text>
+            )}
+          </View>
         </TouchableOpacity>
-        {imageUri && (
-          <Image source={{ uri: imageUri }} style={styles.profileImage} />
-        )}
       </ScrollView>
       <View style={styles.buttonContainer}>
         <ButtonGradient
@@ -565,6 +554,7 @@ const RegisterScreen = ({ navigation }) => {
         />
       </View>
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
