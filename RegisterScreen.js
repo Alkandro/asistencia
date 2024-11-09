@@ -15,14 +15,15 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import RNPickerSelect from "react-native-picker-select";
 import { auth, db } from "./firebase";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { useImageContext } from "./ImageContext"; // Importa el contexto
 import ButtonGradient from "./ButtonGradient";
 
 const RegisterScreen = ({ navigation }) => {
+
+  // Acceder al contexto
+  const { imageUri, setImageUri } = useImageContext();
   // Estados para los campos de entrada
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +38,7 @@ const RegisterScreen = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
-  const [imageUri, setImageUri] = useState(null);
+  const defaultProfileImage = require("./assets/fotos/tashiro1.jpg");
 
   // Mapeo de imágenes de cinturones
   const beltImages = {
@@ -63,8 +64,8 @@ const RegisterScreen = ({ navigation }) => {
       quality: 1,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.uri);
+    if (!result.canceled && result.assets && result.assets[0]) {
+      setImageUri(result.assets[0].uri); // Actualiza el estado global de la imagen
     }
   };
 
@@ -129,6 +130,17 @@ const RegisterScreen = ({ navigation }) => {
   >
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
+         {/* Mostrar la imagen seleccionada o la por defecto */}
+         <TouchableOpacity style={styles.imageButton} onPress={selectImage}>
+            <Text style={styles.imageButtonText}>Seleccionar Imagen</Text>
+          </TouchableOpacity>
+
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.profileImage} />
+          ) : (
+            <Image source={defaultProfileImage} style={styles.profileImage} />
+          )}
+
         <Text style={styles.text}>Nombre</Text>
         <TextInput
           style={styles.textIput}
