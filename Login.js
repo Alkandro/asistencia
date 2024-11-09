@@ -10,7 +10,9 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Platform,
   Linking,
+  SafeAreaView, // Asegúrate de importar SafeAreaView
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "./firebase"; // Asegúrate de importar Firestore
@@ -66,11 +68,11 @@ const LoginScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert(
         "Error",
-        `No se pudo iniciar sesión porque el usuario o contrasena son equivocas o el usuario no existe`
+        `No se pudo iniciar sesión porque el usuario o contrasena son equivocadas o el usuario no existe`
       );
-      // Alert.alert("Error", `No se pudo iniciar sesión: ${error.message}`);
     }
   };
+
   const openFacebook = () => {
     Linking.openURL("https://www.facebook.com/tashas.natura");
   };
@@ -82,7 +84,10 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.mainContainer}>
+    <SafeAreaView style={styles.mainContainer}>
+      {/* StatusBar para ajustar la pantalla debajo de la barra */}
+      <StatusBar barStyle="dark-content" backgroundColor="#f1f1f1" />
+
       <View style={styles.imageContainer}>
         <Image
           source={require("./assets/fotos/IMG_5240.jpeg")} // para imagen local
@@ -119,11 +124,28 @@ const LoginScreen = ({ navigation }) => {
           style={styles.button}
         />
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.forgotPassword}>Don't have an account?</Text>
+          <Text
+            style={[
+              styles.forgotPassword,
+              {
+                marginTop: Platform.OS === "android" ? -29 : -20, // Solo en Android se mueve
+              },
+            ]}
+          >
+            Don't have an account?
+          </Text>
         </TouchableOpacity>
       </View>
       {/* Íconos de enlace al final de la pantalla */}
-      <View style={styles.iconContainer}>
+      <View
+        style={[
+          styles.iconContainer,
+          {
+            // Ajustar el tamaño del contenedor según el sistema operativo
+            marginTop: Platform.OS === "ios" ? 15 : 1, // Menor padding en Android si es necesario
+          },
+        ]}
+      >
         <TouchableOpacity onPress={openFacebook} style={styles.iconWrapper}>
           <Icon name="facebook" size={30} color="#3b5998" />
         </TouchableOpacity>
@@ -137,7 +159,7 @@ const LoginScreen = ({ navigation }) => {
           <Icon name="instagram" size={30} color="#E1306C" />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -189,6 +211,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: "100%",
     height: height * 0.35, // 1/4 de la altura de la pantalla
+    marginTop: StatusBar.currentHeight, // Añade espacio extra por el StatusBar
   },
   button: {
     width: "80%",
