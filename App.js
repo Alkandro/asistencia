@@ -58,7 +58,7 @@ const App = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsSplashLoading(false);
-    }, 3000);
+    }, 15000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -150,3 +150,15 @@ const App = () => {
 };
 
 export default App;
+
+
+// import React from "react";
+// import { View } from "react-native";
+// import AppSplashScreen from "./SplashScreen"; // Importa el componente de SplashScreen
+
+// const App = () => {
+//   // Solo retorna el splash screen
+//   return <AppSplashScreen />;
+// };
+
+// export default App;
