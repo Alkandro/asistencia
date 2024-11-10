@@ -128,7 +128,7 @@ const LoginScreen = ({ navigation }) => {
             style={[
               styles.forgotPassword,
               {
-                marginTop: Platform.OS === "android" ? -29 : -20, // Solo en Android se mueve
+                marginTop: Platform.OS === "android" ? -15 : -5, // Solo en Android se mueve
               },
             ]}
           >
@@ -142,7 +142,7 @@ const LoginScreen = ({ navigation }) => {
           styles.iconContainer,
           {
             // Ajustar el tamaño del contenedor según el sistema operativo
-            marginTop: Platform.OS === "ios" ? 15 : 1, // Menor padding en Android si es necesario
+            marginTop: Platform.OS === "ios" ? 20 : 15, // Menor padding en Android si es necesario
           },
         ]}
       >
@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   logo: {
-    width: 150,
-    height: 150,
+    width: 120,
+    height: 120,
     marginBottom: 10,
     marginTop: 10,
     resizeMode: "contain",
