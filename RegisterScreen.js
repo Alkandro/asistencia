@@ -17,13 +17,14 @@ import RNPickerSelect from "react-native-picker-select";
 import { auth, db } from "./firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { useImageContext } from "./ImageContext"; // Importa el contexto
+// import { useImageContext } from "./ImageContext"; // Importa el contexto
 import ButtonGradient from "./ButtonGradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RegisterScreen = ({ navigation }) => {
 
   // Acceder al contexto
-  const { imageUri, setImageUri } = useImageContext();
+  // const { imageUri, setImageUri } = useImageContext();
   // Estados para los campos de entrada
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,6 +39,7 @@ const RegisterScreen = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
+  const [imageUri, setImageUri] = useState(null);
   const defaultProfileImage = require("./assets/fotos/tashiro1.jpg");
 
   // Mapeo de imágenes de cinturones
@@ -72,13 +74,9 @@ const RegisterScreen = ({ navigation }) => {
   // Función de registro
   const registerUser = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
       const userDocRef = doc(db, "users", user.uid);
       await setDoc(userDocRef, {
         username: name,
@@ -96,23 +94,19 @@ const RegisterScreen = ({ navigation }) => {
         imageUri: imageUri, // Guarda la URI de la imagen en Firestore
         role: email === "ale5@hotmail.com" ? "admin" : "user",
       });
-
+  
+      // Guarda la URI de la imagen en AsyncStorage para persistencia
+      await AsyncStorage.setItem("userImageUri", imageUri);
+  
       Alert.alert("Registro exitoso", "Usuario creado");
       navigation.navigate("CheckIn");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         try {
-          const userCredential = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-          );
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-
-          Alert.alert(
-            "Inicio de sesión",
-            "Has iniciado sesión con tu cuenta existente"
-          );
+  
+          Alert.alert("Inicio de sesión", "Has iniciado sesión con tu cuenta existente");
           navigation.navigate("CheckIn");
         } catch (signInError) {
           Alert.alert("Error", "No se pudo iniciar sesión");

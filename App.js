@@ -15,7 +15,7 @@ import Information from "./Information";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 import AppSplashScreen from "./SplashScreen"; // Importa tu componente de SplashScreen
-import { ImageProvider } from "./ImageContext";
+// import { ImageProvider } from "./ImageContext";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -92,7 +92,7 @@ const App = () => {
   }
 
   return (
-    <ImageProvider>
+    // <ImageProvider>
     <NavigationContainer>
       <Stack.Navigator initialRouteName={user ? (role === "admin" ? "UserList" : "Drawer") : "Login"}>
         {!user ? (
@@ -145,7 +145,7 @@ const App = () => {
         )}
       </Stack.Navigator>
     </NavigationContainer>
-    </ImageProvider>
+    // </ImageProvider>
   );
 };
 

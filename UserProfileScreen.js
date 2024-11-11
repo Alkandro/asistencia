@@ -12,7 +12,8 @@ import {
 import { auth, db } from "./firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useImageContext } from "./ImageContext";
+// import { useImageContext } from "./ImageContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 
@@ -28,8 +29,18 @@ const UserProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [newData, setNewData] = useState({});
+  const [imageUri, setImageUri] = useState(null);
+  // const { imageUri } = useImageContext();
 
-  const { imageUri } = useImageContext();
+  useEffect(() => {
+    const loadImage = async () => {
+      const storedImageUri = await AsyncStorage.getItem("userImageUri");
+      if (storedImageUri) {
+        setImageUri(storedImageUri);
+      }
+    };
+    loadImage();
+  }, []);
 
   const fetchUserData = async () => {
     try {
@@ -92,17 +103,20 @@ const UserProfileScreen = () => {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
 
+ 
+
+
   return (
     <View style={styles.container}>
       <Button title="Editar perfil" onPress={handleEdit} />
 
       {userData ? (
         <>
-        <View>
+      <View>
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={{ width: 100, height: 100, borderRadius: 50 }} />
       ) : (
-        <Text>No hay imagen seleccionada</Text>
+        <Image source={require("./assets/fotos/tashiro1.jpg")} style={{ width: 100, height: 100, borderRadius: 50 }} />
       )}
     </View>
           {/* Mostrar datos del usuario */}
