@@ -70,7 +70,7 @@ const AnimatedMessage = () => {
   return (
     <View style={styles.contentContainer}>
       <Animated.View style={[styles.textContainer, animatedTextStyle]}>
-        <Text style={styles.text}>Welcome!!</Text>
+        <Text style={styles.text}>Welcome!</Text>
       </Animated.View>
       <Animated.View style={[styles.messageContainer, animatedStyles]}>
         <Image 
