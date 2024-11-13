@@ -17,14 +17,12 @@ import RNPickerSelect from "react-native-picker-select";
 import { auth, db } from "./firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-// import { useImageContext } from "./ImageContext"; // Importa el contexto
 import ButtonGradient from "./ButtonGradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RegisterScreen = ({ navigation }) => {
 
-  // Acceder al contexto
-  // const { imageUri, setImageUri } = useImageContext();
+
   // Estados para los campos de entrada
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

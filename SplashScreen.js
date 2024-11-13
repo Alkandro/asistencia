@@ -42,11 +42,11 @@ const AnimatedMessage = () => {
   }));
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 8000, easing: Easing.inOut(Easing.ease) });
-    translateY.value = withTiming(0, { duration: 8000, easing: Easing.inOut(Easing.ease) });
+    opacity.value = withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.ease) });
+    translateY.value = withTiming(0, { duration: 7000, easing: Easing.inOut(Easing.ease) });
 
-    opacity2.value = withDelay(1000, withTiming(1, { duration: 8000, easing: Easing.inOut(Easing.ease) }));
-    translateY2.value = withDelay(1000, withTiming(0, { duration: 8000, easing: Easing.inOut(Easing.ease) }));
+    opacity2.value = withDelay(1000, withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.ease) }));
+    translateY2.value = withDelay(1000, withTiming(0, { duration: 7000, easing: Easing.inOut(Easing.ease) }));
 
         // Animación de parpadeo para el texto
     opacityText.value = withRepeat(
@@ -56,11 +56,11 @@ const AnimatedMessage = () => {
      );
 
     // Animación de entrada para el mensaje "by Alejandro Sklar"
-    opacityFooter.value = withDelay(9000, withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }));
-    translateYFooter.value = withDelay(9000, withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) }));
+    opacityFooter.value = withDelay(8000, withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }));
+    translateYFooter.value = withDelay(8000, withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) }));
     // Transición de colores hasta blanco para el mensaje de pie de página
     colorTransition.value = withRepeat(
-      withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1, { duration: 5000, easing: Easing.inOut(Easing.ease) }),
       -1,
       false
     );
