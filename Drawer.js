@@ -1,16 +1,33 @@
-import React, { useState, useCallback, useEffect, useLayoutEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+} from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createDrawerNavigator } from "@react-navigation/drawer";
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Image, Platform } from "react-native";
+import {
+  View,
+  SafeAreaView,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  Image,
+  Platform,
+} from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import CheckInScreen from "./CheckInScreen";
 import AttendanceHistoryScreen from "./AttendanceHistoryScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import Information from "./Information";
+import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
 import "dayjs/locale/es";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import ButtonGradient from "./ButtonGradient";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase"; // Asegúrate de tener configurado Firebase
 
@@ -20,7 +37,8 @@ const Drawer = createDrawerNavigator();
 dayjs.extend(localeData);
 dayjs.locale("es");
 
-const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh }) => {
+const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
+  const { navigation } = props; // Obtén navigation desde props si es necesario
   const [refreshing, setRefreshing] = useState(false);
   const [expandedYear, setExpandedYear] = useState(null);
   const [userImageUri, setUserImageUri] = useState(null); // Estado para la imagen del usuario
@@ -44,9 +62,9 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh }) => {
     }
   };
 
-  useEffect(() => {
-    loadUserData(); // Cargar la información al principio
-  }, []);
+  // useEffect(() => {
+  //   loadUserData(); // Cargar la información al principio
+  // }, []);
 
   // Actualizar datos al hacer refresh
   const handleRefresh = useCallback(async () => {
@@ -56,62 +74,115 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh }) => {
     setRefreshing(false);
   }, [onRefresh]);
 
+  useFocusEffect(
+    useCallback(() => {
+      handleRefresh();
+    }, [handleRefresh])
+  );
+
   // Agrupa los meses por año
-  const groupedByYear = Object.keys(monthlyCheckInCount).reduce((acc, month) => {
-    const year = dayjs(month).year();
-    if (!acc[year]) acc[year] = [];
-    acc[year].push({ month, count: monthlyCheckInCount[month] });
-    return acc;
-  }, {});
+  const groupedByYear = Object.keys(monthlyCheckInCount).reduce(
+    (acc, month) => {
+      const year = dayjs(month).year();
+      if (!acc[year]) acc[year] = [];
+      acc[year].push({ month, count: monthlyCheckInCount[month] });
+      return acc;
+    },
+    {}
+  );
 
   const toggleYear = (year) => {
     setExpandedYear(expandedYear === year ? null : year);
   };
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      // Redirige al login después de cerrar sesión
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.drawerContainer}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
-      <View style={styles.profileContainer}>
-        {/* Muestra la imagen del usuario */}
-        {userImageUri ? (
-          <Image source={{ uri: userImageUri }} style={styles.profileImage} />
+    <SafeAreaView style={{ flex: 1 }}>
+     
+        <View style={styles.profileContainer}>
+          {/* Muestra la imagen del usuario */}
+          {userImageUri ? (
+            <Image source={{ uri: userImageUri }} style={styles.profileImage} />
+          ) : (
+            <Image
+              source={require("./assets/fotos/tashiro1.jpg")}
+              style={styles.profileImage}
+            />
+          )}
+          {/* Muestra el username debajo de la imagen */}
+          <Text style={styles.username}>{username}</Text>
+        </View>
+         <Text style={styles.title}>Historial</Text>
+        <ScrollView
+        contentContainerStyle={styles.drawerContainer}
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+       
+        {Object.keys(groupedByYear).length > 0 ? (
+          Object.keys(groupedByYear)
+            .sort((a, b) => a - b) // Ordenar por año de forma descendente
+            .map((year) => (
+              <View key={year}>
+                <TouchableOpacity
+                  onPress={() => toggleYear(year)}
+                  style={styles.yearRow}
+                >
+                  <Text style={styles.yearText}>{year}</Text>
+                  <Icon
+                    name={expandedYear === year ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#333"
+                  />
+                </TouchableOpacity>
+                {expandedYear === year && (
+                  <View style={styles.monthContainer}>
+                    {groupedByYear[year]
+                      .sort((a, b) => dayjs(a.month).diff(dayjs(b.month)))
+                      .map(({ month, count }) => (
+                        <View key={month} style={styles.monthRow}>
+                          <Text style={styles.monthText}>
+                            {dayjs(month)
+                              .format("MMMM")
+                              .charAt(0)
+                              .toUpperCase() +
+                              dayjs(month).format("MMMM").slice(1)}
+                          </Text>
+                          <Text style={styles.countText}>{count}</Text>
+                        </View>
+                      ))}
+                  </View>
+                )}
+              </View>
+            ))
         ) : (
-          <Image source={require("./assets/fotos/tashiro1.jpg")} style={styles.profileImage} />
+          <Text style={styles.noDataText}>
+            No hay datos de historial disponibles
+          </Text>
         )}
-        {/* Muestra el username debajo de la imagen */}
-        <Text style={styles.username}>{username}</Text>
-      </View>
-
-      <Text style={styles.title}>Historial</Text>
-      {Object.keys(groupedByYear).length > 0 ? (
-        Object.keys(groupedByYear)
-          .sort((a, b) => a - b) // Ordenar por año de forma descendente
-          .map((year) => (
-            <View key={year}>
-              <TouchableOpacity onPress={() => toggleYear(year)} style={styles.yearRow}>
-                <Text style={styles.yearText}>{year}</Text>
-                <Icon name={expandedYear === year ? "chevron-up" : "chevron-down"} size={20} color="#333" />
-              </TouchableOpacity>
-              {expandedYear === year && (
-                <View style={styles.monthContainer}>
-                  {groupedByYear[year]
-                    .sort((a, b) => dayjs(a.month).diff(dayjs(b.month)))
-                    .map(({ month, count }) => (
-                      <View key={month} style={styles.monthRow}>
-                        <Text style={styles.monthText}>{dayjs(month).format("MMMM").charAt(0).toUpperCase() + dayjs(month).format("MMMM").slice(1)}</Text>
-                        <Text style={styles.countText}>{count}</Text>
-                      </View>
-                    ))}
-                </View>
-              )}
-            </View>
-          ))
-      ) : (
-        <Text style={styles.noDataText}>No hay datos de historial disponibles</Text>
-      )}
-    </ScrollView>
+      </ScrollView>
+      <View style={styles.buttonContainer}>
+      <ButtonGradient
+        onPress={handleSignOut}
+        title="Sign Out"
+        style={styles.button}
+      />
+</View>
+      {/* Botón para cerrar sesión */}
+      {/* <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
+        <Text style={styles.logoutText}>Cerrar Sesión</Text>
+      </TouchableOpacity>
+     */}
+    </SafeAreaView>
   );
 };
 
@@ -141,7 +212,8 @@ const UserBottomTabs = ({ navigation, route }) => {
         tabBarIcon: ({ color, size }) => {
           let iconName;
           if (route.name === "CheckIn") iconName = "checkmark-circle-outline";
-          else if (route.name === "AttendanceHistory") iconName = "time-outline";
+          else if (route.name === "AttendanceHistory")
+            iconName = "time-outline";
           else if (route.name === "UserProfile") iconName = "person-outline";
           return <Icon name={iconName} size={size} color={color} />;
         },
@@ -190,9 +262,20 @@ const AppDrawer = ({ monthlyCheckInCount, fetchMonthlyCheckInCount }) => (
       headerTintColor: "#fff",
     }}
   >
-    <Drawer.Screen name="UserTabs" component={UserBottomTabs} options={{ title: "Inicio", headerTitleAlign: "center" }} />
-    <Drawer.Screen name="Information" component={Information} options={{ title: "Información" }} />
-    <Drawer.Screen name="AttendanceHistory" component={AttendanceHistoryScreen} />
+    <Drawer.Screen
+      name="UserTabs"
+      component={UserBottomTabs}
+      options={{ title: "Inicio", headerTitleAlign: "center" }}
+    />
+    <Drawer.Screen
+      name="Information"
+      component={Information}
+      options={{ title: "Información" }}
+    />
+    <Drawer.Screen
+      name="AttendanceHistory"
+      component={AttendanceHistoryScreen}
+    />
   </Drawer.Navigator>
 );
 
@@ -223,6 +306,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 10,
     color: "#333",
+    marginLeft:80,
+    marginRight:80,
   },
   yearRow: {
     flexDirection: "row",
@@ -268,6 +353,21 @@ const styles = StyleSheet.create({
   },
   headerStyle: {
     backgroundColor: "#007bff",
+  },
+  buttonContainer: {
+   
+    height: 90,
+    
+  },
+  button: {
+    width: "80%",
+    height: 50,
+    borderRadius: 25,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: "auto",
+    marginVertical: "auto",
   },
 });
 

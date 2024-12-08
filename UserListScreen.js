@@ -45,7 +45,7 @@ const UserListScreen = () => {
   const handleSignOut = async () => {
     try {
       await auth.signOut(); // Cierra la sesión del usuario
-      navigation.navigate("Login"); // Redirigir al usuario a la pantalla de Login
+      navigation.navigate("LoginScreen"); // Redirigir al usuario a la pantalla de Login
     } catch (error) {
       Alert.alert("Error", `No se pudo cerrar la sesión: ${error.message}`);
     }

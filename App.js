@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 
 // Importa los componentes y pantallas de la aplicación
 import AppDrawer from "./Drawer";
-import LoginScreen from "./Login";
+import LoginScreen from "./LoginScreen";
 import RegisterScreen from "./RegisterScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import UserListScreen from "./UserListScreen";
@@ -99,33 +99,38 @@ const App = () => {
       </View>
     );
   }
+  // Determinar la ruta inicial según la autenticación y el rol del usuario
+  const initialRoute = !user 
+    ? "LoginScreen" 
+    : role === "admin" 
+      ? "UserList" 
+      : "Drawer";
 
   // Configuración de la navegación
   return (
     <NavigationContainer>
-      
-      <Stack.Navigator initialRouteName={user ? (role === "admin" ? "UserList" : "Drawer") : "Login"}>
+      <Stack.Navigator initialRouteName={initialRoute}>
         {!user ? (
-          // Si el usuario no está autenticado, muestra las pantallas de Login y Registro
+          // Si el usuario no está autenticado, muestra las pantallas de Login, Information y Registro
           <>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Information" component={Information} options={{ title: "Información", headerTitleAlign: "center" }} />
             <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Registro de Usuario", headerTitleAlign: "center" }} />
           </>
         ) : role === "admin" ? (
           // Si el usuario es administrador, muestra la lista de usuarios y el perfil
           <>
-            <Stack.Screen name="UserList" component={UserListScreen} />
+            <Stack.Screen name="UserList" component={UserListScreen} options={{ title: "Lista de Usuarios", headerTitleAlign: "center" }} />
             <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Perfil de Usuario", headerTitleAlign: "center" }} />
           </>
         ) : (
-          // Si el usuario es normal, muestra el Drawer con las pestañas de usuario
+          // Si el usuario es normal, muestra el Drawer con las pestañas
           <Stack.Screen name="Drawer" options={{ headerShown: false, headerTitleAlign: "center" }}>
             {(props) => (
-              <AppDrawer 
-                {...props} 
-                monthlyCheckInCount={monthlyCheckInCount} 
-                fetchMonthlyCheckInCount={fetchMonthlyCheckInCount} 
+              <AppDrawer
+                {...props}
+                monthlyCheckInCount={monthlyCheckInCount}
+                fetchMonthlyCheckInCount={fetchMonthlyCheckInCount}
               />
             )}
           </Stack.Screen>

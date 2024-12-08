@@ -19,6 +19,7 @@ import { auth, db } from "./firebase"; // Asegúrate de importar Firestore
 import { doc, getDoc } from "firebase/firestore"; // Para obtener el rol del usuario
 import ButtonGradient from "./ButtonGradient";
 import Icon from "react-native-vector-icons/FontAwesome"; // Ajusta el icono según tu preferencia
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Obtener las dimensiones de la pantalla
 const { width, height } = Dimensions.get("window");
@@ -85,6 +86,11 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.mainContainer}>
+      <KeyboardAwareScrollView
+      contentContainerStyle={{ flexGrow: 1 }}
+      extraScrollHeight={20} // Ajusta según sea necesario
+      keyboardShouldPersistTaps="handled"
+    >
       {/* StatusBar para ajustar la pantalla debajo de la barra */}
       <StatusBar barStyle="dark-content" backgroundColor="#f1f1f1" />
 
@@ -159,6 +165,7 @@ const LoginScreen = ({ navigation }) => {
           <Icon name="instagram" size={30} color="#E1306C" />
         </TouchableOpacity>
       </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };

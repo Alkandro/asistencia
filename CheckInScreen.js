@@ -89,7 +89,7 @@ const CheckInScreen = () => {
   const handleSignOut = async () => {
     try {
       await auth.signOut();
-      navigation.navigate("Login");
+      
     } catch (error) {
       Alert.alert("Error", `No se pudo cerrar la sesión: ${error.message}`);
     }
