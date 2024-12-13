@@ -30,6 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ButtonGradient from "./ButtonGradient";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase"; // Asegúrate de tener configurado Firebase
+import { useDrawerStatus } from '@react-navigation/drawer';
 
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
@@ -44,6 +45,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
   const [userImageUri, setUserImageUri] = useState(null); // Estado para la imagen del usuario
   const [username, setUsername] = useState(""); // Estado para el username
 
+  const drawerStatus = useDrawerStatus(); // "open" o "closed"
   // Función para cargar la información del usuario desde Firebase y AsyncStorage
   const loadUserData = async () => {
     // Cargar la imagen del usuario desde AsyncStorage
@@ -62,10 +64,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
     }
   };
 
-  // useEffect(() => {
-  //   loadUserData(); // Cargar la información al principio
-  // }, []);
-
+  
   // Actualizar datos al hacer refresh
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -79,6 +78,12 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       handleRefresh();
     }, [handleRefresh])
   );
+   // Llamar handleRefresh cada vez que el drawer se abra
+   useEffect(() => {
+    if (drawerStatus === 'open') {
+      handleRefresh();
+    }
+  }, [drawerStatus, handleRefresh]);
 
   // Agrupa los meses por año
   const groupedByYear = Object.keys(monthlyCheckInCount).reduce(
@@ -177,11 +182,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
         style={styles.button}
       />
 </View>
-      {/* Botón para cerrar sesión */}
-      {/* <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-        <Text style={styles.logoutText}>Cerrar Sesión</Text>
-      </TouchableOpacity>
-     */}
+     
     </SafeAreaView>
   );
 };
@@ -225,21 +226,21 @@ const UserBottomTabs = ({ navigation, route }) => {
         name="CheckIn"
         component={CheckInScreen}
         options={{
-          headerTitleAlign: "center",
+          headerShown: false ,
         }}
       />
       <Tab.Screen
         name="AttendanceHistory"
         component={AttendanceHistoryScreen}
         options={{
-          headerTitleAlign: "center",
+          headerShown: false ,
         }}
       />
       <Tab.Screen
         name="UserProfile"
         component={UserProfileScreen}
         options={{
-          headerTitleAlign: "center",
+           headerShown: false ,
         }}
       />
     </Tab.Navigator>
@@ -275,6 +276,7 @@ const AppDrawer = ({ monthlyCheckInCount, fetchMonthlyCheckInCount }) => (
     <Drawer.Screen
       name="AttendanceHistory"
       component={AttendanceHistoryScreen}
+      options={{ title: "Información" }}
     />
   </Drawer.Navigator>
 );

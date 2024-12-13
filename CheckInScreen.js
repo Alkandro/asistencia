@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Button, Alert, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, Alert, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { recordCheckIn } from "./Attendance";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { auth, db } from './firebase';
+import ButtonGradient from "./ButtonGradient";
 import { doc, getDoc, updateDoc, increment, collection, query, where, getDocs } from "firebase/firestore";
 import dayjs from 'dayjs';
 
@@ -25,10 +26,9 @@ const CheckInScreen = () => {
         const currentMonthKey = dayjs().format('YYYY-MM');
         let count = 0;
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
           const timestamp = data.timestamp?.seconds ? new Date(data.timestamp.seconds * 1000) : null;
-
           if (timestamp && dayjs(timestamp).format('YYYY-MM') === currentMonthKey) {
             count++;
           }
@@ -41,9 +41,17 @@ const CheckInScreen = () => {
     }
   };
 
+  // Este useEffect se ejecuta una sola vez al montar la pantalla
   useEffect(() => {
     fetchMonthlyCheckIns();
   }, []);
+
+  // useFocusEffect se ejecuta cada vez que la pantalla gana el foco.
+  useFocusEffect(
+    useCallback(() => {
+      fetchMonthlyCheckIns();
+    }, [])
+  );
 
   const handleCheckIn = async () => {
     if (auth.currentUser) {
@@ -86,15 +94,6 @@ const CheckInScreen = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await auth.signOut();
-      
-    } catch (error) {
-      Alert.alert("Error", `No se pudo cerrar la sesión: ${error.message}`);
-    }
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMonthlyCheckIns(); // Refresca los datos
@@ -102,20 +101,26 @@ const CheckInScreen = () => {
   };
 
   return (
+    <View style={styles.container} >
     <ScrollView 
-      style={styles.container} 
-      contentContainerStyle={styles.contentContainer} // Aplicar estilos aquí
+      style={{flex:1}} 
+      contentContainerStyle={styles.contentContainer}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
       <Text style={styles.title}>Menu</Text>
-      <Text style={styles.counter}>Check-ins este mes: {monthlyCheckIns}</Text>
-      <View>
-        <Button title="Check-in" onPress={handleCheckIn} />
-        <Button title="Cerrar Sesión" onPress={handleSignOut} />
+      <Text style={styles.counter}>Este mes has entrenado : {monthlyCheckIns} veces</Text>
+      </ScrollView>
+      <View style={styles.buttonContainer}>
+        <ButtonGradient
+          onPress={handleCheckIn}
+          title="REGISTRO"
+          style={styles.button}
+        />
       </View>
-    </ScrollView>
+    
+    </View>
   );
 };
 
@@ -136,6 +141,18 @@ const styles = StyleSheet.create({
   counter: {
     fontSize: 16,
     marginBottom: 10,
+  },
+  buttonContainer: {
+    height: 80,
+  },
+  button: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: "auto",
+    marginVertical: "auto",
+    width: 270,    // Ajusta el ancho
+    height: 50,    // Ajusta la altura
+    
   },
 });
 

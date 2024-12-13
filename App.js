@@ -121,7 +121,7 @@ const App = () => {
           // Si el usuario es administrador, muestra la lista de usuarios y el perfil
           <>
             <Stack.Screen name="UserList" component={UserListScreen} options={{ title: "Lista de Usuarios", headerTitleAlign: "center" }} />
-            <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Perfil de Usuario", headerTitleAlign: "center" }} />
+            <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }}/>
           </>
         ) : (
           // Si el usuario es normal, muestra el Drawer con las pestañas
