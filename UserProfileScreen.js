@@ -5,25 +5,31 @@ import {
   ActivityIndicator,
   StyleSheet,
   Image,
-  Button,
   TextInput,
   Modal,
   ScrollView,
-  KeyboardAvoidingView,
+  SafeAreaView,
   Platform,
 } from "react-native";
 import { auth, db } from "./firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { MaterialIcons } from "@expo/vector-icons";
 import ButtonGradient from "./ButtonGradient";
+import RNPickerSelect from "react-native-picker-select";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-// Importar imágenes de los cinturones
-import WhiteBelt from "./assets/fotos/whiteBelt.png";
-import BlueBelt from "./assets/fotos/blueBelt.png";
-import PurpleBelt from "./assets/fotos/purpleBelt.png";
-import BrownBelt from "./assets/fotos/brownBelt.png";
-import BlackBelt from "./assets/fotos/blackBelt.png";
+// Mapeo de imágenes de cinturones
+const beltImages = {
+  white: require("./assets/fotos/whiteBelt.png"),
+  blue: require("./assets/fotos/blueBelt.png"),
+  purple: require("./assets/fotos/purpleBelt.png"),
+  brown: require("./assets/fotos/brownBelt.png"),
+  black: require("./assets/fotos/blackBelt.png"),
+};
+
+const getBeltImage = (belt) =>
+  beltImages[belt?.toLowerCase()] || beltImages["white"];
 
 const UserProfileScreen = () => {
   const [userData, setUserData] = useState(null);
@@ -31,7 +37,7 @@ const UserProfileScreen = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [newData, setNewData] = useState({});
   const [imageUri, setImageUri] = useState(null);
-  // const { imageUri } = useImageContext();
+  const [cinturon, setNewCinturon] = useState(""); // Estado para el cinturón
 
   useEffect(() => {
     const loadImage = async () => {
@@ -41,6 +47,7 @@ const UserProfileScreen = () => {
       }
     };
     loadImage();
+    fetchUserData();
   }, []);
 
   const fetchUserData = async () => {
@@ -50,8 +57,6 @@ const UserProfileScreen = () => {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           setUserData(userDoc.data());
-        } else {
-          console.log("No se encontraron datos para este usuario");
         }
       }
     } catch (error) {
@@ -61,34 +66,20 @@ const UserProfileScreen = () => {
     }
   };
 
-  const getBeltImage = (beltColor) => {
-    switch (beltColor) {
-      case "white":
-        return WhiteBelt;
-      case "blue":
-        return BlueBelt;
-      case "purple":
-        return PurpleBelt;
-      case "brown":
-        return BrownBelt;
-      case "black":
-        return BlackBelt;
-      default:
-        return null;
-    }
-  };
-
   const handleEdit = () => {
     setNewData(userData);
+    setNewCinturon(userData.cinturon); // Inicializar el estado del cinturón
     setIsEditing(true);
   };
 
+  // CORRECCIÓN DEL ERROR: handleSave actualiza el cinturón
   const handleSave = async () => {
     try {
       const user = auth.currentUser;
       if (user) {
-        await updateDoc(doc(db, "users", user.uid), newData);
-        setUserData(newData);
+        const updatedData = { ...newData, cinturon: cinturon }; // Incluye el nuevo cinturón
+        await updateDoc(doc(db, "users", user.uid), updatedData);
+        setUserData(updatedData);
         setIsEditing(false);
       }
     } catch (error) {
@@ -96,310 +87,357 @@ const UserProfileScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View >
-        <View style={styles.fixedHeader}>
-          <View style={styles.imagenPerfil}>
-            {imageUri ? (
-              <Image
-                source={{ uri: imageUri }}
-                style={{ width: 100, height: 100, borderRadius: 50 }}
+    <SafeAreaView style={styles.mainContainer}>
+      <KeyboardAwareScrollView
+        behavior={Platform.OS === "ios" ? "height" : "height"}
+        style={styles.container}
+      >
+        <View>
+          <View style={styles.fixedHeader}>
+            <View style={styles.imagenPerfil}>
+              {imageUri ? (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{ width: 100, height: 100, borderRadius: 50 }}
+                />
+              ) : (
+                <Image
+                  source={require("./assets/fotos/tashiro1.jpg")}
+                  style={{ width: 100, height: 100, borderRadius: 50 }}
+                />
+              )}
+            </View>
+            <View style={styles.buttonContainer}>
+              <ButtonGradient
+                title="Editar Perfil"
+                onPress={handleEdit}
+                style={styles.button}
               />
-            ) : (
-              <Image
-                source={require("./assets/fotos/tashiro1.jpg")}
-                style={{ width: 100, height: 100, borderRadius: 50 }}
-              />
-            )}
+            </View>
           </View>
-          <View style={styles.buttonContainer}>
-            <ButtonGradient
-              title="Editar Perfil"
-              onPress={handleEdit}
-              style={styles.button}
-            />
-          </View>
-        </View>
-        <ScrollView >
-          <View style={styles.container}>
-            {userData ? (
-              <>
-                {/* Mostrar datos del usuario */}
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="badge"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.nombre}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="badge"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.apellido}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="person"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.username}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="phone"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.phone}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="location-city"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.ciudad}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="location-on"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.provincia}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="schedule"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.edad} años</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="scale"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.peso} kg</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="height"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.altura} cm</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Image
-                    source={getBeltImage(userData.cinturon)}
-                    style={styles.icon1}
-                  />
-                  <Text style={styles.text}>{userData.cinturon}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="wc"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.genero}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MaterialIcons
-                    name="email"
-                    size={20}
-                    color="#000"
-                    style={styles.icon}
-                  />
-                  <Text style={styles.text}>{userData.email}</Text>
-                </View>
+          <ScrollView>
+            <View style={styles.container}>
+              {userData ? (
+                <>
+                  {/* Mostrar datos del usuario */}
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="badge"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.nombre}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="badge"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.apellido}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="person"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.username}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="phone"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.phone}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="location-city"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.ciudad}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="location-on"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.provincia}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="schedule"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.edad} años</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="scale"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.peso} kg</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="height"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.altura} cm</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Image
+                      source={getBeltImage(userData.cinturon)}
+                      style={styles.icon1}
+                    />
+                    <Text style={styles.text}>{userData.cinturon}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="wc"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.genero}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialIcons
+                      name="email"
+                      size={20}
+                      color="#000"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.text}>{userData.email}</Text>
+                  </View>
 
-                {/* Modal para editar la información */}
-                <Modal visible={isEditing} animationType="slide">
-                  <View style={styles.modalContainer}>
-                    <Text>Editar perfil</Text>
+                  {/* Modal para editar la información */}
+                  <Modal visible={isEditing} animationType="slide">
+                    <View style={styles.modalContainer}>
+                      <Text
+                        style={{
+                          color: "#000",
+                          fontSize: 18,
+                          fontStyle:"italic",
+                          marginBottom: 15,
+                          fontWeight:"bold"
+                        }}
+                      >
+                        Editar perfil
+                      </Text>
 
-                    <TextInput
-                      style={styles.input}
-                      value={`Nombre: ${newData.nombre}`}
-                      onChangeText={(text) => {
-                        // Remueve el prefijo "Nombre: " para actualizar solo el nombre
-                        const newName = text.replace("Nombre: ", "");
-                        setNewData({ ...newData, nombre: newName });
-                      }}
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={`Apellido: ${newData.apellido}`}
-                      onChangeText={(text) => {
-                        const nuevoApellido = text.replace("Apellido: ", ""); // Eliminar el prefijo al actualizar
-                        setNewData({ ...newData, apellido: nuevoApellido });
-                      }}
-                      placeholder="Apellido"
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={`User: ${newData.username}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          username: text.replace(/^User: /, ""),
-                        })
-                      }
-                      placeholder="User"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Teléfono: ${newData.phone}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          phone: text.replace(/^Teléfono: /, ""),
-                        })
-                      }
-                      placeholder="Teléfono"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Ciudad: ${newData.ciudad}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          ciudad: text.replace(/^Ciudad: /, ""),
-                        })
-                      }
-                      placeholder="Ciudad"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Provincia: ${newData.provincia}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          provincia: text.replace(/^Provincia: /, ""),
-                        })
-                      }
-                      placeholder="Provincia"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Edad: ${newData.edad}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          edad: text.replace(/^Edad: /, ""),
-                        })
-                      }
-                      placeholder="Edad"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Peso: ${newData.peso}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          peso: text.replace(/^Peso: /, ""),
-                        })
-                      }
-                      placeholder="Peso"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Altura: ${newData.altura}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          altura: text.replace(/^Altura: /, ""),
-                        })
-                      }
-                      placeholder="Altura"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Email: ${newData.email}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          email: text.replace(/^Email: /, ""),
-                        })
-                      }
-                      placeholder="Email"
-                    />
-
-                    <TextInput
-                      style={styles.input}
-                      value={`Cinturon: ${newData.cinturon}`}
-                      onChangeText={(text) =>
-                        setNewData({
-                          ...newData,
-                          cinturon: text.replace(/^Cinturon: /, ""),
-                        })
-                      }
-                      placeholder="Cinturon"
-                    />
-                    <View style={{ flexDirection: "row", marginTop: 30 }}>
-                      <View style={styles.buttonContainer1}>
-                        <ButtonGradient
-                          title="Guardar"
-                          onPress={handleSave}
-                          style={styles.button1}
+                      <KeyboardAwareScrollView
+                        behavior={Platform.OS === "ios" ? "padding" : "height"}
+                        style={{ width: "100%" }} // Asegura que el scrollview ocupe todo el ancho
+                        contentContainerStyle={styles.modalScrollContent}
+                      >
+                        <Text style={styles.text1}>Nombre</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.nombre}`}
+                         
+                          onChangeText={(text) => {
+                            // Remueve el prefijo "Nombre: " para actualizar solo el nombre
+                            const newName = text.replace("Nombre: ", "");
+                            setNewData({ ...newData, nombre: newName });
+                          }}
+                          placeholder="Nombre"
+                          placeholderTextColor="red"
                         />
-                      </View>
-                      <View style={styles.buttonContainer2}>
-                        <ButtonGradient
-                          title="Cancelar"
-                          onPress={() => setIsEditing(false)}
-                          style={styles.button1}
+                        <Text style={styles.text1}>Apellido</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.apellido}`}
+                          onChangeText={(text) => {
+                            const nuevoApellido = text.replace(
+                              "Apellido: ",
+                              ""
+                            ); // Eliminar el prefijo al actualizar
+                            setNewData({ ...newData, apellido: nuevoApellido });
+                          }}
+                          placeholder="Apellido"
+                          placeholderTextColor="red"
                         />
+                        <Text style={styles.text1}>User</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.username}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              username: text.replace(/^User: /, ""),
+                            })
+                          }
+                          placeholder="User"
+                          placeholderTextColor="red"
+                        />
+                        <Text style={styles.text1}>Telefono</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.phone}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              phone: text.replace(/^Teléfono: /, ""),
+                            })
+                          }
+                          placeholder="Teléfono"
+                          placeholderTextColor="red"
+                        />
+                        <Text style={styles.text1}>Ciudad</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.ciudad}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              ciudad: text.replace(/^Ciudad: /, ""),
+                            })
+                          }
+                          placeholder="Ciudad"
+                          placeholderTextColor="red"
+                        />
+                        <Text style={styles.text1}>Provincia</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.provincia}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              provincia: text.replace(/^Provincia: /, ""),
+                            })
+                          }
+                          placeholder="Provincia"
+                          placeholderTextColor="red"
+                        />
+                        <Text style={styles.text1}>Edad</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.edad}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              edad: text.replace(/^Edad: /,""),
+                            })
+                          }
+                          placeholder="Edad"
+                          placeholderTextColor="red"
+                        />
+                        <Text style={styles.text1}>Peso</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.peso}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              peso: text.replace(/^Peso: /, ""),
+                            })
+                          }
+                          placeholder="Peso"
+                          placeholderTextColor="red"
+                        />
+                        <Text style={styles.text1}>Altura</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.altura}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              altura: text.replace(/^Altura: /, ""),
+                            })
+                          }
+                          placeholder="Altura"
+                          placeholderTextColor="red"
+                        />
+                        <Text style={styles.text1}>Email</Text>
+                        <TextInput
+                          style={styles.TextInput}
+                          value={`${newData.email}`}
+                          onChangeText={(text) =>
+                            setNewData({
+                              ...newData,
+                              email: text.replace(/^Email: /, ""),
+                            })
+                          }
+                          placeholder="Email"
+                          placeholderTextColor="red"
+                        />
+
+                        <Text style={styles.text1}>Cinturón</Text>
+                        <RNPickerSelect
+                          onValueChange={(value) => setNewCinturon(value)}
+                          items={[
+                            { label: "White", value: "white" },
+                            { label: "Blue", value: "blue" },
+                            { label: "Purple", value: "purple" },
+                            { label: "Brown", value: "brown" },
+                            { label: "Black", value: "black" },
+                          ]}
+                          style={pickerSelectStyles}
+                          placeholder={{
+                            label: "Selecciona tu cinturón",
+                            value: null,
+                            
+                          }}
+                        />
+
+                        {/* Imagen del cinturón */}
+                        {cinturon ? (
+                          <Image
+                            source={getBeltImage(cinturon)}
+                            style={styles.beltImage}
+                          />
+                        ) : null}
+                      </KeyboardAwareScrollView>
+
+                      <View style={{ flexDirection: "row", marginTop: 30 }}>
+                        <View style={styles.buttonContainer2}>
+                          <ButtonGradient
+                            title="Cancelar"
+                            onPress={() => setIsEditing(false)}
+                            style={styles.button2}
+                          />
+                        </View>
+                        <View style={styles.buttonContainer1}>
+                          <ButtonGradient
+                            title="Guardar"
+                            onPress={handleSave}
+                            style={styles.button1}
+                          />
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </Modal>
-              </>
-            ) : (
-              <Text>No se encontraron datos del usuario</Text>
-            )}
-          </View>
-        </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+                  </Modal>
+                </>
+              ) : (
+                <Text style={styles.text1}>No se encontraron datos del usuario</Text>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -409,16 +447,17 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#fff",
   },
+  modalScrollContent: {
+    alignItems: "center", // Asegura que los inputs estén centrados
+    paddingBottom: 20, // Espacio adicional para que el último input no quede oculto
+  },
   mainContainer: {
     flex: 1,
-    backgroundColor: "#fff",
-    height:150,
-    backgroundColor:"red",
   },
   imagenPerfil: {
     flex: 1,
     alignItems: "center",
-    margin:-10,
+    margin: -10,
   },
   infoRow: {
     flexDirection: "row",
@@ -444,24 +483,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "black",
+    backgroundColor: "#DCE6E5",
   },
-  input: {
-    width: "80%",
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 2,
-    marginBottom: 16,
-    paddingLeft: 8,
-    borderRadius: 6,
-    color: "white",
-    fontSize: 17,
+  text1: {
+    fontSize: 15,
+    fontStyle: "italic",
+    fontWeight: "bold",
+    marginTop: 10,
+    color:"#000",
+    marginLeft:-250,
+  },
+  TextInput: {
+    padding: 10,
+    paddingStart: 15,
+    width: "100%",
+    height: 50,
+    marginTop: 3,
+    borderRadius: 30,
+    backgroundColor: "#fff",
   },
   buttonContainer: {
     alignItems: "center",
     backgroundColor: "transparent",
     padding: 10,
-    margin:-15,
+    margin: -15,
   },
   buttonContainer1: {
     alignItems: "center",
@@ -497,14 +542,56 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: "center",
     justifyContent: "center",
+    width: 180,
+    marginLeft: 50,
+    marginBottom: 16,
+  },
+  button2: {
+    borderRadius: 25,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    width: 180,
+    marginRight: 50,
+    marginBottom: 16,
   },
   fixedHeader: {
     backgroundColor: "#fff",
     paddingVertical: 10,
-    height:170,
-    // Puedes agregar estilos adicionales para mostrar una línea debajo, por ejemplo
+    height: 170,
     
-    borderBottomColor: "#ccc",
+  },
+});
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "gray",
+    borderRadius: 5,
+    color: "black",
+    paddingRight: 30, // To ensure the text is never behind the icon
+    marginBottom: 10,
+  },
+  placeholder: {
+    color: 'black', // Cambia este color al que desees
+    fontSize: 16,
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "gray",
+    borderRadius: 5,
+    color: "black",
+    paddingRight: 30, // To ensure the text is never behind the icon
+    marginBottom: 10,
+  },
+  placeholder: {
+    color: 'black', // Cambia este color al que desees
+    fontSize: 16,
   },
 });
 

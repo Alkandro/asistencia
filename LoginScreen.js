@@ -58,7 +58,7 @@ const LoginScreen = ({ navigation }) => {
           navigation.navigate("UserListScreen");
         } else {
           // Si el usuario no es admin, navegar a CheckInScreen
-          navigation.navigate("CheckIn");
+          navigation.navigate("Registrarse");
         }
       } else {
         Alert.alert(

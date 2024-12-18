@@ -245,7 +245,7 @@ const RegisterScreen = ({ navigation }) => {
 
         {/* Imagen del cinturón */}
         {cinturon ? (
-          <Image source={getBeltImage(cinturon)} style={styles.beltImage} />
+          <Image source={getBeltImage(cinturon)}  />
         ) : null}
         <Text style={styles.text}>Contraseña</Text>
         <TextInput

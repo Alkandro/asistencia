@@ -212,10 +212,10 @@ const UserBottomTabs = ({ navigation, route }) => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName;
-          if (route.name === "CheckIn") iconName = "checkmark-circle-outline";
-          else if (route.name === "AttendanceHistory")
+          if (route.name === "Registrarse") iconName = "checkmark-circle-outline";
+          else if (route.name === "Historial")
             iconName = "time-outline";
-          else if (route.name === "UserProfile") iconName = "person-outline";
+          else if (route.name === "Profile") iconName = "person-outline";
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "blue",
@@ -223,21 +223,21 @@ const UserBottomTabs = ({ navigation, route }) => {
       })}
     >
       <Tab.Screen
-        name="CheckIn"
+        name="Registrarse"
         component={CheckInScreen}
         options={{
           headerShown: false ,
         }}
       />
       <Tab.Screen
-        name="AttendanceHistory"
+        name="Historial"
         component={AttendanceHistoryScreen}
         options={{
           headerShown: false ,
         }}
       />
       <Tab.Screen
-        name="UserProfile"
+        name="Profile"
         component={UserProfileScreen}
         options={{
            headerShown: false ,
@@ -285,6 +285,8 @@ const styles = StyleSheet.create({
   drawerContainer: {
     padding: 16,
     backgroundColor: "#f5f5f5",
+    flexGrow: 1,
+    paddingBottom: 0
   },
   profileContainer: {
     alignItems: "center",
@@ -352,9 +354,11 @@ const styles = StyleSheet.create({
   },
   drawerStyle: {
     width: 250,
+    flex:1,
+    // backgroundColor:"transparent",
   },
   headerStyle: {
-    backgroundColor: "#007bff",
+    backgroundColor: "black",
   },
   buttonContainer: {
    

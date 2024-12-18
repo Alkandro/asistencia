@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, SafeAreaView } from "react-native";
 import { auth, db } from "./firebase"; // Importa Firebase Auth y Firestore desde tu configuración de Firebase
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import dayjs from "dayjs";
@@ -108,7 +108,8 @@ const App = () => {
 
   // Configuración de la navegación
   return (
-    <NavigationContainer>
+    
+    <NavigationContainer style={{ flex: 1}}>
       <Stack.Navigator initialRouteName={initialRoute}>
         {!user ? (
           // Si el usuario no está autenticado, muestra las pantallas de Login, Information y Registro
@@ -137,6 +138,7 @@ const App = () => {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+   
   );
 };
 

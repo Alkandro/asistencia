@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, Alert, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import { View, Text, Alert, StyleSheet, ScrollView, RefreshControl, SafeAreaView } from "react-native";
 import { recordCheckIn } from "./Attendance";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { auth, db } from './firebase';
@@ -101,6 +101,7 @@ const CheckInScreen = () => {
   };
 
   return (
+    <SafeAreaView style={styles.container}>
     <View style={styles.container} >
     <ScrollView 
       style={{flex:1}} 
@@ -121,6 +122,7 @@ const CheckInScreen = () => {
       </View>
     
     </View>
+    </SafeAreaView>
   );
 };
 
