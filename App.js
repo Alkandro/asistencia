@@ -6,6 +6,10 @@ import { auth, db } from "./firebase"; // Importa Firebase Auth y Firestore desd
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import dayjs from "dayjs";
 
+// Importar los nuevos stacks
+import AuthStack from "./AuthStack";
+import AdminStack from "./AdminStack";
+import UserStack from "./UserStack";
 // Importa los componentes y pantallas de la aplicación
 import AppDrawer from "./Drawer";
 import LoginScreen from "./LoginScreen";
@@ -68,6 +72,7 @@ const App = () => {
   }, []);
 
   // Configura el listener para cambios en la autenticación del usuario
+  // Auth listener
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
       if (authUser) {
@@ -75,7 +80,7 @@ const App = () => {
         const userDocRef = doc(db, "users", authUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setRole(userDoc.data().role); // Actualiza el rol del usuario
+          setRole(userDoc.data().role);
         }
       } else {
         setUser(null);
@@ -86,7 +91,6 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Muestra la pantalla de splash si está cargando
   if (isSplashLoading) {
     return <AppSplashScreen />;
   }
@@ -99,47 +103,27 @@ const App = () => {
       </View>
     );
   }
-  // Determinar la ruta inicial según la autenticación y el rol del usuario
-  const initialRoute = !user 
-    ? "LoginScreen" 
-    : role === "admin" 
-      ? "UserList" 
-      : "Drawer";
+  
 
   // Configuración de la navegación
   return (
     
-    <NavigationContainer style={{ flex: 1}}>
-      <Stack.Navigator initialRouteName={initialRoute}>
-        {!user ? (
-          // Si el usuario no está autenticado, muestra las pantallas de Login, Information y Registro
-          <>
-            <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Information" component={Information} options={{ title: "Información", headerTitleAlign: "center" }} />
-            <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Registro de Usuario", headerTitleAlign: "center" }} />
-          </>
-        ) : role === "admin" ? (
-          // Si el usuario es administrador, muestra la lista de usuarios y el perfil
-          <>
-            <Stack.Screen name="UserList" component={UserListScreen} options={{ title: "Lista de Usuarios", headerTitleAlign: "center" }} />
-            <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }}/>
-          </>
-        ) : (
-          // Si el usuario es normal, muestra el Drawer con las pestañas
-          <Stack.Screen name="Drawer" options={{ headerShown: false, headerTitleAlign: "center" }}>
-            {(props) => (
-              <AppDrawer
-                {...props}
-                monthlyCheckInCount={monthlyCheckInCount}
-                fetchMonthlyCheckInCount={fetchMonthlyCheckInCount}
-              />
-            )}
-          </Stack.Screen>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
-   
-  );
+    <NavigationContainer>
+    {!user ? (
+      // Si no hay usuario, stack de autenticación
+      <AuthStack />
+    ) : role === "admin" ? (
+      // Si es admin, stack para admin
+      <AdminStack />
+    ) : (
+      // Si es usuario normal, stack para usuario
+      <UserStack 
+        monthlyCheckInCount={monthlyCheckInCount} 
+        fetchMonthlyCheckInCount={fetchMonthlyCheckInCount}
+      />
+    )}
+  </NavigationContainer>
+);
 };
 
 export default App;

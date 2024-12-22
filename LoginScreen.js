@@ -55,7 +55,7 @@ const LoginScreen = ({ navigation }) => {
 
         if (userRole === "admin") {
           // Si el usuario es admin, navegar a UserListScreen
-          navigation.navigate("UserListScreen");
+          console.log("Admin logueado. App.js redirigirá a AdminStack.");
         } else {
           // Si el usuario no es admin, navegar a CheckInScreen
           navigation.navigate("Registrarse");
