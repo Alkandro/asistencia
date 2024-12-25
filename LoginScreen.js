@@ -58,7 +58,7 @@ const LoginScreen = ({ navigation }) => {
           console.log("Admin logueado. App.js redirigirá a AdminStack.");
         } else {
           // Si el usuario no es admin, navegar a CheckInScreen
-          navigation.navigate("Registrarse");
+         
         }
       } else {
         Alert.alert(
