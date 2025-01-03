@@ -1,10 +1,10 @@
 // UserListScreen.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Alert,TouchableOpacity } from 'react-native';
 import { collection, onSnapshot, getDocs } from 'firebase/firestore';
 import { useNavigation } from "@react-navigation/native";
-import ButtonGradient from "./ButtonGradient";
-import { db, auth } from './firebase';
+import ButtonGradient from "../ButtonGradient";
+import { db, auth } from '../firebase';
 
 const UserListScreen = () => {
   const [users, setUsers] = useState([]);
@@ -39,14 +39,20 @@ const UserListScreen = () => {
 
   const renderUserItem = ({ item }) => {
     return (
-      <View style={styles.userItem}>
-      <Text style={styles.userText}>Usuario: {item.username || "N/A"}</Text>
-      <Text style={styles.userText}>Email: {item.email || "N/A"}</Text>
-      <Text style={styles.userText}>Teléfono: {item.phone || "N/A"}</Text>
-      {/* Puedes seguir añadiendo Text con más campos como item.edad, item.apellido, etc. */}
-    </View>
+      <TouchableOpacity 
+        style={styles.userItem}
+        onPress={() => {
+          // Navega a la pantalla de detalle, pasando el ID
+          navigation.navigate("UserDetailScreen", { userId: item.id });
+        }}
+      >
+        <Text style={styles.userText}>Usuario: {item.username || "N/A"}</Text>
+        <Text style={styles.userText}>Email: {item.email || "N/A"}</Text>
+        <Text style={styles.userText}>Teléfono: {item.phone || "N/A"}</Text>
+      </TouchableOpacity>
     );
   };
+
 
   return (
     <View style={styles.container}>

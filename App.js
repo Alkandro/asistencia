@@ -15,7 +15,7 @@ import AppDrawer from "./Drawer";
 import LoginScreen from "./LoginScreen";
 import RegisterScreen from "./RegisterScreen";
 import UserProfileScreen from "./UserProfileScreen";
-import UserListScreen from "./UserListScreen";
+import UserListScreen from "./AdminScreen/UserListScreen";
 import Information from "./Information";
 import AppSplashScreen from "./SplashScreen";
 
