@@ -1,7 +1,7 @@
 // UserListScreen.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs } from 'firebase/firestore';
 import { useNavigation } from "@react-navigation/native";
 import ButtonGradient from "./ButtonGradient";
 import { db, auth } from './firebase';
@@ -11,22 +11,21 @@ const UserListScreen = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersRef = collection(db, "users");
-        const snapshot = await getDocs(usersRef);
-
-        const userList = [];
-        snapshot.forEach((docSnap) => {
-          userList.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        setUsers(userList);
-      } catch (error) {
-        Alert.alert("Error", "No se pudo obtener la lista de usuarios");
-      }
-    };
-
-    fetchUsers();
+    const usersRef = collection(db, "users");
+  
+    // Suscripción en tiempo real
+    const unsubscribe = onSnapshot(usersRef, (snapshot) => {
+      const userList = [];
+      snapshot.forEach((docSnap) => {
+        userList.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      setUsers(userList);
+    }, (error) => {
+      Alert.alert("Error", "No se pudo obtener la lista de usuarios");
+    });
+  
+    // Cancelar suscripción al desmontar el componente
+    return () => unsubscribe();
   }, []);
 
   const handleSignOut = async () => {
@@ -41,10 +40,11 @@ const UserListScreen = () => {
   const renderUserItem = ({ item }) => {
     return (
       <View style={styles.userItem}>
-        <Text style={styles.userText}>
-          {item.email} | Rol: {item.role || "N/A"}
-        </Text>
-      </View>
+      <Text style={styles.userText}>Usuario: {item.username || "N/A"}</Text>
+      <Text style={styles.userText}>Email: {item.email || "N/A"}</Text>
+      <Text style={styles.userText}>Teléfono: {item.phone || "N/A"}</Text>
+      {/* Puedes seguir añadiendo Text con más campos como item.edad, item.apellido, etc. */}
+    </View>
     );
   };
 
