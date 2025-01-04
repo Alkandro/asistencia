@@ -273,11 +273,11 @@ const AppDrawer = ({ monthlyCheckInCount, fetchMonthlyCheckInCount }) => (
       component={Information}
       options={{ title: "Información" }}
     />
-    <Drawer.Screen
+    {/* <Drawer.Screen
       name="AttendanceHistory"
       component={AttendanceHistoryScreen}
       options={{ title: "Información" }}
-    />
+    /> */}
   </Drawer.Navigator>
 );
 

@@ -46,9 +46,9 @@ const UserListScreen = () => {
           navigation.navigate("UserDetailScreen", { userId: item.id });
         }}
       >
-        <Text style={styles.userText}>Usuario: {item.username || "N/A"}</Text>
-        <Text style={styles.userText}>Email: {item.email || "N/A"}</Text>
-        <Text style={styles.userText}>Teléfono: {item.phone || "N/A"}</Text>
+        <Text style={styles.userText}>User: {item.username || "No registrado"}</Text>
+        <Text style={styles.userText}>Name: {item.nombre || "No registrado"}</Text>
+        <Text style={styles.userText}>Apellido: {item.apellido || "No registrado"}</Text>
       </TouchableOpacity>
     );
   };

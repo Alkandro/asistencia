@@ -86,7 +86,7 @@ const CheckInScreen = () => {
             ]
           );
 
-          navigation.navigate("AttendanceHistory");
+          navigation.navigate("Historial");
         }
       } catch (error) {
         Alert.alert("Error", `No se pudo registrar el check-in: ${error.message}`);

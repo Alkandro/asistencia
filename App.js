@@ -10,13 +10,6 @@ import dayjs from "dayjs";
 import AuthStack from "./AuthStack";
 import AdminStack from "./AdminStack";
 import UserStack from "./UserStack";
-// Importa los componentes y pantallas de la aplicación
-import AppDrawer from "./Drawer";
-import LoginScreen from "./LoginScreen";
-import RegisterScreen from "./RegisterScreen";
-import UserProfileScreen from "./UserProfileScreen";
-import UserListScreen from "./AdminScreen/UserListScreen";
-import Information from "./Information";
 import AppSplashScreen from "./SplashScreen";
 
 const Stack = createStackNavigator();
