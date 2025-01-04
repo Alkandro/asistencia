@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, RefreshControl, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, ActivityIndicator, FlatList, RefreshControl, StyleSheet,Animated, } from 'react-native';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -10,6 +10,9 @@ const AttendanceHistoryScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [monthlyCheckInCount, setMonthlyCheckInCount] = useState({});
+
+  // Valor animado para el parpadeo
+  const fadeAnim = useRef(new Animated.Value(1)).current; 
 
   // Función para obtener el historial de asistencia y contar los check-ins por mes
   const fetchAttendanceHistory = async () => {
@@ -69,6 +72,26 @@ const AttendanceHistoryScreen = () => {
   const currentMonthKey = dayjs().format('YYYY-MM');
   const currentMonthCheckIns = monthlyCheckInCount[currentMonthKey] || 0;
 
+  // Efecto de parpadeo: 
+  // - fade de 1 a 0 en 500ms, luego de 0 a 1 en 500ms, en bucle
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true, // Mejora rendimiento
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [fadeAnim]);
+
+
   return (
     <View style={styles.container}>
       {loading ? (
@@ -94,9 +117,16 @@ const AttendanceHistoryScreen = () => {
         />
       )}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Felicitaciones has entrenado: {currentMonthCheckIns} veces este mes!
-        </Text>
+      <Animated.Text // <-- Usamos Animated.Text
+          style={[
+            styles.footerText,
+            { opacity: fadeAnim }, // Aplica la animación de opacidad
+          ]}
+        >
+          Felicitaciones has entrenado
+           <Text style={styles.texto}> {currentMonthCheckIns} </Text>
+           veces este mes!
+          </Animated.Text>
       </View>
     </View>
   );
@@ -126,6 +156,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
   },
+  texto:{
+    color:"#3D3BF3"
+  }
 });
 
 export default AttendanceHistoryScreen;

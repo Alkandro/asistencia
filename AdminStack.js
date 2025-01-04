@@ -4,23 +4,26 @@ import { createStackNavigator } from "@react-navigation/stack";
 import UserListScreen from "./AdminScreen/UserListScreen";
 import UserDetailScreen from "./AdminScreen/UserDetailScreen";
 import UserProfileScreen from "./UserProfileScreen";
+import AdminTabNavigator from "./AdminScreen/AdminTabNavigator";
 
 const Stack = createStackNavigator();
 
 const AdminStack = () => {
   return (
-    <Stack.Navigator initialRouteName="UserListScreen">
+    <Stack.Navigator initialRouteName="AdminTabs">
+      {/* 1) Ruta que muestra el TabNavigator */}
       <Stack.Screen
-        name="UserListScreen"
-        component={UserListScreen}
-        options={{ title: "Lista de Usuarios", headerTitleAlign: "center" }}
+        name="AdminTabs"
+        component={AdminTabNavigator}
+        options={{ headerShown: false }} // Para ocultar header si quieres
       />
-      <Stack.Screen
-          name="UserDetailScreen"
-          component={UserDetailScreen}
-          options={{ title: "Detalle del usuario" }}
-        />
 
+      {/* 2) Otras pantallas stack adicionales (si las necesitas) */}
+      <Stack.Screen
+        name="UserDetailScreen"
+        component={UserDetailScreen}
+        options={{ title: "Detalle del usuario" }}
+      />
       <Stack.Screen
         name="UserProfileScreen"
         component={UserProfileScreen}
