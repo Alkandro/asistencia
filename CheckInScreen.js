@@ -8,7 +8,11 @@ import {
   ScrollView,
   RefreshControl,
   SafeAreaView,
-  Image, // Importar el componente Image
+  Image,
+  TouchableWithoutFeedback, // Importado
+  Modal, // Importado
+  FlatList, // Importado
+  Dimensions, // Importado
 } from "react-native";
 import { recordCheckIn } from "./Attendance";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -33,8 +37,14 @@ const CheckInScreen = () => {
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [latestMessage, setLatestMessage] = useState(null); // Estado para guardar el último mensaje
+  const [isModalVisible, setIsModalVisible] = useState(false); // Estado para el modal
 
   const navigation = useNavigation();
+
+  // Obtener dimensiones de la ventana
+  const windowWidth = Dimensions.get('window').width;
+  const modalWidth = windowWidth * 0.9; // 90% del ancho de la pantalla
+  const modalImageWidth = modalWidth - 40; // Ajustar según el padding del modal
 
   // 1) Suscribirnos a la colección "messages" para obtener el último mensaje
   useEffect(() => {
@@ -152,6 +162,33 @@ const CheckInScreen = () => {
     setRefreshing(false);
   };
 
+  // 5) Calcular la suma de los dos campos adicionales
+  const calculateSum = () => {
+    if (
+      latestMessage &&
+      latestMessage.additionalField1 &&
+      latestMessage.additionalField2
+    ) {
+      const field1 = parseFloat(latestMessage.additionalField1);
+      const field2 = parseFloat(latestMessage.additionalField2);
+      if (!isNaN(field1) && !isNaN(field2)) {
+        return field1 + field2;
+      }
+    }
+    return null;
+  };
+
+  // 6) Renderizar cada imagen en el FlatList del modal
+  const renderModalImage = ({ item }) => (
+    <View style={styles.modalImageContainer}>
+      <Image
+        source={{ uri: item }}
+        style={[styles.modalImage, { width: modalImageWidth }]}
+        resizeMode="cover"
+      />
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
@@ -168,20 +205,47 @@ const CheckInScreen = () => {
               <Text style={styles.latestMessage}>
                 Último mensaje: {latestMessage.text}
               </Text>
-              {/* Verificar si existe imageUrl y mostrar la imagen */}
-              {latestMessage.imageUrl ? (
-                <Image
-                  source={{ uri: latestMessage.imageUrl }}
-                  style={styles.messageImage}
-                  resizeMode="cover"
-                  onError={(error) => {
-                    console.error("Error al cargar la imagen:", error.nativeEvent.error);
-                    Alert.alert(
-                      "Error",
-                      "No se pudo cargar la imagen del último mensaje."
-                    );
-                  }}
+              
+              {/* Mostrar campos adicionales si existen */}
+              {latestMessage.additionalField1 && latestMessage.additionalField2 ? (
+                <View style={styles.additionalFieldsContainer}>
+                  <Text style={styles.additionalField}>
+                    Campo Adicional 1: {latestMessage.additionalField1}
+                  </Text>
+                  <Text style={styles.additionalField}>
+                    Campo Adicional 2: {latestMessage.additionalField2}
+                  </Text>
+                  <Text style={styles.sumText}>
+                    Suma de campos adicionales: {calculateSum()}
+                  </Text>
+                </View>
+              ) : null }
+
+              {/* Verificar si existe imageUrls y mostrar las imágenes */}
+              {latestMessage.imageUrls && latestMessage.imageUrls.length > 0 ? (
+                <FlatList
+                  data={latestMessage.imageUrls}
+                  keyExtractor={(item, index) => index.toString()}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  renderItem={renderModalImage}
                 />
+              ) : latestMessage.imageUrl ? (
+                <TouchableOpacity onPress={() => setIsModalVisible(true)}>
+                  <Image
+                    source={{ uri: latestMessage.imageUrl }}
+                    style={styles.messageImage}
+                    resizeMode="cover"
+                    onError={(error) => {
+                      console.error("Error al cargar la imagen:", error.nativeEvent.error);
+                      Alert.alert(
+                        "Error",
+                        "No se pudo cargar la imagen del último mensaje."
+                      );
+                    }}
+                  />
+                </TouchableOpacity>
               ) : null}
             </View>
           ) : (
@@ -202,6 +266,37 @@ const CheckInScreen = () => {
           />
         </View>
       </View>
+
+      {/* Modal para swipe horizontal de imágenes */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setIsModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            {/* Evitar que los toques dentro del contenido del modal cierren el modal */}
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.modalContent}>
+                <FlatList
+                  data={latestMessage?.imageUrls || []}
+                  keyExtractor={(item, index) => index.toString()}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  renderItem={renderModalImage}
+                />
+                <ButtonGradient
+                  onPress={() => setIsModalVisible(false)}
+                  title="Cerrar"
+                  style={styles.closeButton}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -212,6 +307,7 @@ export default CheckInScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
   },
   contentContainer: {
     justifyContent: "center",
@@ -219,7 +315,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 16, // Añadido para mejor espaciamiento
   },
-  // Contenedor del mensaje y la imagen
+  // Contenedor del mensaje y las imágenes
   messageContainer: {
     alignItems: "center",
     marginBottom: 20,
@@ -231,6 +327,27 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     color: "black",
     textAlign: "center",
+  },
+  // Contenedor para los campos adicionales
+  additionalFieldsContainer: {
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  // Texto de los campos adicionales
+  additionalField: {
+    fontSize: 14,
+    color: "#333",
+    marginVertical: 2,
+    textAlign: "center",
+  },
+  // Texto de la suma de campos adicionales
+  sumText: {
+    fontSize: 16,
+    marginTop: 5,
+    color: "#333",
+    textAlign: "center",
+    fontWeight: "600",
   },
   // Estilo para la imagen del mensaje
   messageImage: {
@@ -262,5 +379,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 270,
     height: 50,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: Dimensions.get('window').width * 0.9,
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalImageContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: Dimensions.get('window').width * 0.9, // Igual al ancho del modal
+  },
+  modalImage: {
+    height: 200, // Reducir la altura para que las imágenes no sean tan grandes
+    marginBottom: 20,
+    borderRadius: 10,
+  },
+  closeButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 150,
+    height: 40,
+    backgroundColor: "#ff5c5c",
+    borderRadius: 20,
   },
 });
