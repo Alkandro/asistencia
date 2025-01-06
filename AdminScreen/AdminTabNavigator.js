@@ -6,6 +6,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import UserListScreen from "./UserListScreen";
 import UserDetailScreen from "./UserDetailScreen"; // Opcional
 import UserProfileScreen from "../UserProfileScreen"; // Opcional
+import CreateMessageScreen from "./CreateMessageScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -32,9 +33,9 @@ const AdminTabNavigator = () => {
       />
       {/* Agrega más pestañas si lo deseas */}
       <Tab.Screen 
-        name="UserDetailsTab" 
-        component={UserDetailScreen}
-        options={{ title: "Detalles" }}
+        name="CreateMessage" 
+        component={CreateMessageScreen}
+        options={{ title: "Mensaje" }}
       />
       <Tab.Screen
         name="UserProfileTab"

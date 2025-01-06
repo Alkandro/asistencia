@@ -6,13 +6,14 @@ import {
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAV_dlUCilsDOeX357aUcN5E3ySwJeljqI",
   authDomain: "asistencia-5f5b0.firebaseapp.com",
   projectId: "asistencia-5f5b0",
-  storageBucket: "asistencia-5f5b0.appspot.com",
+  storageBucket: "asistencia-5f5b0.firebasestorage.app",
   messagingSenderId: "476024237486",
   appId: "1:476024237486:web:9de0fd507624b10f9e6c3f"
 };
@@ -51,6 +52,8 @@ export const setAdminRole = async (uid) => {
   const result = await setAdminRoleFn({ uid });
   return result.data;
 };
+// 5. Storage: creamos y exportamos la instancia
+const storage = getStorage(app);
 
-export { app, auth, db, functions };
+export { app, auth, db, functions, storage };
 
