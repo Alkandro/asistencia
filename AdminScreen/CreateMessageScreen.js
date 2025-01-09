@@ -17,7 +17,6 @@ import {
   TouchableOpacity,
   Dimensions,
   ScrollView,
-  FlatList, // Importar FlatList para swipe horizontal
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { 
@@ -39,12 +38,13 @@ import {
 import { db, auth, storage } from "../firebase";
 import { SwipeListView } from 'react-native-swipe-list-view';
 import { format } from 'date-fns';
+import { Card, Paragraph, Title } from 'react-native-paper'; // Importa Paragraph y Title
 
 export default function CreateMessageScreen() {
   const [message, setMessage] = useState("");
-  const [additionalField1, setAdditionalField1] = useState(""); // Nuevo campo
-  const [additionalField2, setAdditionalField2] = useState(""); // Nuevo campo
-  const [localImageUris, setLocalImageUris] = useState([]); // Cambiar a array
+  const [additionalField1, setAdditionalField1] = useState("");
+  const [additionalField2, setAdditionalField2] = useState("");
+  const [localImageUri, setLocalImageUri] = useState(null); // Cambiado a una sola URI
   const [uploading, setUploading] = useState(false);
   const [messages, setMessages] = useState([]);
   const [previewMessage, setPreviewMessage] = useState(null);
@@ -52,11 +52,9 @@ export default function CreateMessageScreen() {
   
   const textInputRef = useRef(null);
 
-  // Obtener dimensiones de la ventana
   const windowWidth = Dimensions.get('window').width;
-  const modalWidth = windowWidth * 0.9; // 90% del ancho de la pantalla
+  const modalWidth = windowWidth * 0.9;
 
-  // Solicitar permisos al montar el componente
   useEffect(() => {
     (async () => {
       const { status } =
@@ -70,7 +68,6 @@ export default function CreateMessageScreen() {
     })();
   }, []);
 
-  // Escuchar los mensajes en tiempo real desde Firestore
   useEffect(() => {
     const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -83,136 +80,126 @@ export default function CreateMessageScreen() {
       console.error("Error al obtener los mensajes: ", error);
     });
 
-    // Limpiar el listener al desmontar
     return () => unsubscribe();
   }, []);
 
   /**
-   * Función para abrir el selector de imágenes y seleccionar múltiples imágenes
+   * Función para abrir el selector de imágenes y seleccionar una imagen
    */
-  const handleChooseImages = async () => {
+  const handleChooseImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true, // Permitir selección múltiple (Nota: Asegúrate de que la versión de expo-image-picker lo soporte)
+        allowsMultipleSelection: false, // Solo una imagen
         quality: 0.7,
       });
 
       console.log("RESULT =>", result);
 
       if (!result.canceled) {
-        const selectedAssets = result.assets;
-        const uris = selectedAssets.map(asset => asset.uri);
-        setLocalImageUris(prevUris => [...prevUris, ...uris]); // Agregar nuevas imágenes al array
-        console.log("URIs de las imágenes seleccionadas:", uris);
+        const selectedAsset = result.assets[0];
+        setLocalImageUri(selectedAsset.uri); // Guardar solo una URI
+        console.log("URI de la imagen seleccionada:", selectedAsset.uri);
       } else {
-        console.log("Selección de imágenes cancelada.");
+        console.log("Selección de imagen cancelada.");
       }
     } catch (error) {
-      console.error("Error al elegir imágenes:", error);
-      Alert.alert("Error", "No se pudo elegir las imágenes.");
+      console.error("Error al elegir la imagen:", error);
+      Alert.alert("Error", "No se pudo elegir la imagen.");
     }
   };
 
   /**
-   * Función para subir múltiples imágenes a Firebase Storage
-   * @param {array} uris - Array de URIs locales de las imágenes
-   * @returns {array} - Array de URLs de descarga de las imágenes
+   * Función para subir una imagen a Firebase Storage
+   * @param {string} uri - URI local de la imagen
+   * @returns {string|null} - URL de descarga de la imagen o null en caso de error
    */
-  const uploadImagesToStorage = async (uris) => {
+  const uploadImageToStorage = async (uri) => {
     try {
-      if (!uris || uris.length === 0) {
-        console.log("No se proporcionaron URIs para las imágenes.");
-        return [];
+      if (!uri) {
+        console.log("No se proporcionó URI para la imagen.");
+        return null;
       }
 
       const user = auth.currentUser;
       if (!user) {
-        Alert.alert("Error", "Debes estar autenticado para subir imágenes.");
-        return [];
+        Alert.alert("Error", "Debes estar autenticado para subir una imagen.");
+        return null;
       }
 
-      const uploadPromises = uris.map(async (uri) => {
-        const imageName = `images/${user.uid}/${Date.now()}_${Math.random()
-          .toString(36)
-          .substring(7)}.jpg`;
-        const imageRef = ref(storage, imageName);
-        console.log("Referencia de la imagen creada:", imageRef.fullPath);
+      const imageName = `images/${user.uid}/${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}.jpg`;
+      const imageRef = ref(storage, imageName);
+      console.log("Referencia de la imagen creada:", imageRef.fullPath);
 
-        const blob = await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.onload = function () {
-            console.log("Blob obtenido exitosamente.");
-            resolve(xhr.response);
-          };
-          xhr.onerror = function (e) {
-            console.error("Error al obtener el blob:", e);
-            reject(new TypeError("Network request failed"));
-          };
-          xhr.responseType = "blob";
-          xhr.open("GET", uri, true);
-          xhr.send(null);
-        });
+      const blob = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = function () {
+          console.log("Blob obtenido exitosamente.");
+          resolve(xhr.response);
+        };
+        xhr.onerror = function (e) {
+          console.error("Error al obtener el blob:", e);
+          reject(new TypeError("Network request failed"));
+        };
+        xhr.responseType = "blob";
+        xhr.open("GET", uri, true);
+        xhr.send(null);
+      });
 
-        console.log("Blob convertido correctamente:", blob);
+      console.log("Blob convertido correctamente:", blob);
 
-        const uploadTask = uploadBytesResumable(imageRef, blob);
-        console.log("Tarea de subida creada.");
+      const uploadTask = uploadBytesResumable(imageRef, blob);
+      console.log("Tarea de subida creada.");
 
-        return new Promise((resolve, reject) => {
-          uploadTask.on(
-            "state_changed",
-            (snapshot) => {
-              const progress =
-                (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              console.log(`Subiendo imagen: ${progress.toFixed(2)}% completado`);
-            },
-            (error) => {
-              console.error("Error en la tarea de subida:", error);
+      return await new Promise((resolve, reject) => {
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log(`Subiendo imagen: ${progress.toFixed(2)}% completado`);
+          },
+          (error) => {
+            console.error("Error en la tarea de subida:", error);
+            Alert.alert(
+              "Error",
+              "No se pudo subir la imagen. Inténtalo de nuevo."
+            );
+            setUploading(false);
+            reject(error);
+          },
+          async () => {
+            try {
+              const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+              console.log("Imagen subida exitosamente. URL:", downloadUrl);
+              resolve(downloadUrl);
+            } catch (error) {
+              console.error("Error al obtener la URL de descarga:", error);
               Alert.alert(
                 "Error",
-                "No se pudo subir una de las imágenes. Inténtalo de nuevo."
+                "No se pudo obtener la URL de la imagen."
               );
               setUploading(false);
               reject(error);
-            },
-            async () => {
-              try {
-                const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-                console.log("Imagen subida exitosamente. URL:", downloadUrl);
-                resolve(downloadUrl);
-              } catch (error) {
-                console.error("Error al obtener la URL de descarga:", error);
-                Alert.alert(
-                  "Error",
-                  "No se pudo obtener la URL de una de las imágenes."
-                );
-                setUploading(false);
-                reject(error);
-              }
             }
-          );
-        });
+          }
+        );
       });
-
-      setUploading(true);
-      const downloadUrls = await Promise.all(uploadPromises);
-      setUploading(false);
-      Alert.alert("Éxito", "Imágenes subidas correctamente.");
-      return downloadUrls;
     } catch (error) {
-      console.error("Error en uploadImagesToStorage:", error);
+      console.error("Error en uploadImageToStorage:", error);
       Alert.alert(
         "Error",
-        "No se pudo subir las imágenes. Inténtalo de nuevo."
+        "No se pudo subir la imagen. Inténtalo de nuevo."
       );
       setUploading(false);
-      return [];
+      return null;
     }
   };
 
   /**
-   * Función para manejar el guardado del mensaje y las imágenes
+   * Función para manejar el guardado del mensaje y la imagen
    */
   const handleSaveMessage = async () => {
     if (message.trim().length === 0) {
@@ -221,10 +208,12 @@ export default function CreateMessageScreen() {
     }
 
     try {
-      let imageUrls = [];
-      if (localImageUris.length > 0) {
-        imageUrls = await uploadImagesToStorage(localImageUris);
-        if (imageUrls.length === 0) {
+      let imageUrl = null;
+      if (localImageUri) {
+        setUploading(true);
+        imageUrl = await uploadImageToStorage(localImageUri);
+        setUploading(false);
+        if (!imageUrl) {
           return;
         }
       }
@@ -233,19 +222,19 @@ export default function CreateMessageScreen() {
 
       await addDoc(collection(db, "messages"), {
         text: message.trim(),
-        additionalField1: additionalField1.trim(), // Guardar nuevo campo
-        additionalField2: additionalField2.trim(), // Guardar nuevo campo
+        additionalField1: additionalField1.trim(),
+        additionalField2: additionalField2.trim(),
         createdAt: serverTimestamp(),
         authorId: user ? user.uid : null,
-        imageUrls: imageUrls, // Guardar array de URLs
+        imageUrl: imageUrl, // Guardar una sola URL
       });
 
       Alert.alert("Éxito", "Mensaje guardado correctamente.");
 
       setMessage("");
-      setAdditionalField1(""); // Resetear nuevo campo
-      setAdditionalField2(""); // Resetear nuevo campo
-      setLocalImageUris([]);
+      setAdditionalField1("");
+      setAdditionalField2("");
+      setLocalImageUri(null); // Resetear la URI
       Keyboard.dismiss();
 
     } catch (error) {
@@ -257,22 +246,19 @@ export default function CreateMessageScreen() {
   /**
    * Función para eliminar un mensaje
    * @param {string} messageId - ID del mensaje a eliminar
-   * @param {array} imageUrls - Array de URLs de las imágenes asociadas (si existen)
+   * @param {string|null} imageUrl - URL de la imagen asociada (si existe)
    */
-  const handleDeleteMessage = async (messageId, imageUrls) => {
+  const handleDeleteMessage = async (messageId, imageUrl) => {
     try {
       // Eliminar el documento de Firestore
       await deleteDoc(doc(db, "messages", messageId));
       console.log(`Mensaje ${messageId} eliminado de Firestore.`);
 
-      // Si el mensaje tiene imágenes, eliminarlas de Storage
-      if (imageUrls && imageUrls.length > 0) {
-        const deletePromises = imageUrls.map(async (url) => {
-          const imageRef = ref(storage, url);
-          await deleteObject(imageRef);
-          console.log(`Imagen ${url} eliminada de Storage.`);
-        });
-        await Promise.all(deletePromises);
+      // Si el mensaje tiene una imagen, eliminarla de Storage
+      if (imageUrl) {
+        const imageRef = ref(storage, imageUrl);
+        await deleteObject(imageRef);
+        console.log(`Imagen ${imageUrl} eliminada de Storage.`);
       }
 
       Alert.alert("Éxito", "Mensaje eliminado correctamente.");
@@ -298,8 +284,7 @@ export default function CreateMessageScreen() {
    */
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    const date = timestamp.toDate(); // Convertir Timestamp a Date
-    // Formatear la fecha usando date-fns
+    const date = timestamp.toDate();
     return format(date, 'dd/MM/yyyy HH:mm');
   };
 
@@ -311,31 +296,23 @@ export default function CreateMessageScreen() {
       style={styles.rowFront}
       onPress={() => handlePreviewMessage(data.item)}
     >
-      <View style={styles.messageHeader}>
-        {/* Puedes agregar el autor si tienes la información */}
-        {/* <Text style={styles.messageAuthor}>{data.item.authorName}</Text> */}
-        <Text style={styles.messageDate}>{formatDate(data.item.createdAt)}</Text>
-      </View>
-      <Text style={styles.messageText}>{data.item.text}</Text>
-      {data.item.imageUrls && data.item.imageUrls.length > 0 && (
-        <ScrollView horizontal>
-          {data.item.imageUrls.map((url, index) => (
-            <Image
-              key={index}
-              source={{ uri: url }}
-              style={styles.messageImage}
-              resizeMode="cover"
-            />
-          ))}
-        </ScrollView>
-      )}
-      {/* Mostrar campos adicionales si existen */}
-      {data.item.additionalField1 ? (
-        <Text style={styles.additionalField}>Campo 1: {data.item.additionalField1}</Text>
-      ) : null}
-      {data.item.additionalField2 ? (
-        <Text style={styles.additionalField}>Campo 2: {data.item.additionalField2}</Text>
-      ) : null}
+      <Card style={styles.card}>
+        <Card.Title title={`Publicado el ${formatDate(data.item.createdAt)}`} />
+        <Card.Content>
+          <Paragraph>{data.item.text}</Paragraph>
+          {/* Mostrar campos adicionales si existen */}
+          {data.item.additionalField1 && data.item.additionalField2 ? (
+            <>
+              <Paragraph>Campo Adicional 1: {data.item.additionalField1}</Paragraph>
+              <Paragraph>Campo Adicional 2: {data.item.additionalField2}</Paragraph>
+              <Paragraph>Suma de campos adicionales: {parseFloat(data.item.additionalField1) + parseFloat(data.item.additionalField2)}</Paragraph>
+            </>
+          ) : null}
+        </Card.Content>
+        {data.item.imageUrl && (
+          <Card.Cover source={{ uri: data.item.imageUrl }} />
+        )}
+      </Card>
     </TouchableOpacity>
   ), []);
 
@@ -346,7 +323,7 @@ export default function CreateMessageScreen() {
     <View style={styles.rowBack}>
       <TouchableOpacity
         style={[styles.backRightBtn, styles.backRightBtnRight]}
-        onPress={() => handleDeleteMessage(data.item.id, data.item.imageUrls)}
+        onPress={() => handleDeleteMessage(data.item.id, data.item.imageUrl)}
       >
         <Text style={styles.backTextWhite}>Eliminar</Text>
       </TouchableOpacity>
@@ -390,27 +367,30 @@ export default function CreateMessageScreen() {
           />
 
           {/* Botón para abrir el selector de imágenes */}
-          <Button title="Elegir Imágenes" onPress={handleChooseImages} />
+          <Button title="Elegir Imagen" onPress={handleChooseImage} />
 
-          {/* Mostrar preview de las imágenes elegidas */}
-          {localImageUris.length > 0 && (
-            <ScrollView horizontal style={styles.imagePreviewContainer}>
-              {localImageUris.map((uri, index) => (
-                <Image
-                  key={index}
-                  source={{ uri }}
-                  style={styles.imagePreview}
-                  resizeMode="cover"
-                />
-              ))}
-            </ScrollView>
+          {/* Mostrar preview de la imagen elegida */}
+          {localImageUri && (
+            <View style={styles.imagePreviewContainer}>
+              <Image
+                source={{ uri: localImageUri }}
+                style={styles.imagePreview}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={() => setLocalImageUri(null)}
+              >
+                <Text style={styles.removeImageText}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
-          {/* Mostrar indicador de carga mientras se suben las imágenes */}
+          {/* Mostrar indicador de carga mientras se sube la imagen */}
           {uploading && (
             <View style={styles.uploadingContainer}>
               <ActivityIndicator size="large" color="#0000ff" />
-              <Text style={styles.uploadingText}>Subiendo imágenes...</Text>
+              <Text style={styles.uploadingText}>Subiendo imagen...</Text>
             </View>
           )}
 
@@ -451,37 +431,29 @@ export default function CreateMessageScreen() {
                 <View style={styles.modalContent}>
                   <ScrollView>
                     <View style={styles.modalHeader}>
-                      {/* Puedes agregar el autor si tienes la información */}
-                      {/* <Text style={styles.modalAuthor}>{previewMessage?.authorName}</Text> */}
                       <Text style={styles.modalDate}>{formatDate(previewMessage?.createdAt)}</Text>
                     </View>
                     <Text style={styles.modalText}>{previewMessage?.text}</Text>
                     
-                    {/* Swipe Horizontal para las imágenes */}
-                    {previewMessage?.imageUrls && previewMessage.imageUrls.length > 0 && (
-                      <FlatList
-                        data={previewMessage.imageUrls}
-                        keyExtractor={(item, index) => index.toString()}
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        renderItem={({ item }) => (
-                          <Image
-                            source={{ uri: item }}
-                            style={[styles.modalImage, { width: modalWidth - 40 }]} // Ajustar el ancho
-                            resizeMode="cover"
-                          />
-                        )}
-                      />
+                    {/* Mostrar la imagen si existe */}
+                    {previewMessage?.imageUrl && (
+                      <Card style={styles.modalCard}>
+                        <Card.Cover source={{ uri: previewMessage.imageUrl }} />
+                        <Card.Title title={`Publicado el ${formatDate(previewMessage.createdAt)}`} />
+                        <Card.Content>
+                          <Paragraph>{previewMessage.text}</Paragraph>
+                          {/* Mostrar campos adicionales si existen */}
+                          {previewMessage.additionalField1 && previewMessage.additionalField2 ? (
+                            <>
+                              <Paragraph>Campo Adicional 1: {previewMessage.additionalField1}</Paragraph>
+                              <Paragraph>Campo Adicional 2: {previewMessage.additionalField2}</Paragraph>
+                              <Paragraph>Suma de campos adicionales: {parseFloat(previewMessage.additionalField1) + parseFloat(previewMessage.additionalField2)}</Paragraph>
+                            </>
+                          ) : null}
+                        </Card.Content>
+                      </Card>
                     )}
                     
-                    {/* Mostrar campos adicionales si existen */}
-                    {previewMessage?.additionalField1 ? (
-                      <Text style={styles.additionalField}>Campo 1: {previewMessage.additionalField1}</Text>
-                    ) : null}
-                    {previewMessage?.additionalField2 ? (
-                      <Text style={styles.additionalField}>Campo 2: {previewMessage.additionalField2}</Text>
-                    ) : null}
                     <Button title="Cerrar" onPress={() => setIsModalVisible(false)} />
                   </ScrollView>
                 </View>
@@ -522,12 +494,23 @@ const styles = StyleSheet.create({
   imagePreviewContainer: {
     marginTop: 10,
     marginBottom: 10,
+    alignItems: "center",
   },
   imagePreview: {
-    width: 100,
-    height: 100,
-    marginRight: 10,
+    width: 150,
+    height: 150,
     borderRadius: 10,
+  },
+  removeImageButton: {
+    marginTop: 5,
+    backgroundColor: "#ff4d4d",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  removeImageText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   uploadingContainer: {
     marginTop: 10,
@@ -588,10 +571,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   messageImage: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     borderRadius: 8,
-    marginRight: 10,
+    marginBottom: 10,
   },
   additionalField: {
     fontSize: 14,
@@ -620,35 +603,16 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: Dimensions.get('window').width * 0.9,
-    maxHeight: Dimensions.get('window').height * 0.8, // Limitar la altura para permitir scroll
+    maxHeight: Dimensions.get('window').height * 0.8,
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
     alignItems: "center",
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 10,
-  },
-  modalAuthor: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  modalDate: {
-    fontSize: 12,
-    color: '#666',
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalImage: {
-    height: 300,
-    marginBottom: 20,
+  modalCard: {
+    width: Dimensions.get('window').width * 0.9 - 40, // Ajuste para el Card dentro del modal
     borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 20,
   },
 });

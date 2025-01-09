@@ -8,11 +8,9 @@ import {
   ScrollView,
   RefreshControl,
   SafeAreaView,
-  Image,
-  TouchableWithoutFeedback, // Importado
-  Modal, // Importado
-  FlatList, // Importado
-  Dimensions, // Importado
+  TouchableWithoutFeedback,
+  Modal,
+  Dimensions,
 } from "react-native";
 import { recordCheckIn } from "./Attendance";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -32,6 +30,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import dayjs from "dayjs";
+import { Card, Paragraph } from 'react-native-paper'; // Importa Paragraph
 
 const CheckInScreen = () => {
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
@@ -43,8 +42,8 @@ const CheckInScreen = () => {
 
   // Obtener dimensiones de la ventana
   const windowWidth = Dimensions.get('window').width;
-  const modalWidth = windowWidth * 0.9; // 90% del ancho de la pantalla
-  const modalImageWidth = modalWidth - 40; // Ajustar según el padding del modal
+  const cardWidth = windowWidth * 0.95; // 95% del ancho de la pantalla
+  const modalCardWidth = windowWidth * 0.9; // 90% del ancho de la pantalla para el modal
 
   // 1) Suscribirnos a la colección "messages" para obtener el último mensaje
   useEffect(() => {
@@ -178,16 +177,12 @@ const CheckInScreen = () => {
     return null;
   };
 
-  // 6) Renderizar cada imagen en el FlatList del modal
-  const renderModalImage = ({ item }) => (
-    <View style={styles.modalImageContainer}>
-      <Image
-        source={{ uri: item }}
-        style={[styles.modalImage, { width: modalImageWidth }]}
-        resizeMode="cover"
-      />
-    </View>
-  );
+  // 6) Función para formatear la fecha
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "";
+    const date = timestamp.toDate();
+    return dayjs(date).format('DD/MM/YYYY HH:mm');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -221,31 +216,13 @@ const CheckInScreen = () => {
                 </View>
               ) : null }
 
-              {/* Verificar si existe imageUrls y mostrar las imágenes */}
-              {latestMessage.imageUrls && latestMessage.imageUrls.length > 0 ? (
-                <FlatList
-                  data={latestMessage.imageUrls}
-                  keyExtractor={(item, index) => index.toString()}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  renderItem={renderModalImage}
-                />
-              ) : latestMessage.imageUrl ? (
-                <TouchableOpacity onPress={() => setIsModalVisible(true)}>
-                  <Image
-                    source={{ uri: latestMessage.imageUrl }}
-                    style={styles.messageImage}
-                    resizeMode="cover"
-                    onError={(error) => {
-                      console.error("Error al cargar la imagen:", error.nativeEvent.error);
-                      Alert.alert(
-                        "Error",
-                        "No se pudo cargar la imagen del último mensaje."
-                      );
-                    }}
-                  />
-                </TouchableOpacity>
+              {/* Verificar si existe imageUrl y mostrar la imagen usando Card */}
+              {latestMessage.imageUrl ? (
+                <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
+                  <Card style={styles.card}>
+                    <Card.Cover source={{ uri: latestMessage.imageUrl }} />
+                  </Card>
+                </TouchableWithoutFeedback>
               ) : null}
             </View>
           ) : (
@@ -267,7 +244,7 @@ const CheckInScreen = () => {
         </View>
       </View>
 
-      {/* Modal para swipe horizontal de imágenes */}
+      {/* Modal para mostrar la imagen con título y contenido */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -279,14 +256,24 @@ const CheckInScreen = () => {
             {/* Evitar que los toques dentro del contenido del modal cierren el modal */}
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={styles.modalContent}>
-                <FlatList
-                  data={latestMessage?.imageUrls || []}
-                  keyExtractor={(item, index) => index.toString()}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  renderItem={renderModalImage}
-                />
+                {/* Mostrar la imagen y detalles si existe latestMessage */}
+                {latestMessage?.imageUrl && (
+                  <Card style={styles.modalCard}>
+                    <Card.Cover source={{ uri: latestMessage.imageUrl }} />
+                    <Card.Title title="Detalles del Mensaje" subtitle={`Publicado el ${formatDate(latestMessage.createdAt)}`} />
+                    <Card.Content>
+                      <Paragraph>{latestMessage.text}</Paragraph>
+                      {/* Mostrar campos adicionales si existen */}
+                      {latestMessage.additionalField1 && latestMessage.additionalField2 ? (
+                        <>
+                          <Paragraph>Campo Adicional 1: {latestMessage.additionalField1}</Paragraph>
+                          <Paragraph>Campo Adicional 2: {latestMessage.additionalField2}</Paragraph>
+                          <Paragraph>Suma de campos adicionales: {calculateSum()}</Paragraph>
+                        </>
+                      ) : null}
+                    </Card.Content>
+                  </Card>
+                )}
                 <ButtonGradient
                   onPress={() => setIsModalVisible(false)}
                   title="Cerrar"
@@ -349,14 +336,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
   },
-  // Estilo para la imagen del mensaje
-  messageImage: {
-    width: 200,
-    height: 200,
-    marginTop: 10,
+  // Estilo para el Card del mensaje en la vista principal
+  card: {
+    width:Dimensions.get('window').width * 0.95, // Puedes ajustar este valor o usar cardWidth
+    height: 200, // Ajusta la altura según sea necesario
     borderRadius: 10,
+    overflow: 'hidden', // Asegura que la imagen respete el borderRadius
+    marginTop: 10,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
+  },
+  // Estilo para el Card dentro del modal
+  modalCard: {
+    width: Dimensions.get('window').width * 0.9 - 40, // Asegura que la imagen ocupe el ancho disponible en el modal
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 20,
   },
   title: {
     fontSize: 20,
@@ -394,16 +389,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  modalImageContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    width: Dimensions.get('window').width * 0.9, // Igual al ancho del modal
-  },
-  modalImage: {
-    height: 200, // Reducir la altura para que las imágenes no sean tan grandes
-    marginBottom: 20,
-    borderRadius: 10,
-  },
   closeButton: {
     alignItems: "center",
     justifyContent: "center",
@@ -411,5 +396,6 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: "#ff5c5c",
     borderRadius: 20,
+    marginTop: 10, // Añadido para separar del Card
   },
 });

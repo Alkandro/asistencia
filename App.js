@@ -4,6 +4,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { ActivityIndicator, View, SafeAreaView } from "react-native";
 import { auth, db } from "./firebase"; // Importa Firebase Auth y Firestore desde tu configuración de Firebase
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { Provider as PaperProvider } from 'react-native-paper';
 import dayjs from "dayjs";
 
 // Importar los nuevos stacks
@@ -100,6 +101,7 @@ const App = () => {
 
   // Configuración de la navegación
   return (
+    <PaperProvider>
     
     <NavigationContainer>
     {!user ? (
@@ -116,6 +118,7 @@ const App = () => {
       />
     )}
   </NavigationContainer>
+  </PaperProvider>
 );
 };
 
