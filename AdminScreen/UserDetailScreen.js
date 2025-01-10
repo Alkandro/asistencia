@@ -1,12 +1,15 @@
+// UserDetailScreen.js
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
-  ScrollView,
   TouchableOpacity,
-  RefreshControl, // Importante: para usar Pull to Refresh
+  RefreshControl,
+  Alert,
+  FlatList,
 } from "react-native";
 import {
   doc,
@@ -15,15 +18,18 @@ import {
   query,
   where,
   getDocs,
+  addDoc,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebase"; // Ajusta la ruta según tu configuración
+import { db, auth } from "../firebase"; // Ajusta la ruta según tu configuración
 import { useRoute } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
-
-// dayjs para formatear fechas
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
 import "dayjs/locale/es";
+import StarRating from 'react-native-star-rating-widget'; // Importa StarRating
 
 dayjs.extend(localeData);
 dayjs.locale("es");
@@ -35,13 +41,12 @@ export default function UserDetailScreen() {
   // Estados
   const [userData, setUserData] = useState(null);
   const [monthlyCheckInCount, setMonthlyCheckInCount] = useState({});
+  const [ratings, setRatings] = useState([]); // Historial de puntuaciones
+  const [score, setScore] = useState(5); // Valor inicial de la puntuación
+  const [averageRating, setAverageRating] = useState(null); // Promedio de puntuaciones
   const [loading, setLoading] = useState(true);
-
-  // Para expandir/colapsar los años en la sección de historial
-  const [expandedYear, setExpandedYear] = useState(null);
-
-  // Estado para el RefreshControl
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedYear, setExpandedYear] = useState(null); // Año que se muestra expandido
 
   // Carga inicial de datos
   useEffect(() => {
@@ -49,18 +54,16 @@ export default function UserDetailScreen() {
   }, [userId]);
 
   /**
-   * Encapsulamos la carga de datos en una función para poder llamarla
-   * tanto en useEffect como en el Pull to Refresh
+   * Función que carga toda la información necesaria
    */
   const loadData = async () => {
     setLoading(true);
-    await Promise.all([fetchUserData(), fetchMonthlyCheckInCount()]);
+    await Promise.all([fetchUserData(), fetchMonthlyCheckInCount(), fetchRatings()]);
     setLoading(false);
   };
 
   /**
-   * Al hacer "pull to refresh", actualizamos el estado 'refreshing',
-   * volvemos a cargar la data, y luego lo ponemos en false.
+   * Pull to Refresh
    */
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -78,15 +81,18 @@ export default function UserDetailScreen() {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         setUserData(userSnap.data());
+      } else {
+        Alert.alert("Error", "El usuario no existe.");
       }
     } catch (error) {
       console.error("Error al obtener datos del usuario:", error);
+      Alert.alert("Error", "No se pudo obtener los datos del usuario.");
     }
   };
 
   /**
    * Obtiene los documentos de "attendanceHistory" filtrados por userId,
-   * y forma un objeto { "YYYY-MM-01": conteo } para mostrar cuántas asistencias hubo cada mes.
+   * y crea un objeto { "YYYY-MM-01": conteo } para cada mes.
    */
   const fetchMonthlyCheckInCount = useCallback(async () => {
     try {
@@ -112,11 +118,53 @@ export default function UserDetailScreen() {
       setMonthlyCheckInCount(countsByMonth);
     } catch (error) {
       console.error("Error al obtener historial del usuario:", error);
+      Alert.alert("Error", "No se pudo obtener el historial de entrenamientos.");
     }
   }, [userId]);
 
   /**
-   * Agrupa el objeto monthlyCheckInCount en un objeto así:
+   * Obtiene las puntuaciones del usuario desde la subcolección "ratings"
+   */
+  const fetchRatings = useCallback(async () => {
+    try {
+      const ratingsRef = collection(db, "users", userId, "ratings");
+      const q = query(ratingsRef, orderBy("createdAt", "desc"));
+      const unsubscribe = onSnapshot(
+        q,
+        (querySnapshot) => {
+          const ratingsList = [];
+          querySnapshot.forEach((docSnap) => {
+            ratingsList.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          setRatings(ratingsList);
+
+          // Calcular promedio
+          if (ratingsList.length > 0) {
+            const total = ratingsList.reduce((acc, curr) => acc + curr.score, 0);
+            const average = (total / ratingsList.length).toFixed(1);
+            setAverageRating(average);
+          } else {
+            setAverageRating(null);
+          }
+        },
+        (error) => {
+          console.error("Error al obtener las puntuaciones: ", error);
+          Alert.alert(
+            "Error",
+            "No se pudo obtener las puntuaciones del usuario."
+          );
+        }
+      );
+
+      // Cancelar suscripción cuando el componente se desmonte
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Error al obtener puntuaciones:", error);
+    }
+  }, [userId]);
+
+  /**
+   * Agrupa monthlyCheckInCount por año en un objeto de la forma:
    * {
    *   2023: [ { month: "2023-01-01", count: 5 }, { month: "2023-02-01", count: 8 } ],
    *   2024: [ { month: "2024-01-01", count: 2 }, ...]
@@ -129,12 +177,104 @@ export default function UserDetailScreen() {
     return acc;
   }, {});
 
-  // Expande/colapsa el año
+  /**
+   * Envía una nueva puntuación a la subcolección "ratings" del usuario
+   */
+  const handleSubmitRating = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        Alert.alert("Error", "Debes estar autenticado para enviar una puntuación.");
+        return;
+      }
+
+      const ratingsRef = collection(db, "users", userId, "ratings");
+      await addDoc(ratingsRef, {
+        score: score,
+        createdAt: serverTimestamp(),
+        ratedBy: currentUser.uid, // Opcional: quién dio la puntuación
+      });
+
+      Alert.alert("Éxito", "Puntuación enviada correctamente.");
+      setScore(5); // Resetear la puntuación si lo deseas
+    } catch (error) {
+      console.error("Error al enviar la puntuación: ", error);
+      Alert.alert("Error", "No se pudo enviar la puntuación.");
+    }
+  };
+
+  /**
+   * Renderiza cada ítem del historial de puntuaciones
+   */
+  const renderRatingItem = ({ item }) => (
+    <View style={styles.ratingItem}>
+      <Text style={styles.ratingScore}>⭐ {item.score}/10</Text>
+      <Text style={styles.ratingDate}>
+        {item.createdAt
+          ? dayjs(item.createdAt.toDate()).format("DD/MM/YYYY HH:mm")
+          : "Sin fecha"}
+      </Text>
+    </View>
+  );
+
+  /**
+   * Expande o colapsa la vista de un año en el historial
+   */
   const toggleYear = (year) => {
     setExpandedYear(expandedYear === year ? null : year);
   };
 
-  // Muestra un indicador si aún estamos cargando (primera carga)
+  /**
+   * Renderiza la cabecera de la lista (datos del usuario y rating)
+   */
+  const ListHeader = () => (
+    <View>
+      <Text style={styles.title}>Detalle del Usuario</Text>
+      <Text style={styles.text}>Username: {userData.username || "No registrado"}</Text>
+      <Text style={styles.text}>Nombre: {userData.nombre || "No registrado"}</Text>
+      <Text style={styles.text}>Apellido: {userData.apellido || "No registrado"}</Text>
+      <Text style={styles.text}>Email: {userData.email || "No registrado"}</Text>
+      <Text style={styles.text}>Teléfono: {userData.phone || "No registrado"}</Text>
+      <Text style={styles.text}>Cinturón: {userData.cinturon || "No registrado"}</Text>
+      <Text style={styles.text}>Ciudad: {userData.ciudad || "No registrado"}</Text>
+      <Text style={styles.text}>Provincia: {userData.provincia || "No registrado"}</Text>
+      <Text style={styles.text}>Peso: {userData.peso || "No registrado"}</Text>
+      <Text style={styles.text}>Altura: {userData.altura || "No registrado"}</Text>
+      <Text style={styles.text}>Edad: {userData.edad || "No registrado"}</Text>
+      <Text style={styles.text}>Género: {userData.genero || "No registrado"}</Text>
+
+      {averageRating && (
+        <View style={styles.averageContainer}>
+          <Text style={styles.averageText}>
+            Promedio de Puntuaciones: {averageRating}/10
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.ratingContainer}>
+        <Text style={styles.ratingLabel}>Puntuación:</Text>
+        <StarRating
+          rating={score}
+          onChange={setScore}
+          starCount={10}
+          color="#f1c40f"
+          starSize={30}
+        />
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmitRating}>
+          <Text style={styles.submitButtonText}>Enviar Puntuación</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.historyContainer}>
+        <Text style={styles.historyTitle}>Historial de Puntuaciones:</Text>
+        {ratings.length === 0 ? (
+          <Text style={styles.noRatingsText}>No hay puntuaciones aún.</Text>
+        ) : null}
+      </View>
+    </View>
+  );
+
+  // Mientras se cargan los datos, mostramos ActivityIndicator
   if (loading) {
     return (
       <View style={styles.center}>
@@ -143,7 +283,7 @@ export default function UserDetailScreen() {
     );
   }
 
-  // Si no se encontró el usuario, mensaje
+  // Si no se encontró el usuario, mostramos un mensaje
   if (!userData) {
     return (
       <View style={styles.center}>
@@ -153,75 +293,67 @@ export default function UserDetailScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      // Aquí añadimos el RefreshControl para el pull-to-refresh
+    <FlatList
+      data={ratings}
+      keyExtractor={(item) => item.id}
+      renderItem={renderRatingItem}
+      ListHeaderComponent={<ListHeader />}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+        />
       }
-    >
-      {/* Info básica del usuario */}
-      <Text style={styles.title}>Detalle del Usuario</Text>
-      <Text style={styles.text}>Username: {userData.username}</Text>
-      <Text style={styles.text}>Nombre: {userData.nombre}</Text>
-      <Text style={styles.text}>Apellido: {userData.apellido}</Text>
-      <Text style={styles.text}>Email: {userData.email}</Text>
-      <Text style={styles.text}>Teléfono: {userData.phone}</Text>
-      <Text style={styles.text}>Cinturón: {userData.cinturon}</Text>
-      <Text style={styles.text}>Ciudad: {userData.ciudad}</Text>
-      <Text style={styles.text}>Provincia: {userData.provincia}</Text>
-      <Text style={styles.text}>Peso: {userData.peso}</Text>
-      <Text style={styles.text}>Altura: {userData.altura}</Text>
-      <Text style={styles.text}>Edad: {userData.edad}</Text>
-      <Text style={styles.text}>Género: {userData.genero}</Text>
+      // -- AQUÍ VIENE LA MODIFICACIÓN IMPORTANTE --
+      ListFooterComponent={
+        Object.keys(groupedByYear).length > 0 ? (
+          // Envolvemos el resultado del map en un único contenedor
+          <View>
+            {Object.keys(groupedByYear)
+              .sort((a, b) => parseInt(a) - parseInt(b))
+              .map((year) => (
+                <View key={year} style={styles.yearContainer}>
+                  <TouchableOpacity
+                    onPress={() => toggleYear(year)}
+                    style={styles.yearRow}
+                  >
+                    <Text style={styles.yearText}>Año {year}</Text>
+                    <Icon
+                      name={expandedYear === year ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color="#333"
+                    />
+                  </TouchableOpacity>
+                  {/* Si el año está expandido, mostramos los meses */}
+                  {expandedYear === year && (
+                    <View style={styles.monthContainer}>
+                      {groupedByYear[year]
+                        .sort((a, b) => dayjs(a.month).diff(dayjs(b.month)))
+                        .map(({ month, count }) => {
+                          // Formateamos el mes en español, con mayúscula inicial
+                          const formattedMonth =
+                            dayjs(month).format("MMMM").charAt(0).toUpperCase() +
+                            dayjs(month).format("MMMM").slice(1);
 
-      {/* Historial de Entrenamientos */}
-      <Text style={[styles.title, { marginTop: 20 }]}>
-        Historial de Entrenamientos
-      </Text>
-      {Object.keys(groupedByYear).length > 0 ? (
-        // Recorremos cada año
-        Object.keys(groupedByYear)
-          .sort((a, b) => parseInt(a) - parseInt(b))
-          .map((year) => (
-            <View key={year} style={styles.yearContainer}>
-              <TouchableOpacity
-                onPress={() => toggleYear(year)}
-                style={styles.yearRow}
-              >
-                <Text style={styles.yearText}>Año {year}</Text>
-                <Icon
-                  name={expandedYear === year ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color="#333"
-                />
-              </TouchableOpacity>
-              {/* Si el año está expandido, mostramos sus meses */}
-              {expandedYear === year && (
-                <View style={styles.monthContainer}>
-                  {groupedByYear[year]
-                    .sort((a, b) => dayjs(a.month).diff(dayjs(b.month)))
-                    .map(({ month, count }) => {
-                      // Formateamos el mes en español, con mayúscula inicial
-                      const formattedMonth =
-                        dayjs(month).format("MMMM").charAt(0).toUpperCase() +
-                        dayjs(month).format("MMMM").slice(1);
-
-                      return (
-                        <View key={month} style={styles.monthRow}>
-                          <Text style={styles.monthText}>{formattedMonth}</Text>
-                          <Text style={styles.countText}>{count}</Text>
-                        </View>
-                      );
-                    })}
+                          return (
+                            <View key={month} style={styles.monthRow}>
+                              <Text style={styles.monthText}>
+                                {formattedMonth}
+                              </Text>
+                              <Text style={styles.countText}>{count}</Text>
+                            </View>
+                          );
+                        })}
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-          ))
-      ) : (
-        <Text style={styles.text}>No hay datos de historial disponibles</Text>
-      )}
-    </ScrollView>
+              ))}
+          </View>
+        ) : (
+          <Text style={styles.text}>No hay datos de historial disponibles</Text>
+        )
+      }
+    />
   );
 }
 
@@ -245,17 +377,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
-  // Historial
+  // Promedio de Puntuaciones
+  averageContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  averageText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  // Sistema de Puntuación
+  ratingContainer: {
+    marginVertical: 20,
+    alignItems: 'center',
+  },
+  ratingLabel: {
+    fontSize: 18,
+    marginBottom: 10,
+    fontWeight: 'bold',
+  },
+  submitButton: {
+    marginTop: 15,
+    backgroundColor: '#3498db',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  // Historial de Puntuaciones
+  historyContainer: {
+    marginBottom: 20,
+  },
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  noRatingsText: {
+    fontSize: 16,
+    color: '#777',
+    textAlign: 'center',
+  },
+  ratingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomColor: '#eee',
+    borderBottomWidth: 1,
+  },
+  ratingScore: {
+    fontSize: 16,
+    color: '#333',
+  },
+  ratingDate: {
+    fontSize: 14,
+    color: '#999',
+  },
+  // Historial de Entrenamientos
   yearContainer: {
     marginBottom: 8,
     backgroundColor: "#f0f0f0",
     borderRadius: 5,
+    padding: 10,
   },
   yearRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 10,
   },
   yearText: {
     fontSize: 18,
@@ -264,13 +457,12 @@ const styles = StyleSheet.create({
   },
   monthContainer: {
     paddingLeft: 20,
-    paddingBottom: 10,
+    paddingTop: 10,
   },
   monthRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 5,
-    marginRight: 10,
   },
   monthText: {
     fontSize: 16,

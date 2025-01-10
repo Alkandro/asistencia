@@ -1,4 +1,3 @@
-// CreateMessageScreen.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
@@ -27,7 +26,8 @@ import {
   query, 
   orderBy, 
   deleteDoc, 
-  doc 
+  doc,
+  updateDoc, // Importa updateDoc
 } from "firebase/firestore";
 import {
   ref,
@@ -49,6 +49,7 @@ export default function CreateMessageScreen() {
   const [messages, setMessages] = useState([]);
   const [previewMessage, setPreviewMessage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingMessage, setEditingMessage] = useState(null); // Nuevo estado para edición
   
   const textInputRef = useRef(null);
 
@@ -208,33 +209,60 @@ export default function CreateMessageScreen() {
     }
 
     try {
-      let imageUrl = null;
-      if (localImageUri) {
+      let imageUrl = localImageUri;
+
+      // Si hay una nueva imagen y estamos editando, subirla
+      if (localImageUri && (editingMessage ? localImageUri !== editingMessage.imageUrl : true)) {
         setUploading(true);
-        imageUrl = await uploadImageToStorage(localImageUri);
+        const uploadedImageUrl = await uploadImageToStorage(localImageUri);
         setUploading(false);
-        if (!imageUrl) {
+        if (!uploadedImageUrl) {
           return;
+        }
+        imageUrl = uploadedImageUrl;
+
+        // Si estamos editando y había una imagen anterior diferente, eliminarla
+        if (editingMessage && editingMessage.imageUrl && editingMessage.imageUrl !== uploadedImageUrl) {
+          const oldImageRef = ref(storage, editingMessage.imageUrl);
+          await deleteObject(oldImageRef);
+          console.log(`Imagen antigua ${editingMessage.imageUrl} eliminada de Storage.`);
         }
       }
 
       const user = auth.currentUser;
 
-      await addDoc(collection(db, "messages"), {
-        text: message.trim(),
-        additionalField1: additionalField1.trim(),
-        additionalField2: additionalField2.trim(),
-        createdAt: serverTimestamp(),
-        authorId: user ? user.uid : null,
-        imageUrl: imageUrl, // Guardar una sola URL
-      });
+      if (editingMessage) {
+        // Actualizar el mensaje existente
+        const messageRef = doc(db, "messages", editingMessage.id);
+        await updateDoc(messageRef, {
+          text: message.trim(),
+          additionalField1: additionalField1.trim(),
+          additionalField2: additionalField2.trim(),
+          imageUrl: imageUrl, // Actualizar la URL de la imagen
+          updatedAt: serverTimestamp(),
+        });
 
-      Alert.alert("Éxito", "Mensaje guardado correctamente.");
+        Alert.alert("Éxito", "Mensaje actualizado correctamente.");
+      } else {
+        // Crear un nuevo mensaje
+        await addDoc(collection(db, "messages"), {
+          text: message.trim(),
+          additionalField1: additionalField1.trim(),
+          additionalField2: additionalField2.trim(),
+          createdAt: serverTimestamp(),
+          authorId: user ? user.uid : null,
+          imageUrl: imageUrl, // Guardar una sola URL
+        });
 
+        Alert.alert("Éxito", "Mensaje guardado correctamente.");
+      }
+
+      // Resetear el formulario
       setMessage("");
       setAdditionalField1("");
       setAdditionalField2("");
-      setLocalImageUri(null); // Resetear la URI
+      setLocalImageUri(null);
+      setEditingMessage(null);
       Keyboard.dismiss();
 
     } catch (error) {
@@ -278,6 +306,29 @@ export default function CreateMessageScreen() {
   };
 
   /**
+   * Función para manejar la edición de un mensaje
+   * @param {object} messageItem - Objeto del mensaje a editar
+   */
+  const handleEditMessage = (messageItem) => {
+    setEditingMessage(messageItem);
+    setMessage(messageItem.text);
+    setAdditionalField1(messageItem.additionalField1 || "");
+    setAdditionalField2(messageItem.additionalField2 || "");
+    setLocalImageUri(messageItem.imageUrl || null);
+  };
+
+  /**
+   * Función para cancelar la edición
+   */
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setMessage("");
+    setAdditionalField1("");
+    setAdditionalField2("");
+    setLocalImageUri(null);
+  };
+
+  /**
    * Función para formatear la fecha
    * @param {object} timestamp - Objeto Timestamp de Firestore
    * @returns {string} - Fecha formateada
@@ -297,7 +348,16 @@ export default function CreateMessageScreen() {
       onPress={() => handlePreviewMessage(data.item)}
     >
       <Card style={styles.card}>
-        <Card.Title title={`Publicado el ${formatDate(data.item.createdAt)}`} />
+        <Card.Title 
+          title={`Publicado el ${formatDate(data.item.createdAt)}`} 
+          right={(props) => (
+            <Button
+              {...props}
+              title="Editar"
+              onPress={() => handleEditMessage(data.item)}
+            />
+          )}
+        />
         <Card.Content>
           <Paragraph>{data.item.text}</Paragraph>
           {/* Mostrar campos adicionales si existen */}
@@ -305,7 +365,9 @@ export default function CreateMessageScreen() {
             <>
               <Paragraph>Campo Adicional 1: {data.item.additionalField1}</Paragraph>
               <Paragraph>Campo Adicional 2: {data.item.additionalField2}</Paragraph>
-              <Paragraph>Suma de campos adicionales: {parseFloat(data.item.additionalField1) + parseFloat(data.item.additionalField2)}</Paragraph>
+              <Paragraph>
+                Suma de campos adicionales: {parseFloat(data.item.additionalField1) + parseFloat(data.item.additionalField2)}
+              </Paragraph>
             </>
           ) : null}
         </Card.Content>
@@ -330,92 +392,105 @@ export default function CreateMessageScreen() {
     </View>
   ), []);
 
+  /**
+   * Renderizar el formulario como componente de encabezado
+   */
+  const renderHeader = () => (
+    <View style={styles.formContainer}>
+      <Text style={styles.label}>
+        {editingMessage ? "Editar Mensaje:" : "Escribe un mensaje:"}
+      </Text>
+      <TextInput
+        ref={textInputRef}
+        style={styles.input}
+        value={message}
+        onChangeText={setMessage}
+        placeholder="Mensaje..."
+        multiline
+        numberOfLines={4}
+      />
+
+      {/* Campos adicionales */}
+      <Text style={styles.label}>Campo Adicional 1:</Text>
+      <TextInput
+        style={styles.input}
+        value={additionalField1}
+        onChangeText={setAdditionalField1}
+        placeholder="Campo Adicional 1..."
+      />
+
+      <Text style={styles.label}>Campo Adicional 2:</Text>
+      <TextInput
+        style={styles.input}
+        value={additionalField2}
+        onChangeText={setAdditionalField2}
+        placeholder="Campo Adicional 2..."
+      />
+
+      {/* Botón para abrir el selector de imágenes */}
+      <Button title="Elegir Imagen" onPress={handleChooseImage} />
+
+      {/* Mostrar preview de la imagen elegida */}
+      {localImageUri && (
+        <View style={styles.imagePreviewContainer}>
+          <Image
+            source={{ uri: localImageUri }}
+            style={styles.imagePreview}
+            resizeMode="cover"
+          />
+          <TouchableOpacity
+            style={styles.removeImageButton}
+            onPress={() => setLocalImageUri(null)}
+          >
+            <Text style={styles.removeImageText}>Eliminar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Mostrar indicador de carga mientras se sube la imagen */}
+      {uploading && (
+        <View style={styles.uploadingContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.uploadingText}>Subiendo imagen...</Text>
+        </View>
+      )}
+
+      <Button
+        title={editingMessage ? "Actualizar Mensaje" : "Subir Mensaje"}
+        onPress={handleSaveMessage}
+      />
+
+      {/* Mostrar botón para cancelar la edición */}
+      {editingMessage && (
+        <Button
+          title="Cancelar Edición"
+          color="red"
+          onPress={handleCancelEdit}
+        />
+      )}
+
+      {/* Separador */}
+      <View style={styles.separator} />
+    </View>
+  );
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* Formulario de Creación de Mensaje */}
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Escribe un mensaje:</Text>
-          <TextInput
-            ref={textInputRef}
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="Mensaje..."
-            multiline
-            numberOfLines={4}
-          />
-
-          {/* Campos adicionales */}
-          <Text style={styles.label}>Campo Adicional 1:</Text>
-          <TextInput
-            style={styles.input}
-            value={additionalField1}
-            onChangeText={setAdditionalField1}
-            placeholder="Campo Adicional 1..."
-          />
-
-          <Text style={styles.label}>Campo Adicional 2:</Text>
-          <TextInput
-            style={styles.input}
-            value={additionalField2}
-            onChangeText={setAdditionalField2}
-            placeholder="Campo Adicional 2..."
-          />
-
-          {/* Botón para abrir el selector de imágenes */}
-          <Button title="Elegir Imagen" onPress={handleChooseImage} />
-
-          {/* Mostrar preview de la imagen elegida */}
-          {localImageUri && (
-            <View style={styles.imagePreviewContainer}>
-              <Image
-                source={{ uri: localImageUri }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-              <TouchableOpacity
-                style={styles.removeImageButton}
-                onPress={() => setLocalImageUri(null)}
-              >
-                <Text style={styles.removeImageText}>Eliminar</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Mostrar indicador de carga mientras se sube la imagen */}
-          {uploading && (
-            <View style={styles.uploadingContainer}>
-              <ActivityIndicator size="large" color="#0000ff" />
-              <Text style={styles.uploadingText}>Subiendo imagen...</Text>
-            </View>
-          )}
-
-          <Button title="Subir Mensaje" onPress={handleSaveMessage} />
-
-          {/* Separador */}
-          <View style={styles.separator} />
-        </View>
-
-        {/* Lista de mensajes */}
-        <View style={styles.listContainer}>
-          <Text style={styles.label}>Mensajes enviados:</Text>
-          {messages.length === 0 ? (
-            <Text style={styles.noMessagesText}>No hay mensajes.</Text>
-          ) : (
-            <SwipeListView
-              data={messages}
-              renderItem={renderItem}
-              renderHiddenItem={renderHiddenItem}
-              rightOpenValue={-75}
-              keyExtractor={(item) => item.id}
-              extraData={messages}
-            />
-          )}
-        </View>
+        {/* Lista de mensajes con el formulario como encabezado */}
+        <SwipeListView
+          data={messages}
+          renderItem={renderItem}
+          renderHiddenItem={renderHiddenItem}
+          rightOpenValue={-75}
+          keyExtractor={(item) => item.id}
+          extraData={messages}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
 
         {/* Modal para previsualizar el mensaje */}
         <Modal
@@ -447,7 +522,9 @@ export default function CreateMessageScreen() {
                             <>
                               <Paragraph>Campo Adicional 1: {previewMessage.additionalField1}</Paragraph>
                               <Paragraph>Campo Adicional 2: {previewMessage.additionalField2}</Paragraph>
-                              <Paragraph>Suma de campos adicionales: {parseFloat(previewMessage.additionalField1) + parseFloat(previewMessage.additionalField2)}</Paragraph>
+                              <Paragraph>
+                                Suma de campos adicionales: {parseFloat(previewMessage.additionalField1) + parseFloat(previewMessage.additionalField2)}
+                              </Paragraph>
                             </>
                           ) : null}
                         </Card.Content>
