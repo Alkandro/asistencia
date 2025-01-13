@@ -13,7 +13,7 @@ import {
   FlatList,
 } from "react-native";
 import { recordCheckIn } from "./Attendance";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native"; // <-- Import useRoute
 import { auth, db } from "./firebase";
 import ButtonGradient from "./ButtonGradient";
 import {
@@ -30,37 +30,44 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import dayjs from "dayjs";
-import { Card, Paragraph } from "react-native-paper"; // Importa Paragraph
-import StarRating from "react-native-star-rating-widget"; // Importa StarRating
+import { Card, Paragraph } from "react-native-paper";
+import StarRating from "react-native-star-rating-widget"; // Asegúrate de que esté instalado
 
 const CheckInScreen = () => {
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [latestMessage, setLatestMessage] = useState(null); // Último mensaje
-  const [isModalVisible, setIsModalVisible] = useState(false); // Modal de la imagen
-  const [ratings, setRatings] = useState([]); // Historial de puntuaciones
-  const [averageRating, setAverageRating] = useState(null); // Promedio de puntuaciones
-  const [expandedYear, setExpandedYear] = useState(null); // Años expandidos (si usas historial mensual)
+
+  // Último mensaje (de la colección "messages")
+  const [latestMessage, setLatestMessage] = useState(null);
+
+  // Modal de imagen
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  // Última puntuación del usuario
+  const [lastRating, setLastRating] = useState(null);
+
   const navigation = useNavigation();
 
-  // Obtener dimensiones para ajustar tamaño de las Cards
-  const windowWidth = Dimensions.get("window").width;
-  const cardWidth = windowWidth * 0.95; // 95% del ancho de la pantalla
-  const modalCardWidth = windowWidth * 0.9; // 90% del ancho de la pantalla
+  // <-- Recuperamos el mensaje individual desde los parámetros (si existe)
+  const route = useRoute();
+  const { customMessage } = route.params || {};
 
-  // ====== Función para redondear a múltiplos de 0.5 ======
-  const getHalfStarRating = (ratingStr) => {
-    if (!ratingStr) return 0;               // Si no hay rating, retorna 0
-    const parsed = parseFloat(ratingStr);   // Convierte string a float
-    if (isNaN(parsed)) return 0;            // Si no es número, retorna 0
-    // Redondea a 0.5 más cercano
+  // Obtener dimensiones
+  const windowWidth = Dimensions.get("window").width;
+  const cardWidth = windowWidth * 0.95;
+  const modalCardWidth = windowWidth * 0.9;
+
+  // Función para redondear a múltiplos de 0.5
+  const getHalfStarRating = (rating) => {
+    if (!rating) return 0;
+    const parsed = parseFloat(rating);
+    if (isNaN(parsed)) return 0;
     return Math.round(parsed * 2) / 2;
   };
 
-  // 1) Suscripción a la colección "messages" para obtener el último mensaje
+  // 1) Suscripción a "messages" para obtener el último mensaje
   useEffect(() => {
     const messagesRef = collection(db, "messages");
-    // Ordena por createdAt descendente y toma 1
     const q = query(messagesRef, orderBy("createdAt", "desc"), limit(1));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -68,12 +75,11 @@ const CheckInScreen = () => {
         const docSnap = snapshot.docs[0];
         setLatestMessage(docSnap.data());
       } else {
-        // No hay mensajes todavía
         setLatestMessage(null);
       }
     });
 
-    return () => unsubscribe(); // Cancela suscripción al desmontar
+    return () => unsubscribe();
   }, []);
 
   // 2) Obtener cuántos check-ins hay este mes
@@ -109,55 +115,43 @@ const CheckInScreen = () => {
     }
   };
 
-  // 3) Obtener las puntuaciones y calcular el promedio
-  const fetchRatings = useCallback(async () => {
+  // 3) Obtener solo la última puntuación del usuario
+  const fetchLastRating = useCallback(async () => {
     try {
       const user = auth.currentUser;
       if (user) {
         const ratingsRef = collection(db, "users", user.uid, "ratings");
-        const q = query(ratingsRef, orderBy("createdAt", "desc"));
+        const q = query(ratingsRef, orderBy("createdAt", "desc"), limit(1));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-          const ratingsList = [];
-          querySnapshot.forEach((docSnap) => {
-            ratingsList.push(docSnap.data());
-          });
-          setRatings(ratingsList);
-
-          // Calcular promedio
-          if (ratingsList.length > 0) {
-            const total = ratingsList.reduce(
-              (acc, curr) => acc + curr.score,
-              0
-            );
-            const average = (total / ratingsList.length).toFixed(1);
-            setAverageRating(average);
+          if (!querySnapshot.empty) {
+            const latestRatingDoc = querySnapshot.docs[0].data();
+            setLastRating(latestRatingDoc.score);
           } else {
-            setAverageRating(null);
+            setLastRating(null);
           }
         });
-        // Cancelar suscripción al desmontar
         return () => unsubscribe();
       }
     } catch (error) {
-      console.error("Error al obtener las puntuaciones:", error);
+      console.error("Error al obtener la última puntuación:", error);
     }
   }, []);
 
-  // Se ejecuta al montar la pantalla
+  // Al montar
   useEffect(() => {
     fetchMonthlyCheckIns();
-    fetchRatings();
-  }, [fetchRatings]);
+    fetchLastRating();
+  }, [fetchLastRating]);
 
-  // useFocusEffect se ejecuta cada vez que la pantalla gana el foco
+  // useFocusEffect para recargar cuando la pantalla gana foco
   useFocusEffect(
     useCallback(() => {
       fetchMonthlyCheckIns();
-      fetchRatings();
-    }, [fetchRatings])
+      fetchLastRating();
+    }, [fetchLastRating])
   );
 
-  // 4) Botón de Check-In
+  // Botón de Check-In
   const handleCheckIn = async () => {
     if (auth.currentUser) {
       const monthKey = dayjs().format("YYYY-MM");
@@ -202,15 +196,15 @@ const CheckInScreen = () => {
     }
   };
 
-  // 5) Refresh para actualizar los datos
+  // Refresh
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMonthlyCheckIns();
-    await fetchRatings();
+    await fetchLastRating();
     setRefreshing(false);
   };
 
-  // 6) Calcular la suma de los dos campos adicionales
+  // Calcular la suma de dos campos adicionales del último mensaje (si existen)
   const calculateSum = () => {
     if (
       latestMessage &&
@@ -226,116 +220,87 @@ const CheckInScreen = () => {
     return null;
   };
 
-  // 7) Formatear la fecha
+  // Formatear fecha
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
     const date = timestamp.toDate();
     return dayjs(date).format("DD/MM/YYYY HH:mm");
   };
 
-  // Para expandir años (si tuvieras historial mensual)
-  const toggleYear = (year) => {
-    setExpandedYear(expandedYear === year ? null : year);
-  };
+  // ========== COMPONENTES DE ENCABEZADO Y PIE DE LISTA ==========
 
-  /**
-   * Componente para el encabezado de la lista:
-   *   - Info básica (podrías mostrar datos reales del usuario si los tienes)
-   *   - Promedio de puntuaciones
-   */
-  const ListHeader = () => {
-    // Redondear a múltiplos de 0.5
-    const halfStarRating = getHalfStarRating(averageRating);
+  // 1) Encabezado con el último mensaje
+  const ListHeader = () => (
+    <View style={styles.headerContainer}>
+      {latestMessage ? (
+        <>
+          <Text style={styles.headerTitle}>Último Mensaje</Text>
+          <Text style={styles.headerMessage}>{latestMessage.text}</Text>
+
+          {latestMessage.additionalField1 && latestMessage.additionalField2 && (
+            <View style={{ marginBottom: 8 }}>
+              <Text style={styles.text}>
+                Campo Adicional 1: {latestMessage.additionalField1}
+              </Text>
+              <Text style={styles.text}>
+                Campo Adicional 2: {latestMessage.additionalField2}
+              </Text>
+              <Text style={styles.text}>
+                Suma de campos adicionales: {calculateSum()}
+              </Text>
+            </View>
+          )}
+
+          {latestMessage.imageUrl && (
+            <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
+              <Card style={styles.card}>
+                <Card.Cover source={{ uri: latestMessage.imageUrl }} />
+              </Card>
+            </TouchableWithoutFeedback>
+          )}
+        </>
+      ) : (
+        <Text style={styles.headerMessage}>No hay mensajes aún</Text>
+      )}
+    </View>
+  );
+
+  // 2) Pie de lista con la última puntuación
+  const ListFooter = () => {
+    const halfStarLast = getHalfStarRating(lastRating);
 
     return (
-      <View>
-        <Text style={styles.title}>Detalle del Usuario</Text>
-        <Text style={styles.text}>
-          Username: {latestMessage?.username || "No registrado"}
-        </Text>
-        {/* Añade más campos si es necesario */}
-
-        {/* Mostrar el promedio de puntuaciones */}
-        {averageRating && (
-          <View style={styles.averageRatingContainer}>
-            <Text style={styles.averageRatingText}>
-              Promedio de Puntuaciones: {averageRating}/10
-            </Text>
-            {/* StarRating con valor redondeado */}
-            <StarRating
-              rating={halfStarRating}
-              onChange={() => {}} // Deshabilitado para no modificar
-              starCount={10}
-              color="#f1c40f"
-              starSize={25}
-              enableHalfStar={true}
-              disable={true}
-            />
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  /**
-   * Componente para el pie de la lista:
-   *   - Último mensaje, campos adicionales, imagen (Card)
-   *   - Mostrar nuevamente las estrellas si quieres
-   */
-  const ListFooter = () => {
-    // Redondear a múltiplos de 0.5 para la segunda visualización
-    const halfStarRatingFooter = getHalfStarRating(averageRating);
-
-    return latestMessage ? (
-      <View style={styles.messageContainer}>
-        <Text style={styles.latestMessage}>
-          Último mensaje: {latestMessage.text}
-        </Text>
-
-        {/* Mostrar campos adicionales si existen */}
-        {latestMessage.additionalField1 && latestMessage.additionalField2 && (
-          <View style={styles.additionalFieldsContainer}>
-            <Text style={styles.additionalField}>
-              Campo Adicional 1: {latestMessage.additionalField1}
-            </Text>
-            <Text style={styles.additionalField}>
-              Campo Adicional 2: {latestMessage.additionalField2}
-            </Text>
-            <Text style={styles.sumText}>
-              Suma de campos adicionales: {calculateSum()}
-            </Text>
-          </View>
-        )}
-
-        {/* Card con imagen si existe */}
-        {latestMessage.imageUrl && (
-          <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
-            <Card style={styles.card}>
-              <Card.Cover source={{ uri: latestMessage.imageUrl }} />
-            </Card>
-          </TouchableWithoutFeedback>
-        )}
-
-        {/* Mostrar de nuevo la puntuación debajo del Card (opcional) */}
-        {averageRating && (
-          <View style={styles.averageRatingContainer}>
-            <Text style={styles.averageRatingText}>
-              Promedio de Puntuaciones: {averageRating}/10
+      <View style={styles.footerContainer}>
+        <Text style={styles.footerTitle}>Última Puntuación</Text>
+        {lastRating ? (
+          <>
+            <Text style={styles.footerRatingText}>
+              Tu última puntuación: {lastRating}/10
             </Text>
             <StarRating
-              rating={halfStarRatingFooter}
+              rating={halfStarLast}
               onChange={() => {}}
-              starCount={10}
+              maxStars={10}
               color="#f1c40f"
-              starSize={25}
+              starSize={22}
               enableHalfStar={true}
               disable={true}
             />
+          </>
+        ) : (
+          <Text style={styles.footerRatingText}>
+            Aún no tienes puntuaciones registradas
+          </Text>
+        )}
+
+        {/* ========== AÑADIR EL NUEVO MENSAJE DE OTRA PANTALLA ========== */}
+        {customMessage && (
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.messageTitle}>Mensaje</Text>
+            <Text style={styles.customMessageText}>{customMessage}</Text>
           </View>
         )}
       </View>
-    ) : (
-      <Text style={styles.latestMessage}>No hay mensajes aún</Text>
     );
   };
 
@@ -343,18 +308,9 @@ const CheckInScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
         <FlatList
-          data={ratings}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.ratingItem}>
-              <Text style={styles.ratingScore}>⭐ {item.score}/10</Text>
-              <Text style={styles.ratingDate}>
-                {item.createdAt
-                  ? dayjs(item.createdAt.toDate()).format("DD/MM/YYYY HH:mm")
-                  : "Sin fecha"}
-              </Text>
-            </View>
-          )}
+          data={[]}
+          renderItem={null}
+          keyExtractor={(_, index) => index.toString()}
           ListHeaderComponent={<ListHeader />}
           ListFooterComponent={<ListFooter />}
           refreshControl={
@@ -362,6 +318,7 @@ const CheckInScreen = () => {
           }
         />
 
+        {/* Botón de Check-In */}
         <View style={styles.buttonContainer}>
           <ButtonGradient
             onPress={handleCheckIn}
@@ -371,7 +328,7 @@ const CheckInScreen = () => {
         </View>
       </View>
 
-      {/* Modal para mostrar la imagen con título y contenido */}
+      {/* Modal para mostrar la imagen y detalles */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -380,18 +337,18 @@ const CheckInScreen = () => {
       >
         <TouchableWithoutFeedback onPress={() => setIsModalVisible(false)}>
           <View style={styles.modalOverlay}>
-            {/* Evitar que toques dentro del contenido cierren el modal */}
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={styles.modalContent}>
-                {/* Mostrar la imagen y detalles si existen */}
                 {latestMessage?.imageUrl && (
                   <Card style={styles.modalCard}>
                     <Card.Cover source={{ uri: latestMessage.imageUrl }} />
                     <Card.Title
                       title="Detalles del Mensaje"
-                      subtitle={`Publicado el ${formatDate(
+                      subtitle={
                         latestMessage.createdAt
-                      )}`}
+                          ? `Publicado el ${formatDate(latestMessage.createdAt)}`
+                          : "Sin fecha"
+                      }
                     />
                     <Card.Content>
                       <Paragraph>{latestMessage.text}</Paragraph>
@@ -430,75 +387,69 @@ const CheckInScreen = () => {
 
 export default CheckInScreen;
 
-// ========== ESTILOS ==========
-
+// ====== ESTILOS ======
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
-  // Título
-  title: {
-    fontSize: 20,
+  // Encabezado (último mensaje)
+  headerContainer: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: "bold",
-    marginVertical: 12,
-    marginLeft: 10,
+    marginBottom: 8,
+  },
+  headerMessage: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: "#333",
   },
   text: {
     fontSize: 16,
-    marginLeft: 10,
-    marginBottom: 8,
+    marginBottom: 4,
+    color: "#333",
   },
-  // Promedio de puntuaciones
-  averageRatingContainer: {
-    alignItems: "center",
+  card: {
     marginVertical: 10,
   },
-  averageRatingText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  // Historial de puntuaciones
-  ratingItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomColor: "#eee",
-    borderBottomWidth: 1,
-    paddingHorizontal: 15,
-  },
-  ratingScore: {
-    fontSize: 16,
-    color: "#333",
-  },
-  ratingDate: {
-    fontSize: 14,
-    color: "#999",
-  },
-  // Mensajes
-  messageContainer: {
+  // Pie de lista (última puntuación)
+  footerContainer: {
     padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
   },
-  latestMessage: {
+  footerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  footerRatingText: {
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 8,
     color: "#333",
   },
-  additionalFieldsContainer: {
-    marginBottom: 10,
-  },
-  additionalField: {
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  sumText: {
-    fontSize: 16,
+  // Mensaje adicional de otra pantalla
+  messageTitle: {
+    fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 5,
+    color: "#333",
   },
-  // Card
-  card: {
-    marginBottom: 10,
+  customMessageText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  // Botón
+  buttonContainer: {
+    padding: 20,
+  },
+  button: {
+    alignSelf: "center",
   },
   // Modal
   modalOverlay: {
@@ -521,13 +472,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginTop: 10,
-    alignSelf: "center",
-  },
-  // Botón
-  buttonContainer: {
-    padding: 20,
-  },
-  button: {
     alignSelf: "center",
   },
 });
