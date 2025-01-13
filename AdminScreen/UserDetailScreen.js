@@ -285,16 +285,18 @@ export default function UserDetailScreen() {
 
         {userDetailExpanded && (
           <View style={styles.dropdownContent}>
-            <Text style={styles.text}>
-              Username: {userData.username || "No registrado"}
-            </Text>
-            <Text style={styles.text}>
-              Nombre: {userData.nombre || "No registrado"}
-            </Text>
-            <Text style={styles.text}>
-              Apellido: {userData.apellido || "No registrado"}
-            </Text>
-            {/* ... más campos ... */}
+            <Text style={styles.text}>Username: {userData.username || "No registrado"}</Text>
+      <Text style={styles.text}>Nombre: {userData.nombre || "No registrado"}</Text>
+      <Text style={styles.text}>Apellido: {userData.apellido || "No registrado"}</Text>
+      <Text style={styles.text}>Email: {userData.email || "No registrado"}</Text>
+      <Text style={styles.text}>Teléfono: {userData.phone || "No registrado"}</Text>
+      <Text style={styles.text}>Cinturón: {userData.cinturon || "No registrado"}</Text>
+      <Text style={styles.text}>Ciudad: {userData.ciudad || "No registrado"}</Text>
+      <Text style={styles.text}>Provincia: {userData.provincia || "No registrado"}</Text>
+      <Text style={styles.text}>Peso: {userData.peso || "No registrado"}</Text>
+      <Text style={styles.text}>Altura: {userData.altura || "No registrado"}</Text>
+      <Text style={styles.text}>Edad: {userData.edad || "No registrado"}</Text>
+      <Text style={styles.text}>Género: {userData.genero || "No registrado"}</Text>
           </View>
         )}
 
