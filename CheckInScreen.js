@@ -209,12 +209,14 @@ const CheckInScreen = () => {
     if (
       latestMessage &&
       latestMessage.additionalField1 &&
-      latestMessage.additionalField2
+      latestMessage.additionalField2 &&
+      latestMessage.additionalField3 
     ) {
       const field1 = parseFloat(latestMessage.additionalField1);
       const field2 = parseFloat(latestMessage.additionalField2);
-      if (!isNaN(field1) && !isNaN(field2)) {
-        return field1 + field2;
+      const field3 = parseFloat(latestMessage.additionalField3);
+      if (!isNaN(field1) && !isNaN(field2)&& !isNaN(field3)) {
+        return field1 + field2+ field3;
       }
     }
     return null;
@@ -234,19 +236,19 @@ const CheckInScreen = () => {
     <View style={styles.headerContainer}>
       {latestMessage ? (
         <>
-          <Text style={styles.headerTitle}>Último Mensaje</Text>
+          <Text style={styles.headerTitle}>Mensaje🇧🇷</Text>
           <Text style={styles.headerMessage}>{latestMessage.text}</Text>
 
           {latestMessage.additionalField1 && latestMessage.additionalField2 && (
             <View style={{ marginBottom: 8 }}>
               <Text style={styles.text}>
-                Campo Adicional 1: {latestMessage.additionalField1}
+                🇯🇵{latestMessage.additionalField1}
               </Text>
               <Text style={styles.text}>
-                Campo Adicional 2: {latestMessage.additionalField2}
+              🇺🇸{latestMessage.additionalField2}
               </Text>
               <Text style={styles.text}>
-                Suma de campos adicionales: {calculateSum()}
+              🇺🇸{latestMessage.additionalField3}
               </Text>
             </View>
           )}
@@ -403,6 +405,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
+    textAlign: "center",
   },
   headerMessage: {
     fontSize: 16,
