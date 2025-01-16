@@ -248,7 +248,7 @@ const CheckInScreen = () => {
               🇺🇸{latestMessage.additionalField2}
               </Text>
               <Text style={styles.text}>
-              🇺🇸{latestMessage.additionalField3}
+              🇪🇸{latestMessage.additionalField3}
               </Text>
             </View>
           )}

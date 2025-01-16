@@ -41,33 +41,33 @@ const MessageForm = React.forwardRef(({
         onChangeText={setMessage}
         placeholder="Mensaje..."
         multiline
-        numberOfLines={4}
+        numberOfLines={20}
         autoCorrect={false}
         autoCapitalize="none"
       />
 
-      <Text style={styles.label}>Campo Adicional 1:</Text>
+      <Text style={styles.label}>🇯🇵</Text>
       <TextInput
         style={styles.input}
         value={additionalField1}
         onChangeText={setAdditionalField1}
-        placeholder="Campo Adicional 1..."
+        placeholder="Mensaje..."
       />
 
-      <Text style={styles.label}>Campo Adicional 2:</Text>
+      <Text style={styles.label}>🇺🇸</Text>
       <TextInput
         style={styles.input}
         value={additionalField2}
         onChangeText={setAdditionalField2}
-        placeholder="Campo Adicional 2..."
+        placeholder="Mensaje..."
       />
 
-      <Text style={styles.label}>Campo Adicional 3:</Text>
+      <Text style={styles.label}>🇪🇸</Text>
       <TextInput
         style={styles.input}
         value={additionalField3}
         onChangeText={setAdditionalField3}
-        placeholder="Campo Adicional 3..."
+        placeholder="Mensaje..."
       />
 
       <Button title="Elegir Imagen" onPress={handleChooseImage} />

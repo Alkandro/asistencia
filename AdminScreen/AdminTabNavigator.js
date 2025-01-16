@@ -4,7 +4,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 
 // Importa las pantallas que quieras en las pestañas
 import UserListScreen from "./UserListScreen";
-import UserDetailScreen from "./UserDetailScreen"; // Opcional
+import MessagePreviewScreen from "./MessagePreviewScreen"; // Opcional
 import UserProfileScreen from "../UserProfileScreen"; // Opcional
 import CreateMessageScreen from "./CreateMessageScreen";
 
@@ -38,9 +38,9 @@ const AdminTabNavigator = () => {
         options={{ title: "Mensaje" }}
       />
       <Tab.Screen
-        name="UserProfileTab"
-        component={UserProfileScreen}
-        options={{ title: "Perfil" }}
+        name="MessagePreviewScreen"
+        component={MessagePreviewScreen}
+        options={{ title: "Prev" }}
       />
     </Tab.Navigator>
   );
