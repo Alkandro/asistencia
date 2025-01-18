@@ -1,11 +1,10 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import Icon from "react-native-vector-icons/Ionicons";
+import Icon from "react-native-vector-icons/FontAwesome6";
 
 // Importa las pantallas que quieras en las pestañas
 import UserListScreen from "./UserListScreen";
 import MessagePreviewScreen from "./MessagePreviewScreen"; // Opcional
-import UserProfileScreen from "../UserProfileScreen"; // Opcional
 import CreateMessageScreen from "./CreateMessageScreen";
 
 const Tab = createBottomTabNavigator();
@@ -17,9 +16,9 @@ const AdminTabNavigator = () => {
         // Íconos para cada pestaña
         tabBarIcon: ({ color, size }) => {
           let iconName = "home"; 
-          if (route.name === "UserList") iconName = "people-outline";
-          else if (route.name === "UserDetailsTab") iconName = "information-circle-outline";
-          else if (route.name === "UserProfileTab") iconName = "person-outline";
+          if (route.name === "UserList") iconName = "user-group";
+          else if (route.name === "CreateMessage") iconName = "envelopes-bulk";
+          else if (route.name === "MessagePreviewScreen") iconName = "eye";
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "blue",

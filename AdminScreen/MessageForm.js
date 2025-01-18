@@ -1,17 +1,17 @@
-// components/MessageForm.js
+// MessageForm.js
 import React from "react";
 import {
   View,
   Text,
   TextInput,
-  Button,
   TouchableOpacity,
   Image,
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
+// Ajusta la importación según tu fuente de íconos preferida de FontAwesome 6:
+import Icon from "react-native-vector-icons/FontAwesome5";
 
-// Usamos forwardRef para permitir que el padre controle el enfoque
 const MessageForm = React.forwardRef(({
   message,
   setMessage,
@@ -41,7 +41,7 @@ const MessageForm = React.forwardRef(({
         onChangeText={setMessage}
         placeholder="Mensaje..."
         multiline
-        numberOfLines={20}
+        numberOfLines={4}
         autoCorrect={false}
         autoCapitalize="none"
       />
@@ -70,8 +70,38 @@ const MessageForm = React.forwardRef(({
         placeholder="Mensaje..."
       />
 
-      <Button title="Elegir Imagen" onPress={handleChooseImage} />
+      {/* FILA DE ÍCONOS ARRIBA DE LA IMAGEN */}
+      <View style={styles.iconRow}>
+        {/* Ícono para ELEGIR imagen */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleChooseImage}
+        >
+          <Icon name="image" size={24} color="#000" />
+        </TouchableOpacity>
 
+        {/* Ícono para ELIMINAR imagen (si quieres deshabilitarlo cuando no hay imagen, puedes poner lógica) */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => setLocalImageUri(null)}
+        >
+          <Icon name="trash" size={24} color="#ff4d4d" />
+        </TouchableOpacity>
+
+        {/* Ícono para SUBIR/ACTUALIZAR mensaje */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleSaveMessage}
+        >
+          <Icon
+            name="paper-plane"
+            size={24}
+            color="#007bff"
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* PREVISUALIZACIÓN DE LA IMAGEN */}
       {localImageUri && (
         <View style={styles.imagePreviewContainer}>
           <Image
@@ -79,12 +109,6 @@ const MessageForm = React.forwardRef(({
             style={styles.imagePreview}
             resizeMode="cover"
           />
-          <TouchableOpacity
-            style={styles.removeImageButton}
-            onPress={() => setLocalImageUri(null)}
-          >
-            <Text style={styles.removeImageText}>Eliminar</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -95,17 +119,14 @@ const MessageForm = React.forwardRef(({
         </View>
       )}
 
-      <Button
-        title={editingMessage ? "Actualizar Mensaje" : "Subir Mensaje"}
-        onPress={handleSaveMessage}
-      />
-
+      {/* Botón solo visible si estás editando un mensaje (opcional) */}
       {editingMessage && (
-        <Button
-          title="Cancelar Edición"
-          color="red"
+        <TouchableOpacity
+          style={styles.cancelButton}
           onPress={handleCancelEdit}
-        />
+        >
+          <Text style={styles.cancelButtonText}>Cancelar Edición</Text>
+        </TouchableOpacity>
       )}
 
       <View style={styles.separator} />
@@ -130,11 +151,18 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
-    textAlignVertical: "top",
     backgroundColor: "#fff",
   },
+  iconRow: {
+    flexDirection: "row",
+    justifyContent: "space-between", // Reparte espacio en la fila
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  iconButton: {
+    padding: 10,
+  },
   imagePreviewContainer: {
-    marginTop: 10,
     marginBottom: 10,
     alignItems: "center",
   },
@@ -142,17 +170,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 10,
-  },
-  removeImageButton: {
-    marginTop: 5,
-    backgroundColor: "#ff4d4d",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  removeImageText: {
-    color: "#fff",
-    fontWeight: "bold",
   },
   uploadingContainer: {
     marginTop: 10,
@@ -162,6 +179,17 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 16,
     color: "#555",
+  },
+  cancelButton: {
+    backgroundColor: "red",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  cancelButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    textAlign: "center",
   },
   separator: {
     height: 1,
