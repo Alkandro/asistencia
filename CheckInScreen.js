@@ -1,4 +1,3 @@
-// CheckInScreen.js
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -13,7 +12,7 @@ import {
   FlatList,
 } from "react-native";
 import { recordCheckIn } from "./Attendance";
-import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native"; // <-- Import useRoute
+import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native"; 
 import { auth, db } from "./firebase";
 import ButtonGradient from "./ButtonGradient";
 import {
@@ -31,7 +30,7 @@ import {
 } from "firebase/firestore";
 import dayjs from "dayjs";
 import { Card, Paragraph } from "react-native-paper";
-import StarRating from "react-native-star-rating-widget"; // Asegúrate de que esté instalado
+import StarRating from "react-native-star-rating-widget"; 
 
 const CheckInScreen = () => {
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
@@ -46,9 +45,12 @@ const CheckInScreen = () => {
   // Última puntuación del usuario
   const [lastRating, setLastRating] = useState(null);
 
+  // === NUEVO: almacenar el nombre de usuario
+  const [username, setUsername] = useState("");
+
   const navigation = useNavigation();
 
-  // <-- Recuperamos el mensaje individual desde los parámetros (si existe)
+  // Recuperamos mensaje de otras pantallas si existe
   const route = useRoute();
   const { customMessage } = route.params || {};
 
@@ -65,7 +67,7 @@ const CheckInScreen = () => {
     return Math.round(parsed * 2) / 2;
   };
 
-  // 1) Suscripción a "messages" para obtener el último mensaje
+  // Suscripción a "messages" para obtener el último mensaje
   useEffect(() => {
     const messagesRef = collection(db, "messages");
     const q = query(messagesRef, orderBy("createdAt", "desc"), limit(1));
@@ -82,7 +84,7 @@ const CheckInScreen = () => {
     return () => unsubscribe();
   }, []);
 
-  // 2) Obtener cuántos check-ins hay este mes
+  // Obtener los check-ins de este mes
   const fetchMonthlyCheckIns = async () => {
     try {
       const user = auth.currentUser;
@@ -115,7 +117,7 @@ const CheckInScreen = () => {
     }
   };
 
-  // 3) Obtener solo la última puntuación del usuario
+  // Obtener la última puntuación
   const fetchLastRating = useCallback(async () => {
     try {
       const user = auth.currentUser;
@@ -137,18 +139,37 @@ const CheckInScreen = () => {
     }
   }, []);
 
+  // === NUEVO: Obtener el nombre de usuario
+  const fetchUserName = useCallback(async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const data = userDocSnap.data();
+        setUsername(data.username || "Usuario"); // Ajusta como quieras
+      }
+    } catch (error) {
+      console.error("Error al obtener el nombre de usuario:", error);
+    }
+  }, []);
+
   // Al montar
   useEffect(() => {
     fetchMonthlyCheckIns();
     fetchLastRating();
-  }, [fetchLastRating]);
+    fetchUserName(); // <-- Llamamos también a fetchUserName()
+  }, [fetchLastRating, fetchUserName]);
 
   // useFocusEffect para recargar cuando la pantalla gana foco
   useFocusEffect(
     useCallback(() => {
       fetchMonthlyCheckIns();
       fetchLastRating();
-    }, [fetchLastRating])
+      fetchUserName();
+    }, [fetchLastRating, fetchUserName])
   );
 
   // Botón de Check-In
@@ -201,22 +222,23 @@ const CheckInScreen = () => {
     setRefreshing(true);
     await fetchMonthlyCheckIns();
     await fetchLastRating();
+    await fetchUserName();
     setRefreshing(false);
   };
 
-  // Calcular la suma de dos campos adicionales del último mensaje (si existen)
+  // Calcular la suma de tres campos adicionales
   const calculateSum = () => {
     if (
       latestMessage &&
       latestMessage.additionalField1 &&
       latestMessage.additionalField2 &&
-      latestMessage.additionalField3 
+      latestMessage.additionalField3
     ) {
       const field1 = parseFloat(latestMessage.additionalField1);
       const field2 = parseFloat(latestMessage.additionalField2);
       const field3 = parseFloat(latestMessage.additionalField3);
-      if (!isNaN(field1) && !isNaN(field2)&& !isNaN(field3)) {
-        return field1 + field2+ field3;
+      if (!isNaN(field1) && !isNaN(field2) && !isNaN(field3)) {
+        return field1 + field2 + field3;
       }
     }
     return null;
@@ -229,9 +251,7 @@ const CheckInScreen = () => {
     return dayjs(date).format("DD/MM/YYYY HH:mm");
   };
 
-  // ========== COMPONENTES DE ENCABEZADO Y PIE DE LISTA ==========
-
-  // 1) Encabezado con el último mensaje
+  // ================= RENDERIZAR ENCABEZADO (último mensaje) =================
   const ListHeader = () => (
     <View style={styles.headerContainer}>
       {latestMessage ? (
@@ -239,20 +259,22 @@ const CheckInScreen = () => {
           <Text style={styles.headerTitle}>Mensaje🇧🇷</Text>
           <Text style={styles.headerMessage}>{latestMessage.text}</Text>
 
-          {latestMessage.additionalField1 && latestMessage.additionalField2 && (
+          {/* Tres campos de idioma */}
+          {latestMessage.additionalField1 && latestMessage.additionalField2 && latestMessage.additionalField3 && (
             <View style={{ marginBottom: 8 }}>
               <Text style={styles.text}>
                 🇯🇵{latestMessage.additionalField1}
               </Text>
               <Text style={styles.text}>
-              🇺🇸{latestMessage.additionalField2}
+                🇺🇸{latestMessage.additionalField2}
               </Text>
               <Text style={styles.text}>
-              🇪🇸{latestMessage.additionalField3}
+                🇪🇸{latestMessage.additionalField3}
               </Text>
             </View>
           )}
 
+          {/* Imagen */}
           {latestMessage.imageUrl && (
             <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
               <Card style={styles.card}>
@@ -267,13 +289,15 @@ const CheckInScreen = () => {
     </View>
   );
 
-  // 2) Pie de lista con la última puntuación
+  // ================= PIE DE LISTA (última puntuación + mensaje adicional) =================
   const ListFooter = () => {
     const halfStarLast = getHalfStarRating(lastRating);
 
     return (
       <View style={styles.footerContainer}>
-        <Text style={styles.footerTitle}>Última Puntuación</Text>
+        {/* AQUÍ MOSTRAMOS EL USERNAME */}
+        <Text style={styles.footerTitle}>Última Puntuación de {username}</Text>
+
         {lastRating ? (
           <>
             <Text style={styles.footerRatingText}>
@@ -295,7 +319,7 @@ const CheckInScreen = () => {
           </Text>
         )}
 
-        {/* ========== AÑADIR EL NUEVO MENSAJE DE OTRA PANTALLA ========== */}
+        {/* Mensaje personalizado de otra pantalla */}
         {customMessage && (
           <View style={{ marginTop: 20 }}>
             <Text style={styles.messageTitle}>Mensaje</Text>
@@ -306,6 +330,7 @@ const CheckInScreen = () => {
     );
   };
 
+  // ================= RENDER PRINCIPAL =================
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
@@ -330,7 +355,7 @@ const CheckInScreen = () => {
         </View>
       </View>
 
-      {/* Modal para mostrar la imagen y detalles */}
+      {/* Modal para mostrar la imagen en grande */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -355,7 +380,8 @@ const CheckInScreen = () => {
                     <Card.Content>
                       <Paragraph>{latestMessage.text}</Paragraph>
                       {latestMessage.additionalField1 &&
-                        latestMessage.additionalField2 && (
+                        latestMessage.additionalField2 &&
+                        latestMessage.additionalField3 && (
                           <>
                             <Paragraph>
                               Campo Adicional 1:{" "}
@@ -364,6 +390,10 @@ const CheckInScreen = () => {
                             <Paragraph>
                               Campo Adicional 2:{" "}
                               {latestMessage.additionalField2}
+                            </Paragraph>
+                            <Paragraph>
+                              Campo Adicional 3:{" "}
+                              {latestMessage.additionalField3}
                             </Paragraph>
                             <Paragraph>
                               Suma de campos adicionales: {calculateSum()}
@@ -395,7 +425,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  // Encabezado (último mensaje)
   headerContainer: {
     padding: 15,
     borderBottomWidth: 1,
@@ -420,7 +449,6 @@ const styles = StyleSheet.create({
   card: {
     marginVertical: 10,
   },
-  // Pie de lista (última puntuación)
   footerContainer: {
     padding: 15,
     borderTopWidth: 1,
@@ -436,7 +464,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: "#333",
   },
-  // Mensaje adicional de otra pantalla
   messageTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -447,14 +474,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  // Botón
   buttonContainer: {
     padding: 20,
   },
   button: {
     alignSelf: "center",
   },
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

@@ -105,7 +105,7 @@ const RegisterScreen = ({ navigation }) => {
           const user = userCredential.user;
   
           Alert.alert("Inicio de sesión", "Has iniciado sesión con tu cuenta existente");
-          navigation.navigate("CheckIn");
+          
         } catch (signInError) {
           Alert.alert("Error", "No se pudo iniciar sesión");
         }

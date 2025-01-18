@@ -436,6 +436,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   actionButton: {
-    marginHorizontal: 55, // Ajusta este valor según el espacio que desees
+    marginHorizontal: 45, // Ajusta este valor según el espacio que desees
+    marginVertical:10,
+    
   },
 });
