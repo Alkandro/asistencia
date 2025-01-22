@@ -48,6 +48,9 @@ const CheckInScreen = () => {
   // === NUEVO: almacenar el nombre de usuario
   const [username, setUsername] = useState("");
 
+  // Al nivel de otros states
+const [lastRatingDate, setLastRatingDate] = useState(null);
+
   const navigation = useNavigation();
 
   // Recuperamos mensaje de otras pantallas si existe
@@ -126,10 +129,13 @@ const CheckInScreen = () => {
         const q = query(ratingsRef, orderBy("createdAt", "desc"), limit(1));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
           if (!querySnapshot.empty) {
-            const latestRatingDoc = querySnapshot.docs[0].data();
-            setLastRating(latestRatingDoc.score);
+            const ratingDoc = querySnapshot.docs[0].data();
+            setLastRating(ratingDoc.score);
+            setLastRatingDate(ratingDoc.createdAt || null); 
+            // Asegúrate de que el campo de fecha se llame "createdAt" en tu DB
           } else {
             setLastRating(null);
+            setLastRatingDate(null);
           }
         });
         return () => unsubscribe();
@@ -256,12 +262,13 @@ const CheckInScreen = () => {
     <View style={styles.headerContainer}>
       {latestMessage ? (
         <>
-          <Text style={styles.headerTitle}>Mensaje🇧🇷</Text>
-          <Text style={styles.headerMessage}>{latestMessage.text}</Text>
+          <Text style={styles.headerTitle}>Mensaje</Text>
+          
 
           {/* Tres campos de idioma */}
           {latestMessage.additionalField1 && latestMessage.additionalField2 && latestMessage.additionalField3 && (
             <View style={{ marginBottom: 8 }}>
+              <Text style={styles.headerMessage}>🇧🇷{latestMessage.text}</Text>
               <Text style={styles.text}>
                 🇯🇵{latestMessage.additionalField1}
               </Text>
@@ -318,6 +325,12 @@ const CheckInScreen = () => {
             Aún no tienes puntuaciones registradas
           </Text>
         )}
+        
+{lastRatingDate && (
+  <Text  style={[styles.footerRatingText, {marginTop: 15, fontSize:12}]}>
+    Ultima puntuación: {formatDate(lastRatingDate)}
+  </Text>
+)}
 
         {/* Mensaje personalizado de otra pantalla */}
         {customMessage && (
@@ -378,26 +391,25 @@ const CheckInScreen = () => {
                       }
                     />
                     <Card.Content>
-                      <Paragraph>{latestMessage.text}</Paragraph>
+                      <Paragraph>Portugues:{" "} {latestMessage.text}</Paragraph>
                       {latestMessage.additionalField1 &&
                         latestMessage.additionalField2 &&
                         latestMessage.additionalField3 && (
                           <>
+                           
                             <Paragraph>
-                              Campo Adicional 1:{" "}
+                              Japones:{" "}
                               {latestMessage.additionalField1}
                             </Paragraph>
                             <Paragraph>
-                              Campo Adicional 2:{" "}
+                              Ingles:{" "}
                               {latestMessage.additionalField2}
                             </Paragraph>
                             <Paragraph>
-                              Campo Adicional 3:{" "}
+                              Español:{" "}
                               {latestMessage.additionalField3}
                             </Paragraph>
-                            <Paragraph>
-                              Suma de campos adicionales: {calculateSum()}
-                            </Paragraph>
+                           
                           </>
                         )}
                     </Card.Content>

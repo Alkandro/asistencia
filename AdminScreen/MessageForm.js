@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
   },
   label: {
-    fontSize: 18,
+    fontSize: 14,
     marginBottom: 8,
     fontWeight: "bold",
   },
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 12,
     borderRadius: 8,
-    fontSize: 16,
+    fontSize: 14,
     backgroundColor: "#fff",
   },
   iconRow: {

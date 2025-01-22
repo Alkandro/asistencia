@@ -173,7 +173,7 @@ export default function MessagePreviewScreen() {
           <Paragraph style={styles.dateText}>
             {formatDate(item.createdAt)}
           </Paragraph>
-          <Headline numberOfLines={1}>{item.text}</Headline>
+         {item.text && <Paragraph>{item.text}</Paragraph>}
           {item.additionalField1 && <Paragraph>{item.additionalField1}</Paragraph>}
           {item.additionalField2 && <Paragraph>{item.additionalField2}</Paragraph>}
           {item.additionalField3 && <Paragraph>{item.additionalField3}</Paragraph>}
@@ -238,22 +238,22 @@ export default function MessagePreviewScreen() {
                   />
                 </View>
                 <Card.Content>
-                  <Paragraph style={styles.modalText}>
-                    {previewMessage.text}
+                  <Paragraph >
+                   Portugues: {previewMessage.text}
                   </Paragraph>
                   {previewMessage.additionalField1 && (
                     <Paragraph>
-                      Campo Adicional 1: {previewMessage.additionalField1}
+                    Japones : {previewMessage.additionalField1}
                     </Paragraph>
                   )}
                   {previewMessage.additionalField2 && (
                     <Paragraph>
-                      Campo Adicional 2: {previewMessage.additionalField2}
+                      Ingles: {previewMessage.additionalField2}
                     </Paragraph>
                   )}
                   {previewMessage.additionalField3 && (
                     <Paragraph>
-                      Campo Adicional 3: {previewMessage.additionalField3}
+                      Español: {previewMessage.additionalField3}
                     </Paragraph>
                   )}
                 </Card.Content>
@@ -365,10 +365,12 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: "#ddd",
+    
   },
   textContainer: {
     flex: 1,
     marginRight: 10,
+    
   },
   dateText: {
     fontSize: 12,
@@ -387,6 +389,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    
   },
   modalContent: {
     marginHorizontal:"auto",
@@ -419,10 +422,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 10,
   },
-  modalText: {
-    fontSize: 16,
-    marginTop: 10,
-  },
+  
   input: {
     marginVertical: 10,
     backgroundColor: "white",
