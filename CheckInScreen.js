@@ -362,7 +362,7 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
         <View style={styles.buttonContainer}>
           <ButtonGradient
             onPress={handleCheckIn}
-            title="REGISTRO"
+            title="TRAINING"
             style={styles.button}
           />
         </View>
