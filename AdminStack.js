@@ -16,7 +16,6 @@ const AdminStack = () => {
         name="AdminTabs"
         component={AdminTabNavigator}
         options={{ 
-          headerTitle: '',  // Título vacío
           headerShown: false }} // Para ocultar header si quieres
       />
 
@@ -24,7 +23,10 @@ const AdminStack = () => {
       <Stack.Screen
         name="UserDetailScreen"
         component={UserDetailScreen}
-        options={{ title: "Detalle del usuario" }}
+        options={{ 
+          title: "Detalle del usuario" ,
+          headerBackTitleVisible: false,
+        }}
       />
       <Stack.Screen
         name="UserProfileScreen"
