@@ -38,6 +38,7 @@ const UserProfileScreen = () => {
   const [newData, setNewData] = useState({});
   const [imageUri, setImageUri] = useState(null);
   const [cinturon, setNewCinturon] = useState("");
+  const [genero, setNewGenero] = useState("");
 
   useEffect(() => {
     const loadImage = async () => {
@@ -229,7 +230,9 @@ const UserProfileScreen = () => {
               </View>
             </>
           ) : (
-            <Text style={styles.text1}>No se encontraron datos del usuario</Text>
+            <Text style={styles.text1}>
+              No se encontraron datos del usuario
+            </Text>
           )}
         </View>
       </View>
@@ -252,9 +255,7 @@ const UserProfileScreen = () => {
             <TextInput
               style={styles.TextInput}
               value={`${newData.nombre}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, nombre: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, nombre: text })}
               placeholder="Nombre"
               placeholderTextColor="red"
             />
@@ -299,19 +300,14 @@ const UserProfileScreen = () => {
 
             {/* Vista previa del cinturón */}
             {cinturon ? (
-              <Image
-                source={getBeltImage(cinturon)}
-                style={styles.beltImage}
-              />
+              <Image source={getBeltImage(cinturon)} style={styles.beltImage} />
             ) : null}
 
             <Text style={styles.text1}>Teléfono</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.phone}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, phone: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, phone: text })}
               placeholder="Teléfono"
               placeholderTextColor="red"
             />
@@ -320,9 +316,7 @@ const UserProfileScreen = () => {
             <TextInput
               style={styles.TextInput}
               value={`${newData.ciudad}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, ciudad: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, ciudad: text })}
               placeholder="Ciudad"
               placeholderTextColor="red"
             />
@@ -342,9 +336,7 @@ const UserProfileScreen = () => {
             <TextInput
               style={styles.TextInput}
               value={`${newData.edad}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, edad: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, edad: text })}
               placeholder="Edad"
               placeholderTextColor="red"
             />
@@ -353,9 +345,7 @@ const UserProfileScreen = () => {
             <TextInput
               style={styles.TextInput}
               value={`${newData.peso}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, peso: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, peso: text })}
               placeholder="Peso"
               placeholderTextColor="red"
             />
@@ -364,9 +354,7 @@ const UserProfileScreen = () => {
             <TextInput
               style={styles.TextInput}
               value={`${newData.altura}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, altura: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, altura: text })}
               placeholder="Altura"
               placeholderTextColor="red"
             />
@@ -375,12 +363,24 @@ const UserProfileScreen = () => {
             <TextInput
               style={styles.TextInput}
               value={`${newData.email}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, email: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, email: text })}
               placeholder="Email"
               placeholderTextColor="red"
             />
+            <Text style={styles.text1}>Género</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={newData.genero}
+                onValueChange={(value) =>
+                  setNewData({ ...newData, genero: value })
+                }
+                mode={Platform.OS === "android" ? "dropdown" : undefined}
+                style={styles.picker1}
+              >
+                <Picker.Item label="Masculino" value="Masculino" />
+                <Picker.Item label="Femenino" value="Femenino" />
+              </Picker>
+            </View>
           </KeyboardAwareScrollView>
 
           {/* Botones de Cancelar y Guardar */}
@@ -415,7 +415,6 @@ const styles = StyleSheet.create({
     // En iOS, el SafeAreaView de iOS ya aplica un paddingTop automático,
     // pero si quieres ajustar más, puedes usar:
     // paddingTop: Platform.OS === 'ios' ? 10 : 0,
-  
   },
   container: {
     flex: 1,
@@ -424,8 +423,8 @@ const styles = StyleSheet.create({
   fixedHeader: {
     backgroundColor: "#fff",
     paddingVertical: 10,
-     // Ajusta padding si lo necesitas:
-     paddingTop: Platform.OS === "ios" ? 40 : 10,
+    // Ajusta padding si lo necesitas:
+    paddingTop: Platform.OS === "ios" ? 40 : 20,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -437,7 +436,8 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: 25,
-    padding: 10,
+    padding: 15,
+    width: 230,
   },
   profileDataContainer: {
     // Contenedor para los datos del usuario
@@ -448,6 +448,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
+    //para el espacio entre datos en el perfil
     marginVertical: Platform.OS === "ios" ? 8 : 5,
   },
   icon: {
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     // Agregar un paddingTop extra solo para iOS:
-  paddingTop: Platform.OS === "ios" ? 60 : 10,
+    paddingTop: Platform.OS === "ios" ? 60 : 10,
   },
   modalTitle: {
     color: "#000",
@@ -522,6 +523,21 @@ const styles = StyleSheet.create({
     height: Platform.OS === "ios" ? 200 : 60,
     color: "#000",
   },
+  picker1: {
+    width: "100%",
+    color: "#000",
+    ...Platform.select({
+      ios: {
+        height: 140,
+        marginTop: -40,
+        marginBottom:40,
+      },
+      android: {
+        height: 60,
+        
+      },
+    }),
+  },
   buttonContainer2: {
     alignItems: "center",
     backgroundColor: "transparent",
@@ -530,7 +546,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 10,
     margin: -30,
-    marginBottom:10,
+    marginBottom: 10,
     width: "60%",
   },
   buttonContainer1: {
@@ -541,22 +557,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 10,
     margin: -30,
-    marginBottom:10,
+    marginBottom: 10,
     width: "60%",
   },
   button2: {
     borderRadius: 25,
     padding: 10,
-    width: 180, 
-    marginTop:15,
-    marginRight:20,
+    width: 180,
+    marginTop: 15,
+    marginRight: 20,
   },
   button1: {
     borderRadius: 25,
     padding: 10,
     width: 180,
-    marginTop:15,
-    marginLeft:20,
+    marginTop: 15,
+    marginLeft: 20,
   },
 });
 

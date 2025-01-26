@@ -15,7 +15,9 @@ const AdminStack = () => {
       <Stack.Screen
         name="AdminTabs"
         component={AdminTabNavigator}
-        options={{ headerShown: false }} // Para ocultar header si quieres
+        options={{ 
+          headerTitle: '',  // Título vacío
+          headerShown: false }} // Para ocultar header si quieres
       />
 
       {/* 2) Otras pantallas stack adicionales (si las necesitas) */}

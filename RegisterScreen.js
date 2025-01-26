@@ -13,7 +13,7 @@ import {
   Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import RNPickerSelect from "react-native-picker-select";
+import { Picker } from "@react-native-picker/picker";
 import { auth, db } from "./firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -220,33 +220,41 @@ const RegisterScreen = ({ navigation }) => {
           value={edad}
           onChangeText={setEdad}
         />
-        <Text style={styles.text}>Genero</Text>
-        <TextInput
-          style={styles.textIput}
-          placeholder="Mascculino-Femenino"
-          placeholderTextColor="gray"
-          value={genero}
-          onChangeText={setGenero}
-        />
+       <Text style={styles.text}>Género</Text>
+<View style={styles.pickerContainer}>
+  <Picker
+    selectedValue={genero}
+    onValueChange={(value) => setGenero(value)}
+    mode={Platform.OS === "android" ? "dropdown" : undefined}
+    style={styles.picker1} // O style={styles.picker} si prefieres
+  >
+   
+    <Picker.Item label="Masculino" value="Masculino" />
+    <Picker.Item label="Femenino" value="Femenino" />
+  </Picker>
+</View>
         {/* Dropdown de Cinturón */}
         <Text style={styles.text}>Cinturón</Text>
-        <RNPickerSelect
-          onValueChange={(value) => setCinturon(value)}
-          items={[
-            { label: "White", value: "white" },
-            { label: "Blue", value: "blue" },
-            { label: "Purple", value: "purple" },
-            { label: "Brown", value: "brown" },
-            { label: "Black", value: "black" },
-          ]}
-          style={pickerSelectStyles}
-          placeholder={{ label: "Selecciona tu cinturón", value: null }}
-        />
+        <View style={styles.pickerContainer}>
+  <Picker
+    selectedValue={cinturon}
+    onValueChange={(value) => setCinturon(value)}
+    mode={Platform.OS === "android" ? "dropdown" : undefined}
+    style={styles.picker} // Asegúrate de tener tus estilos
+  >
+   
+    <Picker.Item label="White" value="white" />
+    <Picker.Item label="Blue" value="blue" />
+    <Picker.Item label="Purple" value="purple" />
+    <Picker.Item label="Brown" value="brown" />
+    <Picker.Item label="Black" value="black" />
+  </Picker>
+</View>
 
         {/* Imagen del cinturón */}
         {cinturon ? (
-          <Image source={getBeltImage(cinturon)}  />
-        ) : null}
+  <Image source={getBeltImage(cinturon)} style={styles.beltImage} />
+) : null}
         <Text style={styles.text}>Contraseña</Text>
         <TextInput
           style={styles.textIput}
@@ -326,29 +334,40 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: 10,
   },
-});
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
+  pickerContainer: {
+    width: "100%",
+    borderWidth: 3,
     borderColor: "gray",
-    borderRadius: 5,
-    color: "black",
-    paddingRight: 30, // To ensure the text is never behind the icon
-    marginBottom: 10,
+    borderRadius: 15,
+    marginTop: 5,
+    backgroundColor: "#fff",
   },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "gray",
-    borderRadius: 5,
-    color: "black",
-    paddingRight: 30, // To ensure the text is never behind the icon
-    marginBottom: 10,
+  picker: {
+    width: "100%",
+    height: Platform.OS === "ios" ? 200 : 60,
+    color: "#000",
+  },
+  beltImage: {
+    width: 90,
+    height: 55,
+    resizeMode: "contain",
+    alignSelf: "center",
+    marginVertical: 10,
+  },
+  picker1: {
+    width: "100%",
+    color: "#000",
+    ...Platform.select({
+      ios: {
+        height: 140,
+        marginTop: -40,
+        marginBottom: 40,
+      },
+      android: {
+        height: 60,
+      },
+
+    }),
   },
 });
 
