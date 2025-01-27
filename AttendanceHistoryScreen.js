@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,21 @@ import {
   StyleSheet,
   Animated,
   Platform,
-} from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { Swipeable } from 'react-native-gesture-handler';
-import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { auth, db } from './firebase';
-import { useFocusEffect } from '@react-navigation/native';
-import dayjs from 'dayjs';
-import { SafeAreaView } from 'react-native';
+} from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import { Swipeable } from "react-native-gesture-handler";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  deleteDoc,
+} from "firebase/firestore";
+import { auth, db } from "./firebase";
+import { useFocusEffect } from "@react-navigation/native";
+import dayjs from "dayjs";
+import { SafeAreaView } from "react-native";
 
 const AttendanceHistoryScreen = () => {
   const [attendanceHistory, setAttendanceHistory] = useState([]);
@@ -24,8 +31,8 @@ const AttendanceHistoryScreen = () => {
   const [monthlyCheckInCount, setMonthlyCheckInCount] = useState({});
 
   // Estados para los dropdowns
-  const [selectedYear, setSelectedYear] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
 
   // Valor animado para el parpadeo
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -38,8 +45,8 @@ const AttendanceHistoryScreen = () => {
 
       if (user) {
         const q = query(
-          collection(db, 'attendanceHistory'),
-          where('userId', '==', user.uid)
+          collection(db, "attendanceHistory"),
+          where("userId", "==", user.uid)
         );
 
         const querySnapshot = await getDocs(q);
@@ -53,7 +60,7 @@ const AttendanceHistoryScreen = () => {
             : null;
 
           if (timestamp) {
-            const monthKey = dayjs(timestamp).format('YYYY-MM');
+            const monthKey = dayjs(timestamp).format("YYYY-MM");
             monthlyCounts[monthKey] = (monthlyCounts[monthKey] || 0) + 1;
           }
 
@@ -64,7 +71,7 @@ const AttendanceHistoryScreen = () => {
         setMonthlyCheckInCount(monthlyCounts);
       }
     } catch (error) {
-      console.error('Error al obtener el historial de asistencia:', error);
+      console.error("Error al obtener el historial de asistencia:", error);
     } finally {
       setLoading(false);
     }
@@ -85,7 +92,7 @@ const AttendanceHistoryScreen = () => {
   );
 
   // Obtiene el conteo de check-ins para el mes actual
-  const currentMonthKey = dayjs().format('YYYY-MM');
+  const currentMonthKey = dayjs().format("YYYY-MM");
   const currentMonthCheckIns = monthlyCheckInCount[currentMonthKey] || 0;
 
   // Efecto de parpadeo
@@ -110,7 +117,7 @@ const AttendanceHistoryScreen = () => {
   const uniqueYears = Array.from(
     new Set(
       attendanceHistory.map((item) =>
-        dayjs(new Date(item.timestamp?.seconds * 1000)).format('YYYY')
+        dayjs(new Date(item.timestamp?.seconds * 1000)).format("YYYY")
       )
     )
   ).sort();
@@ -120,10 +127,15 @@ const AttendanceHistoryScreen = () => {
     ? Array.from(
         new Set(
           attendanceHistory
-            .filter((item) =>
-              dayjs(new Date(item.timestamp?.seconds * 1000)).format('YYYY') === selectedYear
+            .filter(
+              (item) =>
+                dayjs(new Date(item.timestamp?.seconds * 1000)).format(
+                  "YYYY"
+                ) === selectedYear
             )
-            .map((item) => dayjs(new Date(item.timestamp?.seconds * 1000)).format('MM'))
+            .map((item) =>
+              dayjs(new Date(item.timestamp?.seconds * 1000)).format("MM")
+            )
         )
       ).sort()
     : [];
@@ -131,8 +143,8 @@ const AttendanceHistoryScreen = () => {
   // 3) Filtramos la lista final según año y mes seleccionados
   const filteredAttendanceHistory = attendanceHistory.filter((item) => {
     const itemDate = new Date(item.timestamp?.seconds * 1000);
-    const itemYear = dayjs(itemDate).format('YYYY');
-    const itemMonth = dayjs(itemDate).format('MM');
+    const itemYear = dayjs(itemDate).format("YYYY");
+    const itemMonth = dayjs(itemDate).format("MM");
 
     if (selectedYear && itemYear !== selectedYear) {
       return false;
@@ -146,10 +158,10 @@ const AttendanceHistoryScreen = () => {
   // Función para borrar un item
   const handleDelete = async (id) => {
     try {
-      await deleteDoc(doc(db, 'attendanceHistory', id));
+      await deleteDoc(doc(db, "attendanceHistory", id));
       setAttendanceHistory((prev) => prev.filter((item) => item.id !== id));
     } catch (error) {
-      console.error('Error al eliminar el registro:', error);
+      console.error("Error al eliminar el registro:", error);
     }
   };
 
@@ -168,9 +180,13 @@ const AttendanceHistoryScreen = () => {
     return (
       <Swipeable renderRightActions={swipeRightActions}>
         <View style={styles.itemContainer}>
-          <Text>Usuario: {item.email}</Text>
+        <Text>
+  <Text style={{ fontWeight: 'bold', color: 'black' }}>User:</Text>
+  <Text style={{ color: 'blue' }}> {item.username}</Text>
+</Text>
           <Text>
-            Fecha: {new Date(item.timestamp?.seconds * 1000).toLocaleDateString()}
+            Date:{" "}
+            {new Date(item.timestamp?.seconds * 1000).toLocaleDateString()}
           </Text>
         </View>
       </Swipeable>
@@ -186,10 +202,12 @@ const AttendanceHistoryScreen = () => {
           selectedValue={selectedYear}
           onValueChange={(itemValue) => {
             setSelectedYear(itemValue);
-            setSelectedMonth('');
+            setSelectedMonth("");
           }}
-          style={Platform.OS === 'ios' ? styles.pickerIOS : styles.pickerDefault}
-          itemStyle={Platform.OS === 'ios' ? styles.pickerItemIOS : null}
+          style={
+            Platform.OS === "ios" ? styles.pickerIOS : styles.pickerDefault
+          }
+          itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : null}
         >
           <Picker.Item label="Todos" value="" />
           {uniqueYears.map((year) => (
@@ -204,8 +222,10 @@ const AttendanceHistoryScreen = () => {
             <Picker
               selectedValue={selectedMonth}
               onValueChange={(itemValue) => setSelectedMonth(itemValue)}
-              style={Platform.OS === 'ios' ? styles.pickerIOS : styles.pickerDefault}
-              itemStyle={Platform.OS === 'ios' ? styles.pickerItemIOS : null}
+              style={
+                Platform.OS === "ios" ? styles.pickerIOS : styles.pickerDefault
+              }
+              itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : null}
             >
               <Picker.Item label="Todos" value="" />
               {uniqueMonthsForSelectedYear.map((month) => (
@@ -249,7 +269,7 @@ const AttendanceHistoryScreen = () => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   container: {
     flex: 1,
@@ -269,41 +289,41 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   label: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 10,
     marginBottom: 5,
   },
   itemContainer: {
     padding: 10,
-    borderBottomWidth: 0.5,
-    backgroundColor: '#fff',
+    borderBottomWidth: 0.8,
+    backgroundColor: "#fff",
+    fontStyle: "italic",
   },
   deleteContainer: {
-    backgroundColor: 'red',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
+    backgroundColor: "red",
+    justifyContent: "center",
+    alignItems: "flex-end",
     paddingHorizontal: 20,
     marginVertical: 1,
   },
   deleteText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
     padding: 10,
   },
   footer: {
-    
-    backgroundColor: '#fff',
-    
-    alignItems: 'center',
+    backgroundColor: "#fff",
+
+    alignItems: "center",
     borderTopWidth: 3,
-    borderTopColor: '#ccc',
+    borderTopColor: "#ccc",
   },
   footerText: {
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   texto: {
-    color: '#3D3BF3',
+    color: "#3D3BF3",
   },
 });
 

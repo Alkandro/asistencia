@@ -191,7 +191,7 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
           const userName = userData.username || "Usuario";
           const userBelt = userData.cinturon || "desconocida";
 
-          await recordCheckIn();
+          await recordCheckIn(userData);
           await updateDoc(userDocRef, {
             [`checkIns_${monthKey}`]: increment(1),
           });
