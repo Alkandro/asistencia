@@ -32,6 +32,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase"; // Asegúrate de tener configurado Firebase
 import { useDrawerStatus } from '@react-navigation/drawer';
 
+
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 

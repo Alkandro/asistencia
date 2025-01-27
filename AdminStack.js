@@ -1,7 +1,6 @@
 // AdminStack.js
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import UserListScreen from "./AdminScreen/UserListScreen";
 import UserDetailScreen from "./AdminScreen/UserDetailScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import AdminTabNavigator from "./AdminScreen/AdminTabNavigator";
