@@ -118,7 +118,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
             <Image source={{ uri: userImageUri }} style={styles.profileImage} />
           ) : (
             <Image
-              source={require("./assets/fotos/tashiro1.jpg")}
+              source={require("./assets/fotos/tashiro1.png")}
               style={styles.profileImage}
             />
           )}

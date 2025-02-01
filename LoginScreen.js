@@ -96,14 +96,14 @@ const LoginScreen = ({ navigation }) => {
 
       <View style={styles.imageContainer}>
         <Image
-          source={require("./assets/fotos/IMG_5240.jpeg")} // para imagen local
+          source={require("./assets/fotos/IMG_5240.png")} // para imagen local
           style={styles.image}
         />
       </View>
       <View style={styles.container}>
         <TouchableOpacity onPress={() => navigation.navigate("Information")}>
           <Image
-            source={require("./assets/fotos/tashiro1.jpg")} // Coloca el nombre de tu imagen de logo aquí
+            source={require("./assets/fotos/tashiro1.png")} // Coloca el nombre de tu imagen de logo aquí
             style={styles.logo}
           />
         </TouchableOpacity>

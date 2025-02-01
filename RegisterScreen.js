@@ -38,15 +38,15 @@ const RegisterScreen = ({ navigation }) => {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [imageUri, setImageUri] = useState(null);
-  const defaultProfileImage = require("./assets/fotos/tashiro1.jpg");
+  const defaultProfileImage = require("./assets/fotos/tashiro1.png");
 
   // Mapeo de imágenes de cinturones
   const beltImages = {
-    white: require("./assets/fotos/whiteBelt.png"),
-    blue: require("./assets/fotos/blueBelt.png"),
-    purple: require("./assets/fotos/purpleBelt.png"),
-    brown: require("./assets/fotos/brownBelt.png"),
-    black: require("./assets/fotos/blackBelt.png"),
+    white: require("./assets/fotos/whitebelt.png"),
+    blue: require("./assets/fotos/bluebelt.png"),
+    purple: require("./assets/fotos/purplebelt.png"),
+    brown: require("./assets/fotos/brownbelt.png"),
+    black: require("./assets/fotos/blackbelt.png"),
   };
   const getBeltImage = (belt) =>
     beltImages[belt.toLowerCase()] || beltImages["white"];

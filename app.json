@@ -4,7 +4,7 @@
     "slug": "Asistencia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/black.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/black.png",
@@ -16,7 +16,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Esta aplicación necesita acceder a la cámara para tomar fotos.",
         "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceder a la galería para seleccionar fotos."
-      }
+      },
+      "bundleIdentifier": "com.alkandro.Asistencia"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +28,8 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
-      ]
+      ],
+      "package": "com.alkandro.Asistencia"
     },
     "web": {
       "favicon": "./assets/favicon.png"

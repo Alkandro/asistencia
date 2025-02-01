@@ -56,7 +56,7 @@ const AnimatedMessage = () => {
       </Animated.View>
       <Animated.View style={[styles.messageContainer1, animatedStyle2]}>
         <Image 
-          source={require('./assets/fotos/TashiroBlack.jpg')}
+          source={require('./assets/fotos/tashiroblack.png')}
           style={styles.image2} 
         />
       </Animated.View>
