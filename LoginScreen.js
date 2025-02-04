@@ -19,6 +19,7 @@ import { auth, db } from "./firebase"; // Asegúrate de importar Firestore
 import { doc, getDoc } from "firebase/firestore"; // Para obtener el rol del usuario
 import ButtonGradient from "./ButtonGradient";
 import Icon from "react-native-vector-icons/FontAwesome"; // Ajusta el icono según tu preferencia
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Obtener las dimensiones de la pantalla
@@ -156,7 +157,7 @@ const LoginScreen = ({ navigation }) => {
           <Icon name="facebook" size={30} color="#3b5998" />
         </TouchableOpacity>
         <TouchableOpacity onPress={openTwiter} style={styles.iconWrapper}>
-          <Icon name="twitter" size={30} color="#1DA1F2" />
+          <FontAwesome6 name="square-x-twitter"  size={30} color="black" />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={openInstagram} // Cambia 'InstagramScreen' al destino deseado
