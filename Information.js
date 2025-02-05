@@ -1,42 +1,58 @@
 import React from "react";
-import { View, Text, StyleSheet, ImageBackground } from "react-native";
+import { View, Text, StyleSheet, ImageBackground, Platform, ScrollView } from "react-native";
 import { BlurView } from "expo-blur";
 import backgroundImage from "./assets/fotos/tashiroblack.png";
 
 const Information = () => {
+  const renderContent = () => {
+    return (
+      <>
+        <Text style={styles.titulo}>Profesor</Text>
+        <Text style={styles.titulo1}>
+          田代 セイイチ{"\n"}Instructor/Black Belt
+        </Text>
+        <Text style={styles.titulo}>Teléfono de contacto</Text>
+        <Text style={styles.titulo1}>Direccion</Text>
+        <Text style={styles.titulo}>Dirección</Text>
+        <Text style={styles.titulo1}>
+          〒367-0051 埼玉県本庄市本庄１-１-２{"\n"}もとまちハイツ 201号室
+        </Text>
+        <Text style={styles.titulo}>Días y horarios de entrenamiento para adultos</Text>
+        <Text style={styles.titulo1}>
+          オールレベル柔術{"\n"}月・水・金：20:30〜22:00{"\n"}土：18:30~20:00{"\n"}日：9:00〜10:30
+        </Text>
+        <Text style={styles.titulo}>Días y horarios de entrenamiento para niños</Text>
+        <Text style={styles.titulo1}>
+          月・水・金：19:15〜20:15{"\n"}土：17:00〜18:00
+        </Text>
+       
+      </>
+    );
+  };
+
+  // En Android usamos un ScrollView para que se pueda desplazar el contenido
+  const renderBlurContainer = () => {
+    if (Platform.OS === "ios") {
+      return (
+        <BlurView intensity={10} style={styles.absolute}>
+          {renderContent()}
+        </BlurView>
+      );
+    } else {
+      return (
+        <View style={[styles.absolute, { backgroundColor: "rgba(0, 0, 0, 0.6)" }]}>
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            {renderContent()}
+          </ScrollView>
+        </View>
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={backgroundImage}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        {/* BlurView que ocupa el 80% de la altura de la pantalla */}
-        <BlurView instnsity={80} style={styles.absolute}>
-         
-          <Text style={styles.titulo}>Profesor</Text>
-          <Text style={styles.titulo1}>田代 セイイチ
-Instructor/Black Belt</Text>
-
-          <Text style={styles.titulo}>Teléfono de contacto</Text>
-          <Text style={styles.titulo1}>Direccion</Text>
-          <Text style={styles.titulo}>Direccion</Text>
-          <Text style={styles.titulo1}>〒367-0051 埼玉県本庄市本庄１-１-２ もとまちハイツ 201号室</Text>
-          <Text style={styles.titulo}>
-            Días y horarios de entrenamiento para adultos
-          </Text>
-          <Text style={styles.titulo1}>オールレベル柔術
-月・水・金：20:30〜22:00     
-  土：18:30~20:00
-日：9:00〜10:30</Text>
-          <Text style={styles.titulo}>
-            Días y horarios de entrenamiento para niños
-          </Text>
-          <Text style={styles.titulo1}>月・水・金：19:15〜20:15
-土：17:00〜18:00n</Text>
-          <Text style={styles.titulo}>Check-ins:</Text>
-          <Text style={styles.titulo1}>Direccion</Text>
-        </BlurView>
+      <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
+        {renderBlurContainer()}
       </ImageBackground>
     </View>
   );
@@ -48,45 +64,46 @@ const styles = StyleSheet.create({
     backgroundColor: "black",
   },
   background: {
-    height: '80%',
-    marginTop:100, // Ocupa todo el contenedor
+    height: "80%",
+    marginTop: 100,
     justifyContent: "center",
     alignItems: "center",
   },
   absolute: {
-    position: 'absolute',
-    top:-50,
+    position: "absolute",
+    top: -50,
     left: 3,
     right: 3,
     bottom: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius:5 , // Bordes redondeados (opcional)
-    borderWidth:5,
-    borderColor:"white",
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    height: '100%',
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 5,
+    borderColor: "white",
+    padding: 10, // agrega padding para el contenido
+  },
+  scrollContainer: {
+    // Ajusta el contenido para que se acomode mejor
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   titulo: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "bold",
-    marginVertical: 8,
+    marginVertical: 4, // reduce margen vertical
     textAlign: "center",
     textDecorationLine: "underline",
-    
   },
   titulo1: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "bold",
-    marginVertical: 8,
+    marginVertical: 4, // reduce margen vertical
     textAlign: "center",
-    
-   
+    lineHeight: 18, // ajusta la altura de línea para compactar el texto
   },
 });
 
 export default Information;
-
-
