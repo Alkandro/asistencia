@@ -38,6 +38,7 @@ const RegisterScreen = ({ navigation }) => {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [imageUri, setImageUri] = useState(null);
+  const [confirmPassword, setConfirmPassword] = useState("");
   const defaultProfileImage = require("./assets/fotos/tashiro1.png");
 
   // Mapeo de imágenes de cinturones
@@ -71,6 +72,10 @@ const RegisterScreen = ({ navigation }) => {
 
   // Función de registro
   const registerUser = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Las contraseñas no coinciden.");
+      return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -265,6 +270,15 @@ const RegisterScreen = ({ navigation }) => {
           secureTextEntry
           onChangeText={setPassword}
         />
+        <Text style={styles.text}>Confirmar Contraseña</Text>
+<TextInput
+  style={styles.textIput}
+  placeholder="Confirmar Contraseña"
+  placeholderTextColor="gray"
+  secureTextEntry
+  value={confirmPassword}
+  onChangeText={setConfirmPassword}
+/>
       </ScrollView>
       <View style={styles.buttonContainer}>
         <ButtonGradient
