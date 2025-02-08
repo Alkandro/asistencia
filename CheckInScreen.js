@@ -201,9 +201,9 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
 
           Alert.alert(
             "",
-            `Bienvenido al entrenamiento de hoy, ${userName}!\n
-            Practica mucho para mejorar tus técnicas en tu cinturón color ${userBelt}.\n
-            Check-ins este mes: ${newCheckInCount}`,
+            `🎉 Bienvenido, ${userName}!\n\n` +
+            `Mejora tus técnicas en tu cinturón ${userBelt}.\n\n` +
+            `🏋️‍♂️ Este mes: ${newCheckInCount} entrenamientos.`,
             [
               {
                 text: "OK",

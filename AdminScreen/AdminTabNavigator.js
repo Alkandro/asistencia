@@ -39,7 +39,7 @@ const AdminTabNavigator = () => {
       <Tab.Screen
         name="MessagePreviewScreen"
         component={MessagePreviewScreen}
-        options={{ title: "Prev" }}
+        options={{ title: "Preview Mode" }}
       />
     </Tab.Navigator>
   );

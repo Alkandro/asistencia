@@ -95,14 +95,14 @@ const RegisterScreen = ({ navigation }) => {
         nombre: nombre,
         apellido: apellido,
         imageUri: imageUri, // Guarda la URI de la imagen en Firestore
-        role: email === "ale5@hotmail.com" ? "admin" : "user",
+        role: email === "tashiro@hotmail.com" ? "admin" : "user",
       });
   
       // Guarda la URI de la imagen en AsyncStorage para persistencia
       await AsyncStorage.setItem("userImageUri", imageUri);
   
       Alert.alert("Registro exitoso", "Usuario creado");
-      navigation.navigate("CheckIn");
+      
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         try {

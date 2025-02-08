@@ -10,12 +10,18 @@ import { getStorage } from 'firebase/storage';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAV_dlUCilsDOeX357aUcN5E3ySwJeljqI",
-  authDomain: "asistencia-5f5b0.firebaseapp.com",
-  projectId: "asistencia-5f5b0",
-  storageBucket: "asistencia-5f5b0.firebasestorage.app",
-  messagingSenderId: "476024237486",
-  appId: "1:476024237486:web:9de0fd507624b10f9e6c3f"
+  apiKey: "AIzaSyCWuhsMbzOEWm6PRyETo0MDhQER6bW4adU",
+  authDomain: "tashiro-jiujitsu.firebaseapp.com",
+  projectId: "tashiro-jiujitsu",
+  storageBucket: "tashiro-jiujitsu.firebasestorage.app",
+  messagingSenderId: "949340466829",
+  appId: "1:949340466829:web:a443b570ee1f49e3a97cc4"
+  // apiKey: "AIzaSyAV_dlUCilsDOeX357aUcN5E3ySwJeljqI",
+  // authDomain: "asistencia-5f5b0.firebaseapp.com",
+  // projectId: "asistencia-5f5b0",
+  // storageBucket: "asistencia-5f5b0.firebasestorage.app",
+  // messagingSenderId: "476024237486",
+  // appId: "1:476024237486:web:9de0fd507624b10f9e6c3f"
 };
 
 // 1. Chequea si ya existe una app inicializada.
