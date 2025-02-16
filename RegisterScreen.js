@@ -95,7 +95,7 @@ const RegisterScreen = ({ navigation }) => {
         nombre: nombre,
         apellido: apellido,
         imageUri: imageUri, // Guarda la URI de la imagen en Firestore
-        role: email === "tashiro@hotmail.com" ? "admin" : "user",
+        role: email === "tashas.natura@hotmail.com" ? "admin" : "user",
       });
   
       // Guarda la URI de la imagen en AsyncStorage para persistencia

@@ -784,6 +784,13 @@
   dependencies:
     regenerator-runtime "^0.14.0"
 
+"@babel/runtime@^7.23.2":
+  version "7.26.9"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.26.9.tgz#aa4c6facc65b9cb3f87d75125ffd47781b475433"
+  integrity sha512-aA63XwOkcl4xxQa3HjPMqOP6LiK0ZDv3mUPYEFXkpHbaFjtGggE1A61FjFzJnB+p7/oy2gA8E+rcBNl/zC1tMg==
+  dependencies:
+    regenerator-runtime "^0.14.0"
+
 "@babel/template@^7.25.0", "@babel/template@^7.25.9", "@babel/template@^7.3.3":
   version "7.25.9"
   resolved "https://registry.npmjs.org/@babel/template/-/template-7.25.9.tgz"
@@ -866,25 +873,25 @@
   dependencies:
     uuid "^8.0.0"
 
-"@expo/cli@0.22.13":
-  version "0.22.13"
-  resolved "https://registry.yarnpkg.com/@expo/cli/-/cli-0.22.13.tgz#86e354b97ad56f7b9828454d94a70a1a7c386a2b"
-  integrity sha512-GpRkCt5Eb0pWXrvpvYswFhUxm0R5197P1acAgj242XfsdNhjVUfjScj+Z6raTRsW0SdIxmingpef2fZaHvUFKQ==
+"@expo/cli@0.22.16":
+  version "0.22.16"
+  resolved "https://registry.yarnpkg.com/@expo/cli/-/cli-0.22.16.tgz#f2671f0d0a6b381319c9a8707be922edec1eb9a0"
+  integrity sha512-a8Ulbnji9kFatnOtsWGCRs6nMUj9UNC0/WhE74HQdXGDGMn5Pl8eNe3cLMy9G54DdqAmEZmRZpgXmcudT78fEQ==
   dependencies:
     "@0no-co/graphql.web" "^1.0.8"
     "@babel/runtime" "^7.20.0"
     "@expo/code-signing-certificates" "^0.0.5"
-    "@expo/config" "~10.0.8"
+    "@expo/config" "~10.0.10"
     "@expo/config-plugins" "~9.0.15"
     "@expo/devcert" "^1.1.2"
-    "@expo/env" "~0.4.1"
-    "@expo/image-utils" "^0.6.4"
-    "@expo/json-file" "^9.0.1"
-    "@expo/metro-config" "~0.19.9"
-    "@expo/osascript" "^2.1.5"
-    "@expo/package-manager" "^1.7.1"
-    "@expo/plist" "^0.2.1"
-    "@expo/prebuild-config" "^8.0.26"
+    "@expo/env" "~0.4.2"
+    "@expo/image-utils" "^0.6.5"
+    "@expo/json-file" "^9.0.2"
+    "@expo/metro-config" "~0.19.10"
+    "@expo/osascript" "^2.1.6"
+    "@expo/package-manager" "^1.7.2"
+    "@expo/plist" "^0.2.2"
+    "@expo/prebuild-config" "^8.0.27"
     "@expo/rudder-sdk-node" "^1.1.1"
     "@expo/spawn-async" "^1.7.2"
     "@expo/ws-tunnel" "^1.0.1"
@@ -1002,6 +1009,25 @@
   resolved "https://registry.yarnpkg.com/@expo/config-types/-/config-types-52.0.4.tgz#6ff4fbbfd0d09894d8c50d15a89816cc2d9d2531"
   integrity sha512-oMGrb2o3niVCIfjnIHFrOoiDA9jGb0lc3G4RI1UiO//KjULBaQr3QTBoKDzZQwMqDV1AgYgSr9mgEcnX3LqhIg==
 
+"@expo/config@~10.0.10", "@expo/config@~10.0.9":
+  version "10.0.10"
+  resolved "https://registry.yarnpkg.com/@expo/config/-/config-10.0.10.tgz#8d0a70b3f201bf1de32d81765f34c4aae2df55a5"
+  integrity sha512-wI9/iam3Irk99ADGM/FyD7YrrEibIZXR4huSZiU5zt9o3dASOKhqepiNJex4YPiktLfKhYrpSEJtwno1g0SrgA==
+  dependencies:
+    "@babel/code-frame" "~7.10.4"
+    "@expo/config-plugins" "~9.0.15"
+    "@expo/config-types" "^52.0.4"
+    "@expo/json-file" "^9.0.2"
+    deepmerge "^4.3.1"
+    getenv "^1.0.0"
+    glob "^10.4.2"
+    require-from-string "^2.0.2"
+    resolve-from "^5.0.0"
+    resolve-workspace-root "^2.0.0"
+    semver "^7.6.0"
+    slugify "^1.3.4"
+    sucrase "3.35.0"
+
 "@expo/config@~10.0.8":
   version "10.0.8"
   resolved "https://registry.yarnpkg.com/@expo/config/-/config-10.0.8.tgz#c94cf98328d2ec38c9da80ec68d252539cd6eb2d"
@@ -1050,10 +1076,21 @@
     dotenv-expand "~11.0.6"
     getenv "^1.0.0"
 
-"@expo/fingerprint@0.11.8":
-  version "0.11.8"
-  resolved "https://registry.yarnpkg.com/@expo/fingerprint/-/fingerprint-0.11.8.tgz#543404376804ddce76d542de30bd694ab7ec71a4"
-  integrity sha512-XzDOHr+fTpYPGFe+bIlWtwnLahzuQi7htPgpjLsfL+hKE/2S7wWYlRgB0omScyEBz2yXxzCk3GHJTcG+dffLAg==
+"@expo/env@~0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@expo/env/-/env-0.4.2.tgz#911709933e6fc1b45b3d2efdb10ca2c52fac7e91"
+  integrity sha512-TgbCgvSk0Kq0e2fLoqHwEBL4M0ztFjnBEz0YCDm5boc1nvkV1VMuIMteVdeBwnTh8Z0oPJTwHCD49vhMEt1I6A==
+  dependencies:
+    chalk "^4.0.0"
+    debug "^4.3.4"
+    dotenv "~16.4.5"
+    dotenv-expand "~11.0.6"
+    getenv "^1.0.0"
+
+"@expo/fingerprint@0.11.10":
+  version "0.11.10"
+  resolved "https://registry.yarnpkg.com/@expo/fingerprint/-/fingerprint-0.11.10.tgz#af01e1e7824443a55ad058e23f1dbdf400bf65aa"
+  integrity sha512-34ZwPjbnnD7KHSyceaxcLQbClCkYHbEp6wBDe+aqimvQw25m2LnliN1cMCVQnpOHkBFRTcbKlowby0fIxAm2bQ==
   dependencies:
     "@expo/spawn-async" "^1.7.2"
     arg "^5.0.2"
@@ -1082,6 +1119,22 @@
     temp-dir "~2.0.0"
     unique-string "~2.0.0"
 
+"@expo/image-utils@^0.6.5":
+  version "0.6.5"
+  resolved "https://registry.yarnpkg.com/@expo/image-utils/-/image-utils-0.6.5.tgz#af25e9dd79d1168bebea91dc7f1e6f3efd28643c"
+  integrity sha512-RsS/1CwJYzccvlprYktD42KjyfWZECH6PPIEowvoSmXfGLfdViwcUEI4RvBfKX5Jli6P67H+6YmHvPTbGOboew==
+  dependencies:
+    "@expo/spawn-async" "^1.7.2"
+    chalk "^4.0.0"
+    fs-extra "9.0.0"
+    getenv "^1.0.0"
+    jimp-compact "0.16.1"
+    parse-png "^2.1.0"
+    resolve-from "^5.0.0"
+    semver "^7.6.0"
+    temp-dir "~2.0.0"
+    unique-string "~2.0.0"
+
 "@expo/json-file@^9.0.1", "@expo/json-file@~9.0.1":
   version "9.0.1"
   resolved "https://registry.yarnpkg.com/@expo/json-file/-/json-file-9.0.1.tgz#ff60654caf1fa3c33f9b17dcd1e9691eb854a318"
@@ -1091,16 +1144,25 @@
     json5 "^2.2.3"
     write-file-atomic "^2.3.0"
 
-"@expo/metro-config@0.19.9", "@expo/metro-config@~0.19.9":
-  version "0.19.9"
-  resolved "https://registry.yarnpkg.com/@expo/metro-config/-/metro-config-0.19.9.tgz#f020a2523cecf90e4f2a833386a88e07f6d004f8"
-  integrity sha512-JAsLWhFQqwLH0KsI4OMbPXsKFji5KJEmsi+/02Sz1GCT17YrjRmv1fZ91regUS/FUH2Y/PDAE/+2ulrTgMeG7A==
+"@expo/json-file@^9.0.2":
+  version "9.0.2"
+  resolved "https://registry.yarnpkg.com/@expo/json-file/-/json-file-9.0.2.tgz#ec508c2ad17490e0c664c9d7e2ae0ce65915d3ed"
+  integrity sha512-yAznIUrybOIWp3Uax7yRflB0xsEpvIwIEqIjao9SGi2Gaa+N0OamWfe0fnXBSWF+2zzF4VvqwT4W5zwelchfgw==
+  dependencies:
+    "@babel/code-frame" "~7.10.4"
+    json5 "^2.2.3"
+    write-file-atomic "^2.3.0"
+
+"@expo/metro-config@0.19.10", "@expo/metro-config@~0.19.10":
+  version "0.19.10"
+  resolved "https://registry.yarnpkg.com/@expo/metro-config/-/metro-config-0.19.10.tgz#934e24ab54ef37f91f9ca72435d82055f21c045a"
+  integrity sha512-/CtsMLhELJRJjAllM4EUnlPUAixn8Q2YhorKBa4uXZ6FvTEZWHJjqsXnQD39gWSEuAIVwLfJ1qgJi8666+dW2w==
   dependencies:
     "@babel/core" "^7.20.0"
     "@babel/generator" "^7.20.5"
     "@babel/parser" "^7.20.0"
     "@babel/types" "^7.20.0"
-    "@expo/config" "~10.0.8"
+    "@expo/config" "~10.0.9"
     "@expo/env" "~0.4.1"
     "@expo/json-file" "~9.0.1"
     "@expo/spawn-async" "^1.7.2"
@@ -1115,20 +1177,20 @@
     postcss "~8.4.32"
     resolve-from "^5.0.0"
 
-"@expo/osascript@^2.1.5":
-  version "2.1.5"
-  resolved "https://registry.yarnpkg.com/@expo/osascript/-/osascript-2.1.5.tgz#655c3913e592efbb5db41273b76920911c60809e"
-  integrity sha512-Cp7YF7msGiTAIbFdzNovwHBfecdMLVL5XzSqq4xQz72ALFCQ3uSIUXRph1QV2r61ugH7Yem0gY8yi7RcDlI4qg==
+"@expo/osascript@^2.1.6":
+  version "2.1.6"
+  resolved "https://registry.yarnpkg.com/@expo/osascript/-/osascript-2.1.6.tgz#d20e764526310b0d393275f904e20fbff13d18f9"
+  integrity sha512-SbMp4BUwDAKiFF4zZEJf32rRYMeNnLK9u4FaPo0lQRer60F+SKd20NTSys0wgssiVeQyQz2OhGLRx3cxYowAGw==
   dependencies:
     "@expo/spawn-async" "^1.7.2"
     exec-async "^2.2.0"
 
-"@expo/package-manager@^1.7.1":
-  version "1.7.1"
-  resolved "https://registry.yarnpkg.com/@expo/package-manager/-/package-manager-1.7.1.tgz#13eb686bc949a395d992fb2575f8a1930a6aebf3"
-  integrity sha512-DKbELrTOdl7U3KT0C07Aka9P+sUP3LL+1UTKf1KmLx2x2gPH1IC+c68N7iQlwNt+yA37qIw6/vKoqyTGu5EL9g==
+"@expo/package-manager@^1.7.2":
+  version "1.7.2"
+  resolved "https://registry.yarnpkg.com/@expo/package-manager/-/package-manager-1.7.2.tgz#67552fe03cb8e8575c29d6adf757fce009a7b2a6"
+  integrity sha512-wT/qh9ebNjl6xr00bYkSh93b6E/78J3JPlT6WzGbxbsnv5FIZKB/nr522oWqVe1E+ML7BpXs8WugErWDN9kOFg==
   dependencies:
-    "@expo/json-file" "^9.0.1"
+    "@expo/json-file" "^9.0.2"
     "@expo/spawn-async" "^1.7.2"
     ansi-regex "^5.0.0"
     chalk "^4.0.0"
@@ -1150,12 +1212,21 @@
     base64-js "^1.2.3"
     xmlbuilder "^14.0.0"
 
-"@expo/prebuild-config@^8.0.26":
-  version "8.0.26"
-  resolved "https://registry.yarnpkg.com/@expo/prebuild-config/-/prebuild-config-8.0.26.tgz#334b40ea8a2ca3597205a0d0dc292dc039593bf2"
-  integrity sha512-SryIKBXPkykUzoCUVP3nt7GclChE74TM8xAstxZ7paXxgcSMN68mNVyUr/zOivLTYQijXltD1I9rNj20Vm5aFw==
+"@expo/plist@^0.2.2":
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/@expo/plist/-/plist-0.2.2.tgz#2563b71b4aa78dc9dbc34cc3d2e1011e994bc9cd"
+  integrity sha512-ZZGvTO6vEWq02UAPs3LIdja+HRO18+LRI5QuDl6Hs3Ps7KX7xU6Y6kjahWKY37Rx2YjNpX07dGpBFzzC+vKa2g==
   dependencies:
-    "@expo/config" "~10.0.8"
+    "@xmldom/xmldom" "~0.7.7"
+    base64-js "^1.2.3"
+    xmlbuilder "^14.0.0"
+
+"@expo/prebuild-config@^8.0.27":
+  version "8.0.27"
+  resolved "https://registry.yarnpkg.com/@expo/prebuild-config/-/prebuild-config-8.0.27.tgz#5f1697c2052439ec35b75d569eb723034586fabf"
+  integrity sha512-UFGOx4TfiT2gOde8RylwmXctp/WvqBQ4TN7z1YL0WWXfG9TWfO7HdsUnqQhGMW+CDDc7FOJMEo8q1a6xiikfYA==
+  dependencies:
+    "@expo/config" "~10.0.9"
     "@expo/config-plugins" "~9.0.15"
     "@expo/config-types" "^52.0.4"
     "@expo/image-utils" "^0.6.4"
@@ -2511,10 +2582,10 @@ babel-preset-current-node-syntax@^1.0.0:
     "@babel/plugin-syntax-private-property-in-object" "^7.14.5"
     "@babel/plugin-syntax-top-level-await" "^7.14.5"
 
-babel-preset-expo@~12.0.7:
-  version "12.0.7"
-  resolved "https://registry.yarnpkg.com/babel-preset-expo/-/babel-preset-expo-12.0.7.tgz#3fa0527ee28bb8302039541b2cbca023c692c178"
-  integrity sha512-XT2ZOnonTU343eRnd/UBuqYLxmaB47g+RtLMANMsj/j9XL2kkTk3a6yepLbV4BrACaTf2ddiBZDi+BQ0lgjVaw==
+babel-preset-expo@~12.0.8:
+  version "12.0.8"
+  resolved "https://registry.yarnpkg.com/babel-preset-expo/-/babel-preset-expo-12.0.8.tgz#7cff59cecac8049e68de37508d860d6bb74c66d8"
+  integrity sha512-bojAddWZJusLs3NVdF+jN3WweTYVEZXBKIeO0sOhqOg7UPh5w1bnMkx7SDua0FgQMGBxb13qM31Y46yeZnmXjw==
   dependencies:
     "@babel/plugin-proposal-decorators" "^7.12.9"
     "@babel/plugin-transform-export-namespace-from" "^7.22.11"
@@ -3397,6 +3468,14 @@ expo-constants@~17.0.5:
     "@expo/config" "~10.0.8"
     "@expo/env" "~0.4.1"
 
+expo-constants@~17.0.6:
+  version "17.0.6"
+  resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-17.0.6.tgz#0211e34d497bbfc0cdf6002d00a05173d1e6455c"
+  integrity sha512-rl3/hBIIkh4XDkCEMzGpmY6kWj2G1TA4Mq2joeyzoFBepJuGjqnGl7phf/71sTTgamQ1hmhKCLRNXMpRqzzqxw==
+  dependencies:
+    "@expo/config" "~10.0.9"
+    "@expo/env" "~0.4.1"
+
 expo-document-picker@~13.0.3:
   version "13.0.3"
   resolved "https://registry.yarnpkg.com/expo-document-picker/-/expo-document-picker-13.0.3.tgz#9ec9b056447d11a68d61e93d33c2211fd01b460f"
@@ -3426,10 +3505,10 @@ expo-image-loader@~5.0.0:
   resolved "https://registry.npmjs.org/expo-image-loader/-/expo-image-loader-5.0.0.tgz"
   integrity sha512-Eg+5FHtyzv3Jjw9dHwu2pWy4xjf8fu3V0Asyy42kO+t/FbvW/vjUixpTjPtgKQLQh+2/9Nk4JjFDV6FwCnF2ZA==
 
-expo-image-picker@^16.0.5:
-  version "16.0.5"
-  resolved "https://registry.yarnpkg.com/expo-image-picker/-/expo-image-picker-16.0.5.tgz#fefb08f1a35980015122499fb388f2cfcbf08485"
-  integrity sha512-Rkc4vihqPN/48PV3QJkrG10Lg5s1LonKmpVnGwBSlHjRR5ngqJH++DYFndgD69hLaWrJukzCYpP3CyTMAAatWg==
+expo-image-picker@~16.0.6:
+  version "16.0.6"
+  resolved "https://registry.yarnpkg.com/expo-image-picker/-/expo-image-picker-16.0.6.tgz#ab1378711813a8c857ee577a97ce43e31ea84ab5"
+  integrity sha512-HN4xZirFjsFDIsWFb12AZh19fRzuvZjj2ll17cGr19VNRP06S/VPQU3Tdccn5vwUzQhOBlLu704CnNm278boiQ==
   dependencies:
     expo-image-loader "~5.0.0"
 
@@ -3455,6 +3534,13 @@ expo-linear-gradient@14.0.2:
   resolved "https://registry.yarnpkg.com/expo-linear-gradient/-/expo-linear-gradient-14.0.2.tgz#51fb266d1c7a38349077d243e383cc3d69d4356b"
   integrity sha512-nvac1sPUfFFJ4mY25UkvubpUV/olrBH+uQw5k+beqSvQaVQiUfFtYzfRr+6HhYBNb4AEsOtpsCRkpDww3M2iGQ==
 
+expo-localization@^16.0.1:
+  version "16.0.1"
+  resolved "https://registry.yarnpkg.com/expo-localization/-/expo-localization-16.0.1.tgz#a6016288f0e4a5acef143d2a39ac3e5b4ac8963e"
+  integrity sha512-kUrXiV/Pq9r7cG+TMt+Qa49IUQ9Y/czVwen4hmiboTclTopcWdIeCzYZv6JGtufoPpjEO9vVx1QJrXYl9V2u0Q==
+  dependencies:
+    rtl-detect "^1.0.2"
+
 expo-manifests@~0.15.5:
   version "0.15.5"
   resolved "https://registry.yarnpkg.com/expo-manifests/-/expo-manifests-0.15.5.tgz#18a1788d3c6c8dd8aa6ff6c585821224435d5018"
@@ -3477,10 +3563,10 @@ expo-modules-autolinking@2.0.7:
     require-from-string "^2.0.2"
     resolve-from "^5.0.0"
 
-expo-modules-core@2.2.1:
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/expo-modules-core/-/expo-modules-core-2.2.1.tgz#f97936551c7321be9e3d1da5d5ac3f89f636870b"
-  integrity sha512-pxQpfgevHiy5EVRDE0w3mrVu0UTNHELr4GDXEQWAE1g4JVS5ZGNq/Gu2VGgFbBP18KGPNB+gEy8UFI48ADbiuw==
+expo-modules-core@2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/expo-modules-core/-/expo-modules-core-2.2.2.tgz#a842711aa6df3de4875d9e7508791799f3847e84"
+  integrity sha512-SgjK86UD89gKAscRK3bdpn6Ojfs/KU4GujtuFx1wm4JaBjmXH4aakWkItkPlAV2pjIiHJHWQbENL9xjbw/Qr/g==
   dependencies:
     invariant "^2.2.4"
 
@@ -3504,13 +3590,13 @@ expo-updates-interface@~1.0.0:
   resolved "https://registry.npmjs.org/expo-updates-interface/-/expo-updates-interface-1.0.0.tgz"
   integrity sha512-93oWtvULJOj+Pp+N/lpTcFfuREX1wNeHtp7Lwn8EbzYYmdn37MvZU3TPW2tYYCZuhzmKEXnUblYcruYoDu7IrQ==
 
-expo-updates@~0.26.17:
-  version "0.26.17"
-  resolved "https://registry.yarnpkg.com/expo-updates/-/expo-updates-0.26.17.tgz#b169d84f1c581672bcf749729e277732164eeda7"
-  integrity sha512-pgs9bdLt27iyYQhQxj4vqfJRr33Ui0RmagH9sa7oeQnnwWhj+bnNAAj5S3ZxxxGqPuk7iDsxb14Tk5uFdUudog==
+expo-updates@~0.26.18:
+  version "0.26.18"
+  resolved "https://registry.yarnpkg.com/expo-updates/-/expo-updates-0.26.18.tgz#f705562bf0f031a7b7c18a285c86234dd05eea6e"
+  integrity sha512-i9on8jMLrDxtr3Jwpmqj14oa4PWxSKYrHhJYK40xATV6qrauTija9R7BkN0hQjD4LpElt5UJW2/YUP30UsTFqA==
   dependencies:
     "@expo/code-signing-certificates" "0.0.5"
-    "@expo/config" "~10.0.8"
+    "@expo/config" "~10.0.9"
     "@expo/config-plugins" "~9.0.15"
     "@expo/spawn-async" "^1.7.2"
     arg "4.1.0"
@@ -3524,26 +3610,26 @@ expo-updates@~0.26.17:
     ignore "^5.3.1"
     resolve-from "^5.0.0"
 
-expo@~52.0.31:
-  version "52.0.31"
-  resolved "https://registry.yarnpkg.com/expo/-/expo-52.0.31.tgz#ec6a5ac276d936ae1349c6127b6a6fff46c42aa4"
-  integrity sha512-OCpr2iWGaC0azRsPzF622ur1hTCZvyJL27GYHVeKIkNY65CV3m0Hw2IUrfmdGJWCnKI/1Kotg3IvUMSk+vnaJA==
+expo@~52.0.35:
+  version "52.0.35"
+  resolved "https://registry.yarnpkg.com/expo/-/expo-52.0.35.tgz#3dbf84123d27cabf7ccd648fa77bbc0fecb113f2"
+  integrity sha512-VagwS6MJbU0Eky18i4amkkSy7FTi0v31B0W+qoEcsU4x5OurA381rxw4qGsQE+8pmSD/Gf3DGb8ygJw+HoAsXw==
   dependencies:
     "@babel/runtime" "^7.20.0"
-    "@expo/cli" "0.22.13"
-    "@expo/config" "~10.0.8"
+    "@expo/cli" "0.22.16"
+    "@expo/config" "~10.0.10"
     "@expo/config-plugins" "~9.0.15"
-    "@expo/fingerprint" "0.11.8"
-    "@expo/metro-config" "0.19.9"
+    "@expo/fingerprint" "0.11.10"
+    "@expo/metro-config" "0.19.10"
     "@expo/vector-icons" "^14.0.0"
-    babel-preset-expo "~12.0.7"
+    babel-preset-expo "~12.0.8"
     expo-asset "~11.0.3"
-    expo-constants "~17.0.5"
+    expo-constants "~17.0.6"
     expo-file-system "~18.0.10"
     expo-font "~13.0.3"
     expo-keep-awake "~14.0.2"
     expo-modules-autolinking "2.0.7"
-    expo-modules-core "2.2.1"
+    expo-modules-core "2.2.2"
     fbemitter "^3.0.0"
     web-streams-polyfill "^3.3.2"
     whatwg-url-without-unicode "8.0.0-3"
@@ -3989,6 +4075,13 @@ hosted-git-info@^7.0.0:
   dependencies:
     lru-cache "^10.0.1"
 
+html-parse-stringify@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/html-parse-stringify/-/html-parse-stringify-3.0.1.tgz#dfc1017347ce9f77c8141a507f233040c59c55d2"
+  integrity sha512-KknJ50kTInJ7qIScF3jeaFRpMpE8/lfiTdzf/twXyPBLAGrLRTmkz3AdTnKeh40X8k9L2fdYwEp/42WGXIRGcg==
+  dependencies:
+    void-elements "3.1.0"
+
 http-errors@2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/http-errors/-/http-errors-2.0.0.tgz"
@@ -4009,6 +4102,13 @@ human-signals@^2.1.0:
   version "2.1.0"
   resolved "https://registry.npmjs.org/human-signals/-/human-signals-2.1.0.tgz"
   integrity sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==
+
+i18next@^24.2.2:
+  version "24.2.2"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-24.2.2.tgz#3ba3d213302068d569142737f03f30929de696de"
+  integrity sha512-NE6i86lBCKRYZa5TaUDkU5S4HFgLIEJRLr3Whf2psgaxBleQ2LC1YW1Vc+SCgkAW7VEzndT6al6+CzegSUHcTQ==
+  dependencies:
+    "@babel/runtime" "^7.23.2"
 
 idb@7.1.1:
   version "7.1.1"
@@ -5545,6 +5645,14 @@ react-devtools-core@^5.3.1:
     shell-quote "^1.6.1"
     ws "^7"
 
+react-i18next@^15.4.0:
+  version "15.4.0"
+  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-15.4.0.tgz#87c755fb6d7a567eec134e4759b022a0baacb19e"
+  integrity sha512-Py6UkX3zV08RTvL6ZANRoBh9sL/ne6rQq79XlkHEdd82cZr2H9usbWpUNVadJntIZP2pu3M2rL1CN+5rQYfYFw==
+  dependencies:
+    "@babel/runtime" "^7.25.0"
+    html-parse-stringify "^3.0.1"
+
 react-is@^16.13.0, react-is@^16.13.1, react-is@^16.7.0:
   version "16.13.1"
   resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
@@ -5582,6 +5690,11 @@ react-native-keyboard-aware-scroll-view@^0.9.5:
   dependencies:
     prop-types "^15.6.2"
     react-native-iphone-x-helper "^1.0.3"
+
+react-native-localize@^3.4.1:
+  version "3.4.1"
+  resolved "https://registry.yarnpkg.com/react-native-localize/-/react-native-localize-3.4.1.tgz#df07c13231b4e8cc949e68513b124105f861229c"
+  integrity sha512-NJqJGBUpHtD/MpLCCkrNiqNZ+xFwbHCivxaoN1Oeb8tBAiZr/IqgP3E+MgnqmmdTMOJ33llUfiW3EM6pEIb33w==
 
 react-native-paper@^5.12.5:
   version "5.12.5"
@@ -5872,6 +5985,11 @@ rimraf@~2.6.2:
   integrity sha512-mwqeW5XsA2qAejG46gYdENaxXjx9onRNCfn7L0duuP4hCuTIi/QO7PDK07KJfp1d+izWPrzEJDcSqBa0OZQriA==
   dependencies:
     glob "^7.1.3"
+
+rtl-detect@^1.0.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/rtl-detect/-/rtl-detect-1.1.2.tgz#ca7f0330af5c6bb626c15675c642ba85ad6273c6"
+  integrity sha512-PGMBq03+TTG/p/cRB7HCLKJ1MgDIi07+QU1faSjiYRfmY5UsAttV9Hs08jDAHVwcOwmVLcSJkpwyfXszVjWfIQ==
 
 run-parallel@^1.1.9:
   version "1.2.0"
@@ -6602,6 +6720,11 @@ vlq@^1.0.0:
   version "1.0.1"
   resolved "https://registry.npmjs.org/vlq/-/vlq-1.0.1.tgz"
   integrity sha512-gQpnTgkubC6hQgdIcRdYGDSDc+SaujOdyesZQMv6JlfQee/9Mp0Qhnys6WxDWvQnL5WZdT7o2Ul187aSt0Rq+w==
+
+void-elements@3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/void-elements/-/void-elements-3.1.0.tgz#614f7fbf8d801f0bb5f0661f5b2f5785750e4f09"
+  integrity sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==
 
 walker@^1.0.7, walker@^1.0.8:
   version "1.0.8"

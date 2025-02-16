@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback, } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { ActivityIndicator, View, SafeAreaView } from "react-native";
+import { ActivityIndicator, View, Text } from "react-native";
 import { auth, db } from "./firebase"; // Importa Firebase Auth y Firestore desde tu configuración de Firebase
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Provider as PaperProvider } from 'react-native-paper';
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next"; // Importar traducción
+import "./i18n"; // Importar configuración de idiomas
 
 // Importar los nuevos stacks
 import AuthStack from "./AuthStack";
@@ -16,29 +18,29 @@ import AppSplashScreen from "./SplashScreen";
 const Stack = createStackNavigator();
 
 const App = () => {
+  const { t, i18n } = useTranslation(); // Hook para traducir textos
   const [isSplashLoading, setIsSplashLoading] = useState(true); // Estado para la pantalla de carga inicial
   const [isLoading, setIsLoading] = useState(true); // Estado para el proceso de autenticación
   const [user, setUser] = useState(null); // Estado para el usuario actual
   const [role, setRole] = useState(null); // Estado para el rol del usuario
   const [monthlyCheckInCount, setMonthlyCheckInCount] = useState({}); // Estado para el conteo mensual de check-ins
 
+   // Detectar idioma al iniciar
+   useEffect(() => {
+    console.log("🌍 Idioma actual:", i18n.language); 
+    i18n.changeLanguage(i18n.language); // Asegurar que se actualiza el idioma
+  }, [i18n]);
   // Función para obtener el conteo mensual de check-ins del usuario desde Firestore
   const fetchMonthlyCheckInCount = useCallback(async () => {
     const currentUser = auth.currentUser;
     if (currentUser) {
-      console.log("Fetching check-in count for user:", currentUser.uid);
-
       const q = query(
         collection(db, "attendanceHistory"),
-        where("userId", "==", currentUser.uid)
-      );
+        where("userId", "==", currentUser.uid)  );
       const querySnapshot = await getDocs(q);
-
       const counts = {};
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        console.log("Check-in document data:", data);
-
         const timestamp = data.timestamp?.seconds
           ? new Date(data.timestamp.seconds * 1000)
           : null;
@@ -47,7 +49,6 @@ const App = () => {
           counts[monthKey] = (counts[monthKey] || 0) + 1;
         }
       });
-      console.log("Monthly check-in count:", counts);
       setMonthlyCheckInCount(counts);
     }
   }, []);
@@ -88,12 +89,13 @@ const App = () => {
   if (isSplashLoading) {
     return <AppSplashScreen />;
   }
-
+ 
   // Muestra un indicador de carga si la autenticación aún se está procesando
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#0000ff" />
+        <Text>{t("loading")}</Text>
       </View>
     );
   }
@@ -102,7 +104,6 @@ const App = () => {
   // Configuración de la navegación
   return (
     <PaperProvider>
-    
     <NavigationContainer>
     {!user ? (
       // Si no hay usuario, stack de autenticación

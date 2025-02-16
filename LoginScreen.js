@@ -21,19 +21,21 @@ import ButtonGradient from "./ButtonGradient";
 import Icon from "react-native-vector-icons/FontAwesome"; // Ajusta el icono según tu preferencia
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useTranslation } from 'react-i18next'; 
 
 // Obtener las dimensiones de la pantalla
 const { width, height } = Dimensions.get("window");
 
 const LoginScreen = ({ navigation }) => {
+  const { t } = useTranslation();  // Hook para traducción
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert(
-        "Error",
-        "Por favor, ingresa tu correo electrónico y contraseña."
+        t( "Error"),
+        t("Por favor, ingresa tu correo electrónico y contraseña.")
       );
       return;
     }
@@ -63,14 +65,14 @@ const LoginScreen = ({ navigation }) => {
         }
       } else {
         Alert.alert(
-          "Error",
-          "No se encontró el perfil del usuario en la base de datos."
+          t("Error"),
+          t( "No se encontró el perfil del usuario en la base de datos.")
         );
       }
     } catch (error) {
       Alert.alert(
-        "Error",
-        `No se pudo iniciar sesión porque el usuario o contrasena son equivocadas o el usuario no existe`
+        t("Error"),
+        t(`No se pudo iniciar sesión porque el usuario o contrasena son equivocadas o el usuario no existe`)
       );
     }
   };
@@ -108,9 +110,9 @@ const LoginScreen = ({ navigation }) => {
             style={styles.logo}
           />
         </TouchableOpacity>
-        <Text style={styles.subTitle}>Sign in to your account</Text>
+        <Text style={styles.subTitle}>{t("Sign in to your account")}</Text>
         <TextInput
-          placeholder="overLimit@gmail.com"
+          placeholder={t("overLimit@gmail.com")}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -118,7 +120,7 @@ const LoginScreen = ({ navigation }) => {
           style={styles.textIput}
         />
         <TextInput
-          placeholder="Password"
+          placeholder={t("Password")}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -127,7 +129,7 @@ const LoginScreen = ({ navigation }) => {
 
         <ButtonGradient
           onPress={handleLogin}
-          title="Sign in"
+          title={t("Sign in")}
           style={styles.button}
         />
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
@@ -139,7 +141,7 @@ const LoginScreen = ({ navigation }) => {
               },
             ]}
           >
-            Don't have an account?
+            {t("Don't have an account?")}
           </Text>
         </TouchableOpacity>
       </View>
