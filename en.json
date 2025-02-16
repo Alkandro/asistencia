@@ -1,0 +1,30 @@
+{
+    "¡Bienvenido!":"Welcome!",
+    "Mensaje":"Message",
+    "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.": "🎉 Welcome, {{userName}}!\n\nImprove your skills in your {{userBelt}} belt.\n\n🏋️‍♂️ This month: {{newCheckInCount}} trainings.",
+   "No hay mensajes aún":"No messages yet",
+    "Última Puntuación de":"Last Score of",
+    "Ultima puntuación:":"Last Score",
+    "Tu última puntuación:":"Your last score:",
+    "Aún no tienes puntuaciones registradas":"You don't have any recorded scores yet",
+    "Cerrar":"Close",
+   "Español:":"Spanish:",
+   "Ingles:": "English:",
+   "Japones:":"Japanese:",
+    "Detalles del Mensaje":"Message Details",
+   "Publicado el":"Published on",
+   "No hay mensajes todavía.":"There are no messages yet.",
+    "Usuario":"User",
+    "Historial":"History",
+    "Salir":"Sign Out",
+    "TRAINING":"TRAINING",
+    "Informacion":"Information",
+    "Registrarse":"Register",
+    "Profile":"Profile",
+   "Selecciona el año:":"Select the year:",
+   "Selecciona el mes:":"Select the month:",
+   "Todos":"All"
+
+   
+  }
+  

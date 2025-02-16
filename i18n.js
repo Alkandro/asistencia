@@ -2,21 +2,17 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as Localization from "expo-localization";
 
-// Importar traducciones
+// Importar traducciones desde archivos JSON
+import en from "./en.json"
+import es from './es.json';
+
+// Agregar las traducciones a i18next
 const resources = {
   en: {
-    translation: {
-      welcome: "Welcome!",
-      buttonText: "Click me",
-      loading: "Loading...", // Agregado para pruebas
-    },
+    translation: en,
   },
   es: {
-    translation: {
-      welcome: "¡Bienvenido!",
-      buttonText: "Haz clic en mí",
-      loading: "Cargando...", // Agregado para pruebas
-    },
+    translation: es,
   },
 };
 
@@ -25,7 +21,7 @@ const languageDetector = {
   type: "languageDetector",
   async: true,
   detect: (callback) => {
-    const locale = Localization.locale.split("-")[0]; // Extrae solo "es" o "en"
+    const locale = Localization.locale.startsWith("es") ? "es" : "en"; // Extrae solo "es" o "en"
     console.log("📌 Idioma detectado:", locale); // Para depuración
     callback(locale);
   },
@@ -33,7 +29,7 @@ const languageDetector = {
   cacheUserLanguage: () => {},
 };
 
-// Inicializar i18n
+// Inicializar i18next
 i18n
   .use(languageDetector)
   .use(initReactI18next)

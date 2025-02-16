@@ -23,8 +23,11 @@ import { auth, db } from "./firebase";
 import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import { SafeAreaView } from "react-native";
+import { useTranslation } from 'react-i18next';
+
 
 const AttendanceHistoryScreen = () => {
+  const { t } = useTranslation();  // Hook para traducción
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -197,7 +200,7 @@ const AttendanceHistoryScreen = () => {
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.container}>
         {/* Picker Año */}
-        <Text style={styles.label}>Selecciona el año:</Text>
+        <Text style={styles.label}>{t("Selecciona el año:")}</Text>
         <Picker
           selectedValue={selectedYear}
           onValueChange={(itemValue) => {
@@ -209,7 +212,7 @@ const AttendanceHistoryScreen = () => {
           }
           itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : null}
         >
-          <Picker.Item label="Todos" value="" />
+          <Picker.Item label={t("Todos")} value="" />
           {uniqueYears.map((year) => (
             <Picker.Item label={year} value={year} key={year} />
           ))}
@@ -218,7 +221,7 @@ const AttendanceHistoryScreen = () => {
         {/* Picker Mes (depende del año seleccionado) */}
         {selectedYear ? (
           <>
-            <Text style={styles.label}>Selecciona el mes:</Text>
+            <Text style={styles.label}>{t("Selecciona el mes:")}</Text>
             <Picker
               selectedValue={selectedMonth}
               onValueChange={(itemValue) => setSelectedMonth(itemValue)}
@@ -227,7 +230,7 @@ const AttendanceHistoryScreen = () => {
               }
               itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : null}
             >
-              <Picker.Item label="Todos" value="" />
+              <Picker.Item label={t("Todos")} value="" />
               {uniqueMonthsForSelectedYear.map((month) => (
                 <Picker.Item label={month} value={month} key={month} />
               ))}

@@ -31,6 +31,7 @@ import ButtonGradient from "./ButtonGradient";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase"; // Asegúrate de tener configurado Firebase
 import { useDrawerStatus } from '@react-navigation/drawer';
+import { useTranslation } from 'react-i18next'; 
 
 
 const Tab = createBottomTabNavigator();
@@ -40,6 +41,7 @@ dayjs.extend(localeData);
 dayjs.locale("es");
 
 const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
+  const { t } = useTranslation();  // Hook para traducción
   const { navigation } = props; // Obtén navigation desde props si es necesario
   const [refreshing, setRefreshing] = useState(false);
   const [expandedYear, setExpandedYear] = useState(null);
@@ -125,7 +127,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
           {/* Muestra el username debajo de la imagen */}
           <Text style={styles.username}>{username}</Text>
         </View>
-         <Text style={styles.title}>Historial</Text>
+         <Text style={styles.title}>{t("Historial")}</Text>
         <ScrollView
         contentContainerStyle={styles.drawerContainer}
         contentInsetAdjustmentBehavior="automatic"
@@ -179,7 +181,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       <View style={styles.buttonContainer}>
       <ButtonGradient
         onPress={handleSignOut}
-        title="Sign Out"
+        title={t("Salir")}
         style={styles.button}
       />
 </View>
@@ -189,6 +191,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
 };
 
 const UserBottomTabs = ({ navigation, route }) => {
+  const { t } = useTranslation();  // Hook para traducción
   // Cambiar dinámicamente el título de la pantalla activa
   useLayoutEffect(() => {
     let title = "";
@@ -224,9 +227,10 @@ const UserBottomTabs = ({ navigation, route }) => {
       })}
     >
       <Tab.Screen
-        name="Registrarse"
+      name="Registrarse"
         component={CheckInScreen}
         options={{
+          title: t("Informacion"),
           headerShown: false ,
         }}
       />
@@ -234,6 +238,7 @@ const UserBottomTabs = ({ navigation, route }) => {
         name="Historial"
         component={AttendanceHistoryScreen}
         options={{
+          title: t("Historial"),
           headerShown: false ,
         }}
       />
@@ -241,6 +246,7 @@ const UserBottomTabs = ({ navigation, route }) => {
         name="Profile"
         component={UserProfileScreen}
         options={{
+          title: t("Profile"),
            headerShown: false ,
         }}
       />

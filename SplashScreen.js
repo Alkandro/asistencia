@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
 import Animated, { Easing, useSharedValue, useAnimatedStyle, withTiming, withDelay, withRepeat, interpolateColor } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 const AnimatedMessage = () => {
+  const { t } = useTranslation();  // Hook para traducción
   const opacity2 = useSharedValue(0);
   const translateY2 = useSharedValue(30); // Controla la animación de imagen
   const opacityText = useSharedValue(1);
@@ -52,7 +54,7 @@ const AnimatedMessage = () => {
   return (
     <View style={styles.contentContainer}>
       <Animated.View style={[styles.textContainer, animatedTextStyle]}>
-        <Text style={styles.text}>Welcome!</Text>
+        <Text style={styles.text}>{t("Welcome!")}</Text>
       </Animated.View>
       <Animated.View style={[styles.messageContainer1, animatedStyle2]}>
         <Image 

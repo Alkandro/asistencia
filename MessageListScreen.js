@@ -3,8 +3,10 @@ import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from "react-native";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
+import { useTranslation } from 'react-i18next'; 
 
 export default function MessageListScreen() {
+  const { t } = useTranslation();  // Hook para traducción
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +39,7 @@ export default function MessageListScreen() {
   if (messages.length === 0) {
     return (
       <View style={styles.center}>
-        <Text>No hay mensajes todavía.</Text>
+        <Text>{t("No hay mensajes todavía.")}</Text>
       </View>
     );
   }

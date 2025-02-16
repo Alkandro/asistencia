@@ -31,8 +31,10 @@ import {
 import dayjs from "dayjs";
 import { Card, Paragraph } from "react-native-paper";
 import StarRating from "react-native-star-rating-widget"; 
+import { useTranslation } from 'react-i18next'; 
 
 const CheckInScreen = () => {
+  const { t } = useTranslation();  // Hook para traducción
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -201,9 +203,11 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
 
           Alert.alert(
             "",
-            `🎉 Bienvenido, ${userName}!\n\n` +
-            `Mejora tus técnicas en tu cinturón ${userBelt}.\n\n` +
-            `🏋️‍♂️ Este mes: ${newCheckInCount} entrenamientos.`,
+            t("🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.", {
+              userName,
+              userBelt,
+              newCheckInCount
+            }),
             [
               {
                 text: "OK",
@@ -262,7 +266,7 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
     <View style={styles.headerContainer}>
       {latestMessage ? (
         <>
-          <Text style={styles.headerTitle}>Mensaje</Text>
+          <Text style={styles.headerTitle}>{t("Mensaje")}</Text>
           
 
           {/* Tres campos de idioma */}
@@ -291,7 +295,7 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
           )}
         </>
       ) : (
-        <Text style={styles.headerMessage}>No hay mensajes aún</Text>
+        <Text style={styles.headerMessage}>{t("No hay mensajes aún")}</Text>
       )}
     </View>
   );
@@ -303,12 +307,12 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
     return (
       <View style={styles.footerContainer}>
         {/* AQUÍ MOSTRAMOS EL USERNAME */}
-        <Text style={styles.footerTitle}>Última Puntuación de {username}</Text>
+        <Text style={styles.footerTitle}>{t("Última Puntuación de")} {username}</Text>
 
         {lastRating ? (
           <>
             <Text style={styles.footerRatingText}>
-              Tu última puntuación: {lastRating}/10
+            {t("Tu última puntuación:")} {lastRating}/10
             </Text>
             <StarRating
               rating={halfStarLast}
@@ -322,13 +326,13 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
           </>
         ) : (
           <Text style={styles.footerRatingText}>
-            Aún no tienes puntuaciones registradas
+            {t("Aún no tienes puntuaciones registradas")}
           </Text>
         )}
         
 {lastRatingDate && (
   <Text  style={[styles.footerRatingText, {marginTop: 15, fontSize:12}]}>
-    Ultima puntuación: {formatDate(lastRatingDate)}
+    {t("Ultima puntuación:")} {formatDate(lastRatingDate)}
   </Text>
 )}
 
@@ -362,7 +366,7 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
         <View style={styles.buttonContainer}>
           <ButtonGradient
             onPress={handleCheckIn}
-            title="TRAINING"
+            title={t("TRAINING")}
             style={styles.button}
           />
         </View>
