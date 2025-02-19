@@ -112,7 +112,7 @@ const LoginScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.subTitle}>{t("Sign in to your account")}</Text>
         <TextInput
-          placeholder={t("overLimit@gmail.com")}
+          placeholder={t("tashiro@gmail.com")}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -129,7 +129,7 @@ const LoginScreen = ({ navigation }) => {
 
         <ButtonGradient
           onPress={handleLogin}
-          title={t("Sign in")}
+          title={t("Iniciar sesión")}
           style={styles.button}
         />
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>

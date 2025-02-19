@@ -18,6 +18,8 @@ import ButtonGradient from "./ButtonGradient";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useTranslation } from 'react-i18next';
+
 
 // Mapeo de imágenes de cinturones
 const beltImages = {
@@ -32,6 +34,7 @@ const getBeltImage = (belt) =>
   beltImages[belt?.toLowerCase()] || beltImages["white"];
 
 const UserProfileScreen = () => {
+  const { t } = useTranslation();  // Hook para traducción
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -111,7 +114,7 @@ const UserProfileScreen = () => {
           </View>
           <View style={styles.buttonContainer}>
             <ButtonGradient
-              title="Editar Perfil"
+              title={t("Editar Perfil")}
               onPress={handleEdit}
               style={styles.button}
             />
@@ -240,7 +243,7 @@ const UserProfileScreen = () => {
       {/* Modal con scroll solo en la parte de edición */}
       <Modal visible={isEditing} animationType="slide">
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Editar perfil</Text>
+          <Text style={styles.modalTitle}>{t("Editar Perfil")}</Text>
           {/* Aquí sí usamos ScrollView o KeyboardAwareScrollView 
               para que el contenido pueda desplazarse al editar 
           */}
@@ -251,7 +254,7 @@ const UserProfileScreen = () => {
             contentContainerStyle={styles.modalScrollContent}
           >
             {/* Campos de edición */}
-            <Text style={styles.text1}>Nombre</Text>
+            <Text style={styles.text1}>{t("Nombre")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.nombre}`}
@@ -260,7 +263,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Apellido</Text>
+            <Text style={styles.text1}>{t("Apellido")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.apellido}`}
@@ -271,7 +274,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>User</Text>
+            <Text style={styles.text1}>{t("User")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.username}`}
@@ -282,7 +285,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Cinturón</Text>
+            <Text style={styles.text1}>{t("Cinturón")}</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={cinturon}
@@ -290,11 +293,11 @@ const UserProfileScreen = () => {
                 mode={Platform.OS === "android" ? "dropdown" : undefined}
                 style={styles.picker}
               >
-                <Picker.Item label="White" value="white" />
-                <Picker.Item label="Blue" value="blue" />
-                <Picker.Item label="Purple" value="purple" />
-                <Picker.Item label="Brown" value="brown" />
-                <Picker.Item label="Black" value="black" />
+                <Picker.Item label={t("Blanco")} value="white" />
+                <Picker.Item label={t("Azul")} value="blue" />
+                <Picker.Item label={t("Violeta")} value="purple" />
+                <Picker.Item label={t("Marron")} value="brown" />
+                <Picker.Item label={t("Negro")} value="black" />
               </Picker>
             </View>
 
@@ -303,7 +306,7 @@ const UserProfileScreen = () => {
               <Image source={getBeltImage(cinturon)} style={styles.beltImage} />
             ) : null}
 
-            <Text style={styles.text1}>Teléfono</Text>
+            <Text style={styles.text1}>{t("Teléfono")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.phone}`}
@@ -312,7 +315,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Ciudad</Text>
+            <Text style={styles.text1}>{t("Ciudad")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.ciudad}`}
@@ -321,7 +324,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Provincia</Text>
+            <Text style={styles.text1}>{t("Provincia")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.provincia}`}
@@ -332,7 +335,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Edad</Text>
+            <Text style={styles.text1}>{t("Edad")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.edad}`}
@@ -341,7 +344,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Peso</Text>
+            <Text style={styles.text1}>{t("Peso")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.peso}`}
@@ -350,7 +353,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Altura</Text>
+            <Text style={styles.text1}>{t("Altura")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.altura}`}
@@ -359,7 +362,7 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>Email</Text>
+            <Text style={styles.text1}>{t("Correo electonico")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.email}`}
@@ -367,7 +370,7 @@ const UserProfileScreen = () => {
               placeholder="Email"
               placeholderTextColor="red"
             />
-            <Text style={styles.text1}>Género</Text>
+            <Text style={styles.text1}>{t("Género")}</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={newData.genero}
@@ -377,8 +380,8 @@ const UserProfileScreen = () => {
                 mode={Platform.OS === "android" ? "dropdown" : undefined}
                 style={styles.picker1}
               >
-                <Picker.Item label="Masculino" value="Masculino" />
-                <Picker.Item label="Femenino" value="Femenino" />
+                <Picker.Item label={t("Masculino")} value="Masculino" />
+                <Picker.Item label={t("Femenino")} value="Femenino" />
               </Picker>
             </View>
           </KeyboardAwareScrollView>
@@ -387,14 +390,14 @@ const UserProfileScreen = () => {
           <View style={{ flexDirection: "row", marginTop: 20 }}>
             <View style={styles.buttonContainer2}>
               <ButtonGradient
-                title="Cancelar"
+                title={t("Cancelar")}
                 onPress={() => setIsEditing(false)}
                 style={styles.button2}
               />
             </View>
             <View style={styles.buttonContainer1}>
               <ButtonGradient
-                title="Guardar"
+                title={t("Guardar")}
                 onPress={handleSave}
                 style={styles.button1}
               />

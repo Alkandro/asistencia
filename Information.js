@@ -2,26 +2,30 @@ import React from "react";
 import { View, Text, StyleSheet, ImageBackground, Platform, ScrollView } from "react-native";
 import { BlurView } from "expo-blur";
 import backgroundImage from "./assets/fotos/tashiroblack.png";
+import { useTranslation } from 'react-i18next';
 
 const Information = () => {
+  const { t } = useTranslation();  // Hook para traducción
   const renderContent = () => {
     return (
       <>
-        <Text style={styles.titulo}>Profesor</Text>
+        <Text style={styles.titulo}>{t("Profesor")}</Text>
         <Text style={styles.titulo1}>
           田代 セイイチ{"\n"}Instructor/Black Belt
         </Text>
-        <Text style={styles.titulo}>Teléfono de contacto</Text>
-        <Text style={styles.titulo1}>Direccion</Text>
+        <Text style={styles.titulo}>{t("Teléfono")}</Text>
+        <Text style={styles.titulo1}>
+         090 6516 3248
+        </Text>
         <Text style={styles.titulo}>Dirección</Text>
         <Text style={styles.titulo1}>
           〒367-0051 埼玉県本庄市本庄１-１-２{"\n"}もとまちハイツ 201号室
         </Text>
-        <Text style={styles.titulo}>Días y horarios de entrenamiento para adultos</Text>
+        <Text style={styles.titulo}>{t("Días y horarios de entrenamiento para adultos")}</Text>
         <Text style={styles.titulo1}>
           オールレベル柔術{"\n"}月・水・金：20:30〜22:00{"\n"}土：18:30~20:00{"\n"}日：9:00〜10:30
         </Text>
-        <Text style={styles.titulo}>Días y horarios de entrenamiento para niños</Text>
+        <Text style={styles.titulo}>{t("Días y horarios de entrenamiento para niños")}</Text>
         <Text style={styles.titulo1}>
           月・水・金：19:15〜20:15{"\n"}土：17:00〜18:00
         </Text>

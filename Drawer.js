@@ -26,6 +26,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
 import "dayjs/locale/es";
+import "dayjs/locale/en";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ButtonGradient from "./ButtonGradient";
 import { doc, getDoc } from "firebase/firestore";
@@ -38,10 +39,11 @@ const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
 dayjs.extend(localeData);
-dayjs.locale("es");
+
 
 const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
-  const { t } = useTranslation();  // Hook para traducción
+  const { t, i18n } = useTranslation();  // Hook para traducción
+  const currentLanguage = i18n.language || "es"; // Idioma actual
   const { navigation } = props; // Obtén navigation desde props si es necesario
   const [refreshing, setRefreshing] = useState(false);
   const [expandedYear, setExpandedYear] = useState(null);
@@ -110,6 +112,10 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       console.error("Error al cerrar sesión:", error);
     }
   };
+  // Cambiar idioma de dayjs según el idioma seleccionado en la app
+  useEffect(() => {
+    dayjs.locale(currentLanguage);
+  }, [currentLanguage]);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

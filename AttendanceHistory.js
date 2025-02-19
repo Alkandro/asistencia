@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { db, auth } from './firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 
 const AttendanceHistory = () => {
+  const { t } = useTranslation();  // Hook para traducción
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 

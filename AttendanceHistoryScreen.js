@@ -184,11 +184,11 @@ const AttendanceHistoryScreen = () => {
       <Swipeable renderRightActions={swipeRightActions}>
         <View style={styles.itemContainer}>
         <Text>
-  <Text style={{ fontWeight: 'bold', color: 'black' }}>User:</Text>
+  <Text style={{ fontWeight: 'bold', color: 'black' }}>{t(" User:")}</Text>
   <Text style={{ color: 'blue' }}> {item.username}</Text>
 </Text>
           <Text>
-            Date:{" "}
+           {t(" Date:")}{" "}
             {new Date(item.timestamp?.seconds * 1000).toLocaleDateString()}
           </Text>
         </View>
