@@ -111,7 +111,12 @@ const RegisterScreen = ({ navigation }) => {
       });
 
       // Guarda la URI de la imagen en AsyncStorage para persistencia
-      await AsyncStorage.setItem("userImageUri", imageUri);
+      if (imageUri) {
+        await AsyncStorage.setItem("userImageUri", imageUri);
+      } else {
+        await AsyncStorage.removeItem("userImageUri"); // Si es null, eliminar la clave
+      }
+      
 
       Alert.alert("Registro exitoso", "Usuario creado");
     } catch (error) {
@@ -174,7 +179,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Usuario")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="User Name"
+            placeholder={t("Usuario")}
             placeholderTextColor="gray"
             value={name}
             onChangeText={setName}
@@ -182,7 +187,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Correo electonico")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Correo electrónico"
+            placeholder={t("Correo electonico")}
             placeholderTextColor="gray"
             keyboardType="email-address"
             value={email}
@@ -192,7 +197,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Teléfono")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Teléfono"
+            placeholder={t("Teléfono")}
             placeholderTextColor="gray"
             keyboardType="phone-pad"
             value={phone}
@@ -202,7 +207,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Ciudad")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Ciudad"
+            placeholder={t("Ciudad")}
             placeholderTextColor="gray"
             value={ciudad}
             onChangeText={setCiudad}
@@ -210,7 +215,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Provincia")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Provincia"
+            placeholder={t("Provincia")}
             placeholderTextColor="gray"
             value={provincia}
             onChangeText={setProvincia}
@@ -218,7 +223,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Peso")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Peso"
+            placeholder={t("Peso")}
             placeholderTextColor="gray"
             keyboardType="decimal-pad"
             value={peso}
@@ -227,7 +232,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Altura")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Altura"
+            placeholder={t("Altura")}
             placeholderTextColor="gray"
             keyboardType="numeric"
             value={altura}
@@ -236,7 +241,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Edad")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Edad"
+            placeholder={t("Edad")}
             placeholderTextColor="gray"
             keyboardType="numeric"
             value={edad}
@@ -255,7 +260,7 @@ const RegisterScreen = ({ navigation }) => {
             </Picker>
           </View>
           {/* Dropdown de Cinturón */}
-          <Text style={styles.text}>Cinturón</Text>
+          <Text style={styles.text}>{t("Cinturón")}</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={cinturon}
@@ -278,7 +283,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Contraseña")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Contraseña"
+            placeholder={t("Contraseña")}
             placeholderTextColor="gray"
             keyboardType="numeric"
             value={password}
@@ -288,7 +293,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.text}>{t("Confirmar Contraseña")}</Text>
           <TextInput
             style={styles.textIput}
-            placeholder="Confirmar Contraseña"
+            placeholder={t("Confirmar Contraseña")}
             placeholderTextColor="gray"
             secureTextEntry
             value={confirmPassword}
@@ -297,7 +302,7 @@ const RegisterScreen = ({ navigation }) => {
         </ScrollView>
         <View style={styles.buttonContainer}>
           <ButtonGradient
-            title="Registrarse"
+            title={t("Registrarse")}
             onPress={registerUser}
             style={styles.button}
           />

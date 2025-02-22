@@ -1,6 +1,5 @@
 {
   "Welcome!": "¡Bienvenido!",
-  "buttonText": "Haz clic en mí",
   "loading": "Cargando...",
   "Iniciar sesión": "Iniciar sesión",
   "email": "Correo electrónico",
@@ -64,5 +63,6 @@
   "Direccion": "Direccion",
   "Días y horarios de entrenamiento para adultos": "Días y horarios de entrenamiento para adultos",
   "Días y horarios de entrenamiento para niños": "Días y horarios de entrenamiento para niños",
+  "Registro de Usuario":"Registro de Usuario",
   "Información":"Información"
 }
