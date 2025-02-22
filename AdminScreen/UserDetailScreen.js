@@ -27,6 +27,9 @@ import Icon from "react-native-vector-icons/Ionicons";
 
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
+import "dayjs/locale/pt";
+import "dayjs/locale/ja";
+import "dayjs/locale/en";
 import "dayjs/locale/es";
 
 import StarRating from "react-native-star-rating-widget";
@@ -34,6 +37,9 @@ import { SwipeListView } from "react-native-swipe-list-view"; // <--- Importa la
 
 dayjs.extend(localeData);
 dayjs.locale("es");
+dayjs.locale("en");
+dayjs.locale("ja");
+dayjs.locale("pt");
 
 export default function UserDetailScreen() {
   const route = useRoute();
