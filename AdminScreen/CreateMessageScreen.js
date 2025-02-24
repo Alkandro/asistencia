@@ -17,8 +17,7 @@ import MessageForm from "./MessageForm";
 export default function CreateMessageScreen() {
   const [message, setMessage] = useState("");
   const [additionalField1, setAdditionalField1] = useState("");
-  const [additionalField2, setAdditionalField2] = useState("");
-  const [additionalField3, setAdditionalField3] = useState("");
+ 
   const [localImageUri, setLocalImageUri] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
@@ -78,8 +77,7 @@ export default function CreateMessageScreen() {
         await updateDoc(messageRef, {
           text: message.trim(),
           additionalField1: additionalField1.trim(),
-          additionalField2: additionalField2.trim(),
-          additionalField3: additionalField3.trim(),
+         
           imageUrl,
           updatedAt: serverTimestamp(),
         });
@@ -87,8 +85,7 @@ export default function CreateMessageScreen() {
         await addDoc(collection(db, "messages"), {
           text: message.trim(),
           additionalField1: additionalField1.trim(),
-          additionalField2: additionalField2.trim(),
-          additionalField3: additionalField3.trim(),
+         
           imageUrl,
           createdAt: serverTimestamp(),
           authorId: user.uid,
@@ -98,8 +95,7 @@ export default function CreateMessageScreen() {
       Keyboard.dismiss();
       setMessage("");
       setAdditionalField1("");
-      setAdditionalField2("");
-      setAdditionalField3("");
+     
       setLocalImageUri(null);
     } catch (error) {
       console.error("Error al guardar mensaje:", error);
@@ -119,10 +115,7 @@ export default function CreateMessageScreen() {
             setMessage={setMessage}
             additionalField1={additionalField1}
             setAdditionalField1={setAdditionalField1}
-            additionalField2={additionalField2}
-            setAdditionalField2={setAdditionalField2}
-            additionalField3={additionalField3}
-            setAdditionalField3={setAdditionalField3}
+            
             localImageUri={localImageUri}
             setLocalImageUri={setLocalImageUri}
             handleChooseImage={handleChooseImage}

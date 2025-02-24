@@ -44,8 +44,7 @@ export default function MessagePreviewScreen() {
   const [editValues, setEditValues] = useState({
     text: "",
     additionalField1: "",
-    additionalField2: "",
-    additionalField3: "",
+   
   });
 
   // Cargar mensajes de Firestore
@@ -129,8 +128,7 @@ export default function MessagePreviewScreen() {
     setEditValues({
       text: message.text,
       additionalField1: message.additionalField1 || "",
-      additionalField2: message.additionalField2 || "",
-      additionalField3: message.additionalField3 || "",
+     
     });
     // Puedes mantener la previsualización abierta o cerrarla. En este ejemplo, la cerramos.
     setIsPreviewModalVisible(false);
@@ -144,8 +142,7 @@ export default function MessagePreviewScreen() {
       await updateDoc(messageRef, {
         text: editValues.text,
         additionalField1: editValues.additionalField1,
-        additionalField2: editValues.additionalField2,
-        additionalField3: editValues.additionalField3,
+       
         updatedAt: serverTimestamp(),
       });
       Alert.alert("Éxito", "Mensaje actualizado correctamente.");
@@ -179,8 +176,7 @@ export default function MessagePreviewScreen() {
           </Paragraph>
          {item.text && <Paragraph>{item.text}</Paragraph>}
           {item.additionalField1 && <Paragraph>{item.additionalField1}</Paragraph>}
-          {item.additionalField2 && <Paragraph>{item.additionalField2}</Paragraph>}
-          {item.additionalField3 && <Paragraph>{item.additionalField3}</Paragraph>}
+         
         </View>
 
         {/* Checkbox a la derecha */}

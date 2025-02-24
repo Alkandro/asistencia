@@ -240,15 +240,13 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
   const calculateSum = () => {
     if (
       latestMessage &&
-      latestMessage.additionalField1 &&
-      latestMessage.additionalField2 &&
-      latestMessage.additionalField3
+      latestMessage.additionalField1 
+     
     ) {
       const field1 = parseFloat(latestMessage.additionalField1);
-      const field2 = parseFloat(latestMessage.additionalField2);
-      const field3 = parseFloat(latestMessage.additionalField3);
-      if (!isNaN(field1) && !isNaN(field2) && !isNaN(field3)) {
-        return field1 + field2 + field3;
+      
+      if (!isNaN(field1) ) {
+        return field1 ;
       }
     }
     return null;
@@ -270,18 +268,13 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
           
 
           {/* Tres campos de idioma */}
-          {latestMessage.additionalField1 && latestMessage.additionalField2 && latestMessage.additionalField3 && (
+          {latestMessage.additionalField1 && (
             <View style={{ marginBottom: 8 }}>
               <Text style={styles.headerMessage}>🇧🇷{latestMessage.text}</Text>
               <Text style={styles.text}>
                 🇯🇵{latestMessage.additionalField1}
               </Text>
-              <Text style={styles.text}>
-                🇺🇸{latestMessage.additionalField2}
-              </Text>
-              <Text style={styles.text}>
-                🇪🇸{latestMessage.additionalField3}
-              </Text>
+              
             </View>
           )}
 
@@ -396,23 +389,14 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
                     />
                     <Card.Content>
                       <Paragraph>Portugues:{" "} {latestMessage.text}</Paragraph>
-                      {latestMessage.additionalField1 &&
-                        latestMessage.additionalField2 &&
-                        latestMessage.additionalField3 && (
+                      {latestMessage.additionalField1 && (
                           <>
                            
                             <Paragraph>
                               Japones:{" "}
                               {latestMessage.additionalField1}
                             </Paragraph>
-                            <Paragraph>
-                              Ingles:{" "}
-                              {latestMessage.additionalField2}
-                            </Paragraph>
-                            <Paragraph>
-                              Español:{" "}
-                              {latestMessage.additionalField3}
-                            </Paragraph>
+                           
                            
                           </>
                         )}

@@ -19,10 +19,7 @@ const MessageForm = React.forwardRef(({
   setMessage,
   additionalField1,
   setAdditionalField1,
-  additionalField2,
-  setAdditionalField2,
-  additionalField3,
-  setAdditionalField3,
+  
   localImageUri,
   setLocalImageUri,
   uploading,
@@ -65,21 +62,7 @@ const MessageForm = React.forwardRef(({
             placeholder="Mensaje..."
           />
 
-          <Text style={styles.label}>🇺🇸</Text>
-          <TextInput
-            style={styles.input}
-            value={additionalField2}
-            onChangeText={setAdditionalField2}
-            placeholder="Mensaje..."
-          />
-
-          <Text style={styles.label}>🇪🇸</Text>
-          <TextInput
-            style={styles.input}
-            value={additionalField3}
-            onChangeText={setAdditionalField3}
-            placeholder="Mensaje..."
-          />
+         
 
           {/* FILA DE ÍCONOS ARRIBA DE LA IMAGEN */}
           <View style={styles.iconRow}>
