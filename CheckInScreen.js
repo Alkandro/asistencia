@@ -12,11 +12,7 @@ import {
   FlatList,
 } from "react-native";
 import { recordCheckIn } from "./Attendance";
-import {
-  useNavigation,
-  useFocusEffect,
-  useRoute,
-} from "@react-navigation/native";
+import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native"; 
 import { auth, db } from "./firebase";
 import ButtonGradient from "./ButtonGradient";
 import {
@@ -34,11 +30,11 @@ import {
 } from "firebase/firestore";
 import dayjs from "dayjs";
 import { Card, Paragraph } from "react-native-paper";
-import StarRating from "react-native-star-rating-widget";
-import { useTranslation } from "react-i18next";
+import StarRating from "react-native-star-rating-widget"; 
+import { useTranslation } from 'react-i18next'; 
 
 const CheckInScreen = () => {
-  const { t } = useTranslation(); // Hook para traducción
+  const { t } = useTranslation();  // Hook para traducción
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -55,7 +51,7 @@ const CheckInScreen = () => {
   const [username, setUsername] = useState("");
 
   // Al nivel de otros states
-  const [lastRatingDate, setLastRatingDate] = useState(null);
+const [lastRatingDate, setLastRatingDate] = useState(null);
 
   const navigation = useNavigation();
 
@@ -137,7 +133,7 @@ const CheckInScreen = () => {
           if (!querySnapshot.empty) {
             const ratingDoc = querySnapshot.docs[0].data();
             setLastRating(ratingDoc.score);
-            setLastRatingDate(ratingDoc.createdAt || null);
+            setLastRatingDate(ratingDoc.createdAt || null); 
             // Asegúrate de que el campo de fecha se llame "createdAt" en tu DB
           } else {
             setLastRating(null);
@@ -207,14 +203,11 @@ const CheckInScreen = () => {
 
           Alert.alert(
             "",
-            t(
-              "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.",
-              {
-                userName,
-                userBelt,
-                newCheckInCount,
-              }
-            ),
+            t("🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.", {
+              userName,
+              userBelt,
+              newCheckInCount
+            }),
             [
               {
                 text: "OK",
@@ -274,21 +267,23 @@ const CheckInScreen = () => {
       {latestMessage ? (
         <>
           <Text style={styles.headerTitle}>{t("Mensaje")}</Text>
+          
 
           {/* Tres campos de idioma */}
-          {latestMessage.additionalField1 &&
-            latestMessage.additionalField2 &&
-            latestMessage.additionalField3 && (
-              <View style={{ marginBottom: 8 }}>
-                <Text style={styles.languageTitle}>{t("Portugués")}</Text>
-                <Text style={styles.headerMessage}>{latestMessage.text}</Text>
-
-                <Text style={styles.languageTitle}>{t("Japonés")}</Text>
-                <Text style={styles.text}>
-                  {latestMessage.additionalField1}
-                </Text>
-              </View>
-            )}
+          {latestMessage.additionalField1 && latestMessage.additionalField2 && latestMessage.additionalField3 && (
+            <View style={{ marginBottom: 8 }}>
+              <Text style={styles.headerMessage}>🇧🇷{latestMessage.text}</Text>
+              <Text style={styles.text}>
+                🇯🇵{latestMessage.additionalField1}
+              </Text>
+              <Text style={styles.text}>
+                🇺🇸{latestMessage.additionalField2}
+              </Text>
+              <Text style={styles.text}>
+                🇪🇸{latestMessage.additionalField3}
+              </Text>
+            </View>
+          )}
 
           {/* Imagen */}
           {latestMessage.imageUrl && (
@@ -312,14 +307,12 @@ const CheckInScreen = () => {
     return (
       <View style={styles.footerContainer}>
         {/* AQUÍ MOSTRAMOS EL USERNAME */}
-        <Text style={styles.footerTitle}>
-          {t("Última Puntuación de")} {username}
-        </Text>
+        <Text style={styles.footerTitle}>{t("Última Puntuación de")} {username}</Text>
 
         {lastRating ? (
           <>
             <Text style={styles.footerRatingText}>
-              {t("Tu última puntuación:")} {lastRating}/10
+            {t("Tu última puntuación:")} {lastRating}/10
             </Text>
             <StarRating
               rating={halfStarLast}
@@ -336,14 +329,12 @@ const CheckInScreen = () => {
             {t("Aún no tienes puntuaciones registradas")}
           </Text>
         )}
-
-        {lastRatingDate && (
-          <Text
-            style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}
-          >
-            {t("Ultima puntuación:")} {formatDate(lastRatingDate)}
-          </Text>
-        )}
+        
+{lastRatingDate && (
+  <Text  style={[styles.footerRatingText, {marginTop: 15, fontSize:12}]}>
+    {t("Ultima puntuación:")} {formatDate(lastRatingDate)}
+  </Text>
+)}
 
         {/* Mensaje personalizado de otra pantalla */}
         {customMessage && (
@@ -399,24 +390,38 @@ const CheckInScreen = () => {
                       title="Detalles del Mensaje"
                       subtitle={
                         latestMessage.createdAt
-                          ? `Publicado el ${formatDate(
-                              latestMessage.createdAt
-                            )}`
+                          ? `Publicado el ${formatDate(latestMessage.createdAt)}`
                           : "Sin fecha"
                       }
                     />
                     <Card.Content>
-                      <Text style={styles.languageTitle}>{t("Portugués")}</Text>
-                      <Paragraph>{latestMessage.text}</Paragraph>
-
-                      <Text style={styles.languageTitle}>{t("Japonés")}</Text>
-                      <Paragraph>{latestMessage.additionalField1}</Paragraph>
+                      <Paragraph>Portugues:{" "} {latestMessage.text}</Paragraph>
+                      {latestMessage.additionalField1 &&
+                        latestMessage.additionalField2 &&
+                        latestMessage.additionalField3 && (
+                          <>
+                           
+                            <Paragraph>
+                              Japones:{" "}
+                              {latestMessage.additionalField1}
+                            </Paragraph>
+                            <Paragraph>
+                              Ingles:{" "}
+                              {latestMessage.additionalField2}
+                            </Paragraph>
+                            <Paragraph>
+                              Español:{" "}
+                              {latestMessage.additionalField3}
+                            </Paragraph>
+                           
+                          </>
+                        )}
                     </Card.Content>
                   </Card>
                 )}
                 <ButtonGradient
                   onPress={() => setIsModalVisible(false)}
-                  title={t("Cerrar")}
+                  title="Cerrar"
                   style={styles.closeButton}
                 />
               </View>
@@ -512,11 +517,5 @@ const styles = StyleSheet.create({
   closeButton: {
     marginTop: 10,
     alignSelf: "center",
-  },
-  languageTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
-    color: "#333",
   },
 });
