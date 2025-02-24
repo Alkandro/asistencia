@@ -3,6 +3,7 @@ import {
   SafeAreaView,
   StyleSheet,
   Modal,
+  Text,
   View,
   Button,
   Alert,
@@ -31,8 +32,10 @@ import {
   TextInput,
 } from "react-native-paper";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 export default function MessagePreviewScreen() {
+  const { t } = useTranslation(); // Hook para traducción
   const [messages, setMessages] = useState([]);
   const [previewMessage, setPreviewMessage] = useState(null);
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
@@ -86,8 +89,9 @@ export default function MessagePreviewScreen() {
       return;
     }
     Alert.alert(
-      "Confirmar Eliminación",
-      `¿Estás seguro de que deseas eliminar ${messageIds.length} mensaje(s)?`,
+      t("confirmDeletion"),
+      t("confirmDeleteMessage", { count: messageIds.length }),
+    
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -203,7 +207,7 @@ export default function MessagePreviewScreen() {
       </ScrollView>
 
       <Button
-        title="Eliminar Seleccionados"
+        title={t("Eliminar Seleccionados")}
         onPress={handleDeleteSelected}
         color="red"
       />
@@ -238,97 +242,77 @@ export default function MessagePreviewScreen() {
                   />
                 </View>
                 <Card.Content>
-                  <Paragraph >
-                   Portugues: {previewMessage.text}
-                  </Paragraph>
-                  {previewMessage.additionalField1 && (
-                    <Paragraph>
-                    Japones : {previewMessage.additionalField1}
-                    </Paragraph>
-                  )}
-                  {previewMessage.additionalField2 && (
-                    <Paragraph>
-                      Ingles: {previewMessage.additionalField2}
-                    </Paragraph>
-                  )}
-                  {previewMessage.additionalField3 && (
-                    <Paragraph>
-                      Español: {previewMessage.additionalField3}
-                    </Paragraph>
-                  )}
+                <ScrollView style={{ maxHeight: 300 }}>
+    <Text style={styles.previewText}>{t("Portugués")}: {previewMessage.text}</Text>
+
+    {previewMessage.additionalField1 && (
+      <Text style={styles.previewText}>{t("Japonés")}: {previewMessage.additionalField1}</Text>
+    )}
+                  </ScrollView>
                 </Card.Content>
               </Card>
             )}
-            <Button title="Cerrar" onPress={() => setIsPreviewModalVisible(false)} />
+            <Button title={t("Cerrar")} onPress={() => setIsPreviewModalVisible(false)} />
           </ScrollView>
         </View>
       </Modal>
 
       {/* Modal de Edición */}
       <Modal
-        visible={isEditModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={styles.modalContent}>
-            <Card style={styles.modalCard} mode="elevated">
-              <Card.Title title="Editar Mensaje" />
-              <Card.Content>
-                <TextInput
-                  label="Mensaje"
-                  value={editValues.text}
-                  onChangeText={(val) =>
-                    setEditValues({ ...editValues, text: val })
-                  }
-                  style={styles.input}
-                />
-                <TextInput
-                  label="Campo Adicional 1"
-                  value={editValues.additionalField1}
-                  onChangeText={(val) =>
-                    setEditValues({ ...editValues, additionalField1: val })
-                  }
-                  style={styles.input}
-                />
-                <TextInput
-                  label="Campo Adicional 2"
-                  value={editValues.additionalField2}
-                  onChangeText={(val) =>
-                    setEditValues({ ...editValues, additionalField2: val })
-                  }
-                  style={styles.input}
-                />
-                <TextInput
-                  label="Campo Adicional 3"
-                  value={editValues.additionalField3}
-                  onChangeText={(val) =>
-                    setEditValues({ ...editValues, additionalField3: val })
-                  }
-                  style={styles.input}
-                />
-              </Card.Content>
-              <Card.Actions style={styles.editActions}>
-  <IconButton
-    icon="content-save"
-    size={28}
-    onPress={handleSaveEdit}
-    iconColor="#4CAF50"
-    style={styles.actionButton}
-  />
-  <IconButton
-    icon="close"
-    size={28}
-    onPress={() => setIsEditModalVisible(false)}
-    iconColor="#F44336"
-    style={styles.actionButton}
-  />
-</Card.Actions>
-            </Card>
-          </ScrollView>
-        </View>
-      </Modal>
+  visible={isEditModalVisible}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setIsEditModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <ScrollView contentContainerStyle={styles.modalContent}>
+      <Card style={styles.modalCard} mode="elevated">
+        <Card.Title title={t("Editar Mensaje")} />
+        <Card.Content>
+          <TextInput
+            label={t("Portugués")}
+            value={editValues.text}
+            onChangeText={(val) =>
+              setEditValues({ ...editValues, text: val })
+            }
+            style={styles.input}
+            multiline={true} // Permite varias líneas
+            numberOfLines={4} // Controla la altura inicial
+            textAlignVertical="top" // Asegura que el texto comience desde arriba
+          />
+          <TextInput
+            label={t("Japonés")}
+            value={editValues.additionalField1}
+            onChangeText={(val) =>
+              setEditValues({ ...editValues, additionalField1: val })
+            }
+            style={styles.input}
+            multiline={true}
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </Card.Content>
+        <Card.Actions style={styles.editActions}>
+          <IconButton
+            icon="content-save"
+            size={28}
+            onPress={handleSaveEdit}
+            iconColor="#4CAF50"
+            style={styles.actionButton}
+          />
+          <IconButton
+            icon="close"
+            size={28}
+            onPress={() => setIsEditModalVisible(false)}
+            iconColor="#F44336"
+            style={styles.actionButton}
+          />
+        </Card.Actions>
+      </Card>
+    </ScrollView>
+  </View>
+</Modal>
+
     </SafeAreaView>
   );
 }
@@ -426,6 +410,8 @@ const styles = StyleSheet.create({
   input: {
     marginVertical: 10,
     backgroundColor: "white",
+    minHeight: 80, // Asegura que la caja sea más grande
+    textAlignVertical: "top", // Empieza a escribir desde arriba
   },
   editActions: {
     flexDirection: "row",
@@ -439,5 +425,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 45, // Ajusta este valor según el espacio que desees
     marginVertical:10,
     
+  },
+  previewText: {
+    fontSize: 16,
+    color: "#333",
+    flexWrap: "wrap",
+    textAlign: "justify",
+    marginBottom: 10,
   },
 });

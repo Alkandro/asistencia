@@ -9,8 +9,7 @@
   "Don't have an account?": "Criar uma conta",
   "Mensaje": "Mensagem",
   "TRAINING": "TREINAMENTO",
-  "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.": 
-    "🎉 Bem-vindo, {{userName}}!\n\nAprimore suas técnicas no seu cinturão {{userBelt}}.\n\n🏋️‍♂️ Este mês: {{newCheckInCount}} treinamentos.",
+  "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.": "🎉 Bem-vindo, {{userName}}!\n\nAprimore suas técnicas no seu cinturão {{userBelt}}.\n\n🏋️‍♂️ Este mês: {{newCheckInCount}} treinamentos.",
   "No hay mensajes aún": "Ainda não há mensagens",
   "Última Puntuación de": "Última pontuação de",
   "Ultima puntuación:": "Última pontuação:",
@@ -19,8 +18,9 @@
   "Cerrar": "Fechar",
   "Español:": "Espanhol:",
   "Ingles:": "Inglês:",
+  "Japonés:": "Japonês:",
   "Japones:": "Japonês:",
-  "Portugués":"Portugués",
+  "Portugués": "Portugués",
   "Detalles del Mensaje": "Detalhes da mensagem",
   "Publicado el": "Publicado em",
   "No hay mensajes todavía.": "Ainda não há mensagens.",
@@ -65,6 +65,15 @@
   "Direccion": "Endereço",
   "Días y horarios de entrenamiento para adultos": "Dias e horários de treinamento para adultos",
   "Días y horarios de entrenamiento para niños": "Dias e horários de treinamento para crianças",
-  "Registro de Usuario":"Registro de Usuário",
-  "Información": "Informação"
+  "Registro de Usuario": "Registro de Usuário",
+  "Información": "Informação",
+  "Editar Mensaje:": "Editar Mensagem:",
+  "Mensaje...": "Mensagem...",
+  "Subiendo imagen...": "Enviando imagem...",
+  "Cancelar Edición": "Cancelar Edição",
+  "Editar Mensaje": "Editar Mensagem",
+  "Eliminar Seleccionados":"Excluir Selecionados",
+  "confirmDeletion": "Confirmar Exclusão",
+  "confirmDeleteMessage": "Tem certeza que deseja excluir {{count}} mensagem(ns)?"
 }
+

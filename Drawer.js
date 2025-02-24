@@ -35,7 +35,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase"; // Asegúrate de tener configurado Firebase
 import { useDrawerStatus } from '@react-navigation/drawer';
 import { useTranslation } from 'react-i18next'; 
-import FloatingFlags from "./FloatingFlags"; 
+// import FloatingFlags from "./FloatingFlags"; 
 
 
 const Tab = createBottomTabNavigator();
@@ -136,16 +136,16 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
           {/* Muestra el username debajo de la imagen */}
           <Text style={styles.username}>{username}</Text>
            
-   
- 
-        </View>
-        <View >
-        <FloatingFlags 
+         
+        {/* <FloatingFlags 
     handleLanguageChange={i18n.changeLanguage} 
     selectedLanguage={currentLanguage} 
     containerStyle={styles.floatingFlagsDrawer}
-    />
-       </View>
+    /> */}
+      
+ 
+        </View>
+       
          <Text style={styles.title}>{t("Historial")}</Text>
         <ScrollView
         contentContainerStyle={styles.drawerContainer}
@@ -399,14 +399,12 @@ const styles = StyleSheet.create({
     marginHorizontal: "auto",
     marginVertical: "auto",
   },
-  floatingFlagsDrawer: {
-
-    flexDirection: "row",
-    
-    marginBottom: -10,
-    backgroundColor: "transparent", // Si quieres cambiar el fondo
-    paddingHorizontal: 10, // Ajustar separación si es necesario
-  },
+  // floatingFlagsDrawer: {
+  //   flexDirection: "row",
+  //   marginBottom: -10,
+  //   backgroundColor: "transparent", // Si quieres cambiar el fondo
+  //   paddingHorizontal: 10, // Ajustar separación si es necesario
+  // },
 });
 
 export default AppDrawer;

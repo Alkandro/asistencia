@@ -17,9 +17,10 @@
   "Aún no tienes puntuaciones registradas": "You don't have any recorded scores yet",
   "Cerrar": "Close",
   "Español:": "Español:",
-  "Portugués":"Portugués",
+  "Portugués": "Portugués:",
   "Ingles:": "Ingles:",
   "Japonés": "Japones:",
+  "Japones": "Japones:",
   "Detalles del Mensaje": "Message Details",
   "Publicado el": "Published on",
   "No hay mensajes todavía.": "No hay mensajes todavía.",
@@ -64,6 +65,14 @@
   "Direccion": "Direccion",
   "Días y horarios de entrenamiento para adultos": "Días y horarios de entrenamiento para adultos",
   "Días y horarios de entrenamiento para niños": "Días y horarios de entrenamiento para niños",
-  "Registro de Usuario":"Registro de Usuario",
-  "Información":"Información"
+  "Registro de Usuario": "Registro de Usuario",
+  "Información": "Información",
+  "Editar Mensaje:": "Editar Mensaje:",
+  "Mensaje...": "Mensaje...",
+  "Subiendo imagen...": "Subiendo imagen...",
+  "Cancelar Edición": "Cancelar Edición",
+  "Editar Mensaje": "Editar Mensaje",
+  "Eliminar Seleccionados":"Eliminar Seleccionados",
+  "confirmDeletion": "Confirmar Eliminación",
+  "confirmDeleteMessage": "¿Estás seguro que deseas eliminar {{count}} mensaje(s)?"
 }
