@@ -10,14 +10,27 @@ import {
 } from "react-native";
 import { auth, storage, db } from "../firebase";
 import * as ImagePicker from "expo-image-picker";
-import { addDoc, collection, serverTimestamp, updateDoc, doc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+import {
+  addDoc,
+  collection,
+  serverTimestamp,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
 import MessageForm from "./MessageForm";
+import { useTranslation } from "react-i18next";
 
 export default function CreateMessageScreen() {
+  const { t } = useTranslation(); // Hook para traducción
   const [message, setMessage] = useState("");
   const [additionalField1, setAdditionalField1] = useState("");
- 
+
   const [localImageUri, setLocalImageUri] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
@@ -36,7 +49,9 @@ export default function CreateMessageScreen() {
   const uploadImageToStorage = async (uri) => {
     if (!uri) return null;
     const user = auth.currentUser;
-    const imageName = `images/${user.uid}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+    const imageName = `images/${user.uid}/${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(7)}.jpg`;
     const imageRef = ref(storage, imageName);
 
     const blob = await (await fetch(uri)).blob();
@@ -77,7 +92,7 @@ export default function CreateMessageScreen() {
         await updateDoc(messageRef, {
           text: message.trim(),
           additionalField1: additionalField1.trim(),
-         
+
           imageUrl,
           updatedAt: serverTimestamp(),
         });
@@ -85,7 +100,7 @@ export default function CreateMessageScreen() {
         await addDoc(collection(db, "messages"), {
           text: message.trim(),
           additionalField1: additionalField1.trim(),
-         
+
           imageUrl,
           createdAt: serverTimestamp(),
           authorId: user.uid,
@@ -95,7 +110,7 @@ export default function CreateMessageScreen() {
       Keyboard.dismiss();
       setMessage("");
       setAdditionalField1("");
-     
+
       setLocalImageUri(null);
     } catch (error) {
       console.error("Error al guardar mensaje:", error);
@@ -115,7 +130,6 @@ export default function CreateMessageScreen() {
             setMessage={setMessage}
             additionalField1={additionalField1}
             setAdditionalField1={setAdditionalField1}
-            
             localImageUri={localImageUri}
             setLocalImageUri={setLocalImageUri}
             handleChooseImage={handleChooseImage}

@@ -12,7 +12,11 @@ import {
   FlatList,
 } from "react-native";
 import { recordCheckIn } from "./Attendance";
-import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native"; 
+import {
+  useNavigation,
+  useFocusEffect,
+  useRoute,
+} from "@react-navigation/native";
 import { auth, db } from "./firebase";
 import ButtonGradient from "./ButtonGradient";
 import {
@@ -30,11 +34,11 @@ import {
 } from "firebase/firestore";
 import dayjs from "dayjs";
 import { Card, Paragraph } from "react-native-paper";
-import StarRating from "react-native-star-rating-widget"; 
-import { useTranslation } from 'react-i18next'; 
+import StarRating from "react-native-star-rating-widget";
+import { useTranslation } from "react-i18next";
 
 const CheckInScreen = () => {
-  const { t } = useTranslation();  // Hook para traducción
+  const { t } = useTranslation(); // Hook para traducción
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -51,7 +55,7 @@ const CheckInScreen = () => {
   const [username, setUsername] = useState("");
 
   // Al nivel de otros states
-const [lastRatingDate, setLastRatingDate] = useState(null);
+  const [lastRatingDate, setLastRatingDate] = useState(null);
 
   const navigation = useNavigation();
 
@@ -133,7 +137,7 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
           if (!querySnapshot.empty) {
             const ratingDoc = querySnapshot.docs[0].data();
             setLastRating(ratingDoc.score);
-            setLastRatingDate(ratingDoc.createdAt || null); 
+            setLastRatingDate(ratingDoc.createdAt || null);
             // Asegúrate de que el campo de fecha se llame "createdAt" en tu DB
           } else {
             setLastRating(null);
@@ -157,7 +161,7 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
 
       if (userDocSnap.exists()) {
         const data = userDocSnap.data();
-        setUsername(data.username || "Usuario"); // Ajusta como quieras
+        setUsername(data.username || t("Usuario")); // Ajusta como quieras
       }
     } catch (error) {
       console.error("Error al obtener el nombre de usuario:", error);
@@ -203,11 +207,14 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
 
           Alert.alert(
             "",
-            t("🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.", {
-              userName,
-              userBelt,
-              newCheckInCount
-            }),
+            t(
+              "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.",
+              {
+                userName,
+                userBelt,
+                newCheckInCount,
+              }
+            ),
             [
               {
                 text: "OK",
@@ -238,15 +245,11 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
 
   // Calcular la suma de tres campos adicionales
   const calculateSum = () => {
-    if (
-      latestMessage &&
-      latestMessage.additionalField1 
-     
-    ) {
+    if (latestMessage && latestMessage.additionalField1) {
       const field1 = parseFloat(latestMessage.additionalField1);
-      
-      if (!isNaN(field1) ) {
-        return field1 ;
+
+      if (!isNaN(field1)) {
+        return field1;
       }
     }
     return null;
@@ -260,25 +263,58 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
   };
 
   // ================= RENDERIZAR ENCABEZADO (último mensaje) =================
+  // const ListHeader = () => (
+  //   <View style={styles.headerContainer}>
+  //     {latestMessage ? (
+  //       <>
+  //         <Text style={styles.headerTitle}>{t("Mensaje")}</Text>
+
+  //         {/* Tres campos de idioma */}
+  //         {latestMessage.additionalField1 && (
+  //           <View style={{ marginBottom: 8 }}>
+  //             <Text style={styles.headerMessage}>🇧🇷{latestMessage.text}</Text>
+  //             <Text style={styles.text}>
+  //               🇯🇵{latestMessage.additionalField1}
+  //             </Text>
+  //           </View>
+  //         )}
+
+  //         {/* Imagen */}
+  //         {latestMessage.imageUrl && (
+  //           <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
+  //             <Card style={styles.card}>
+  //               <Card.Cover source={{ uri: latestMessage.imageUrl }} />
+  //             </Card>
+  //           </TouchableWithoutFeedback>
+  //         )}
+  //       </>
+  //     ) : (
+  //       <Text style={styles.headerMessage}>{t("No hay mensajes aún")}</Text>
+  //     )}
+  //   </View>
+  // );
   const ListHeader = () => (
     <View style={styles.headerContainer}>
       {latestMessage ? (
         <>
           <Text style={styles.headerTitle}>{t("Mensaje")}</Text>
-          
-
-          {/* Tres campos de idioma */}
-          {latestMessage.additionalField1 && (
-            <View style={{ marginBottom: 8 }}>
-              <Text style={styles.headerMessage}>🇧🇷{latestMessage.text}</Text>
-              <Text style={styles.text}>
-                🇯🇵{latestMessage.additionalField1}
-              </Text>
-              
+  
+          {/* Mensajes con títulos en lugar de banderas */}
+          {latestMessage.text && (
+            <View style={styles.messageContainer}>
+              <Text style={styles.messageTitle}>{t("Portugués")}:</Text>
+              <Text style={styles.messageText}>{latestMessage.text}</Text>
             </View>
           )}
-
-          {/* Imagen */}
+  
+          {latestMessage.additionalField1 && (
+            <View style={styles.messageContainer}>
+              <Text style={styles.messageTitle}>{t("Japonés")}:</Text>
+              <Text style={styles.messageText}>{latestMessage.additionalField1}</Text>
+            </View>
+          )}
+  
+          {/* Imagen si existe */}
           {latestMessage.imageUrl && (
             <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
               <Card style={styles.card}>
@@ -292,6 +328,8 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
       )}
     </View>
   );
+  
+
 
   // ================= PIE DE LISTA (última puntuación + mensaje adicional) =================
   const ListFooter = () => {
@@ -300,12 +338,14 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
     return (
       <View style={styles.footerContainer}>
         {/* AQUÍ MOSTRAMOS EL USERNAME */}
-        <Text style={styles.footerTitle}>{t("Última Puntuación de")} {username}</Text>
+        <Text style={styles.footerTitle}>
+          {t("Última Puntuación de")} {username}
+        </Text>
 
         {lastRating ? (
           <>
             <Text style={styles.footerRatingText}>
-            {t("Tu última puntuación:")} {lastRating}/10
+              {t("Tu última puntuación:")} {lastRating}/10
             </Text>
             <StarRating
               rating={halfStarLast}
@@ -322,12 +362,14 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
             {t("Aún no tienes puntuaciones registradas")}
           </Text>
         )}
-        
-{lastRatingDate && (
-  <Text  style={[styles.footerRatingText, {marginTop: 15, fontSize:12}]}>
-    {t("Ultima puntuación:")} {formatDate(lastRatingDate)}
-  </Text>
-)}
+
+        {lastRatingDate && (
+          <Text
+            style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}
+          >
+            {t("Ultima puntuación:")} {formatDate(lastRatingDate)}
+          </Text>
+        )}
 
         {/* Mensaje personalizado de otra pantalla */}
         {customMessage && (
@@ -380,32 +422,30 @@ const [lastRatingDate, setLastRatingDate] = useState(null);
                   <Card style={styles.modalCard}>
                     <Card.Cover source={{ uri: latestMessage.imageUrl }} />
                     <Card.Title
-                      title="Detalles del Mensaje"
+                      title={t("Detalles del Mensaje")}
                       subtitle={
                         latestMessage.createdAt
-                          ? `Publicado el ${formatDate(latestMessage.createdAt)}`
+                          ? `Publicado el ${formatDate(
+                              latestMessage.createdAt
+                            )}`
                           : "Sin fecha"
                       }
                     />
                     <Card.Content>
-                      <Paragraph>Portugues:{" "} {latestMessage.text}</Paragraph>
+                      <Paragraph style={{ textAlign: "center" }}>{t("Portugues")}: {latestMessage.text}</Paragraph>
                       {latestMessage.additionalField1 && (
-                          <>
-                           
-                            <Paragraph>
-                              Japones:{" "}
-                              {latestMessage.additionalField1}
-                            </Paragraph>
-                           
-                           
-                          </>
-                        )}
+                        <>
+                          <Paragraph>
+                          {t("Japones")}: {latestMessage.additionalField1}
+                          </Paragraph>
+                        </>
+                      )}
                     </Card.Content>
                   </Card>
                 )}
                 <ButtonGradient
                   onPress={() => setIsModalVisible(false)}
-                  title="Cerrar"
+                  title={t("Cerrar")}
                   style={styles.closeButton}
                 />
               </View>
@@ -435,6 +475,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
     textAlign: "center",
+    textAlign: "center"
   },
   headerMessage: {
     fontSize: 16,

@@ -11,117 +11,132 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useTranslation } from "react-i18next";
 
-const MessageForm = React.forwardRef(({
-  message,
-  setMessage,
-  additionalField1,
-  setAdditionalField1,
-  
-  localImageUri,
-  setLocalImageUri,
-  uploading,
-  handleChooseImage,
-  handleSaveMessage,
-  editingMessage,
-  handleCancelEdit,
-}, ref) => {
-  return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      {/* Scroll para que todo sea desplazable */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+const MessageForm = React.forwardRef(
+  (
+    {
+      message,
+      setMessage,
+      additionalField1,
+      setAdditionalField1,
+
+      localImageUri,
+      setLocalImageUri,
+      uploading,
+      handleChooseImage,
+      handleSaveMessage,
+      editingMessage,
+      handleCancelEdit,
+    },
+    ref
+  ) => {
+    const { t } = useTranslation(); // Hook para traducción
+    return (
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "position"}
       >
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>
-            {editingMessage ? "Editar Mensaje:" : "Escribe un mensaje:"}
-          </Text>
-          <TextInput
-            ref={ref}
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="Mensaje..."
+         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        {/* Scroll para que todo sea desplazable */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.formContainer}>
+            <Text style={styles.label}>
+              {editingMessage ? t("Editar Mensaje:") : t("Portugués")}
+            </Text>
+            <TextInput
+              ref={ref}
+              style={[styles.input, styles.largeInput]}
+              value={message}
+              onChangeText={setMessage}
+              placeholder={t("Mensaje...")}
+              multiline
+              numberOfLines={6} // Ajusta según necesites
+              autoCorrect={false}
+              autoCapitalize="none"
+              textAlignVertical="top"
+            />
+
+            <Text style={styles.label}>{t("Japonés")}</Text>
+            <TextInput
+               style={[styles.input, styles.largeInput]}
+              value={additionalField1}
+              onChangeText={setAdditionalField1}
+            placeholder={t("Mensaje...")}
             multiline
-            numberOfLines={4}
+            numberOfLines={6} // Ajusta según necesites
             autoCorrect={false}
             autoCapitalize="none"
-          />
+            textAlignVertical="top"
+            />
 
-          <Text style={styles.label}>🇯🇵</Text>
-          <TextInput
-            style={styles.input}
-            value={additionalField1}
-            onChangeText={setAdditionalField1}
-            placeholder="Mensaje..."
-          />
+            {/* FILA DE ÍCONOS ARRIBA DE LA IMAGEN */}
+            <View style={styles.iconRow}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleChooseImage}
+              >
+                <Icon name="image" size={24} color="#000" />
+              </TouchableOpacity>
 
-         
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setLocalImageUri(null)}
+              >
+                <Icon name="trash" size={24} color="#ff4d4d" />
+              </TouchableOpacity>
 
-          {/* FILA DE ÍCONOS ARRIBA DE LA IMAGEN */}
-          <View style={styles.iconRow}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleChooseImage}
-            >
-              <Icon name="image" size={24} color="#000" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleSaveMessage}
+              >
+                <Icon name="paper-plane" size={24} color="#007bff" />
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setLocalImageUri(null)}
-            >
-              <Icon name="trash" size={24} color="#ff4d4d" />
-            </TouchableOpacity>
+            {/* PREVISUALIZACIÓN DE LA IMAGEN */}
+            {localImageUri && (
+              <View style={styles.imagePreviewContainer}>
+                <Image
+                  source={{ uri: localImageUri }}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
 
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleSaveMessage}
-            >
-              <Icon name="paper-plane" size={24} color="#007bff" />
-            </TouchableOpacity>
+            {uploading && (
+              <View style={styles.uploadingContainer}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text style={styles.uploadingText}>Subiendo imagen...</Text>
+              </View>
+            )}
+
+            {/* Botón solo visible si estás editando un mensaje (opcional) */}
+            {editingMessage && (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelEdit}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar Edición</Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.separator} />
           </View>
-
-          {/* PREVISUALIZACIÓN DE LA IMAGEN */}
-          {localImageUri && (
-            <View style={styles.imagePreviewContainer}>
-              <Image
-                source={{ uri: localImageUri }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-            </View>
-          )}
-
-          {uploading && (
-            <View style={styles.uploadingContainer}>
-              <ActivityIndicator size="large" color="#0000ff" />
-              <Text style={styles.uploadingText}>Subiendo imagen...</Text>
-            </View>
-          )}
-
-          {/* Botón solo visible si estás editando un mensaje (opcional) */}
-          {editingMessage && (
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleCancelEdit}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar Edición</Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={styles.separator} />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-});
+        </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   // Para que el ScrollView sepa cómo dimensionar el contenido.
@@ -188,6 +203,10 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#ccc",
     marginVertical: 20,
+  },
+  largeInput: {
+    minHeight: 120, // Ajusta el tamaño según lo necesites
+    textAlignVertical: "top",
   },
 });
 

@@ -44,15 +44,11 @@ export default function MessagePreviewScreen() {
   const [editValues, setEditValues] = useState({
     text: "",
     additionalField1: "",
-   
   });
 
   // Cargar mensajes de Firestore
   useEffect(() => {
-    const q = query(
-      collection(db, "messages"),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const msgs = [];
       querySnapshot.forEach((docSnap) =>
@@ -90,7 +86,7 @@ export default function MessagePreviewScreen() {
     Alert.alert(
       t("confirmDeletion"),
       t("confirmDeleteMessage", { count: messageIds.length }),
-    
+
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -128,7 +124,6 @@ export default function MessagePreviewScreen() {
     setEditValues({
       text: message.text,
       additionalField1: message.additionalField1 || "",
-     
     });
     // Puedes mantener la previsualización abierta o cerrarla. En este ejemplo, la cerramos.
     setIsPreviewModalVisible(false);
@@ -142,7 +137,7 @@ export default function MessagePreviewScreen() {
       await updateDoc(messageRef, {
         text: editValues.text,
         additionalField1: editValues.additionalField1,
-       
+
         updatedAt: serverTimestamp(),
       });
       Alert.alert("Éxito", "Mensaje actualizado correctamente.");
@@ -174,9 +169,10 @@ export default function MessagePreviewScreen() {
           <Paragraph style={styles.dateText}>
             {formatDate(item.createdAt)}
           </Paragraph>
-         {item.text && <Paragraph>{item.text}</Paragraph>}
-          {item.additionalField1 && <Paragraph>{item.additionalField1}</Paragraph>}
-         
+          {item.text && <Paragraph>{item.text}</Paragraph>}
+          {item.additionalField1 && (
+            <Paragraph>{item.additionalField1}</Paragraph>
+          )}
         </View>
 
         {/* Checkbox a la derecha */}
@@ -238,77 +234,83 @@ export default function MessagePreviewScreen() {
                   />
                 </View>
                 <Card.Content>
-                <ScrollView style={{ maxHeight: 300 }}>
-    <Text style={styles.previewText}>{t("Portugués")}: {previewMessage.text}</Text>
+                  <ScrollView style={{ maxHeight: 300 }}>
+                    <Text style={styles.previewText}>
+                      {t("Portugués")}: {previewMessage.text}
+                    </Text>
 
-    {previewMessage.additionalField1 && (
-      <Text style={styles.previewText}>{t("Japonés")}: {previewMessage.additionalField1}</Text>
-    )}
+                    {previewMessage.additionalField1 && (
+                      <Text style={styles.previewText}>
+                        {t("Japonés")}: {previewMessage.additionalField1}
+                      </Text>
+                    )}
                   </ScrollView>
                 </Card.Content>
               </Card>
             )}
-            <Button title={t("Cerrar")} onPress={() => setIsPreviewModalVisible(false)} />
+            <Button
+              title={t("Cerrar")}
+              onPress={() => setIsPreviewModalVisible(false)}
+            />
           </ScrollView>
         </View>
       </Modal>
 
       {/* Modal de Edición */}
       <Modal
-  visible={isEditModalVisible}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setIsEditModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <ScrollView contentContainerStyle={styles.modalContent}>
-      <Card style={styles.modalCard} mode="elevated">
-        <Card.Title title={t("Editar Mensaje")} />
-        <Card.Content>
-          <TextInput
-            label={t("Portugués")}
-            value={editValues.text}
-            onChangeText={(val) =>
-              setEditValues({ ...editValues, text: val })
-            }
-            style={styles.input}
-            multiline={true} // Permite varias líneas
-            numberOfLines={4} // Controla la altura inicial
-            textAlignVertical="top" // Asegura que el texto comience desde arriba
-          />
-          <TextInput
-            label={t("Japonés")}
-            value={editValues.additionalField1}
-            onChangeText={(val) =>
-              setEditValues({ ...editValues, additionalField1: val })
-            }
-            style={styles.input}
-            multiline={true}
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </Card.Content>
-        <Card.Actions style={styles.editActions}>
-          <IconButton
-            icon="content-save"
-            size={28}
-            onPress={handleSaveEdit}
-            iconColor="#4CAF50"
-            style={styles.actionButton}
-          />
-          <IconButton
-            icon="close"
-            size={28}
-            onPress={() => setIsEditModalVisible(false)}
-            iconColor="#F44336"
-            style={styles.actionButton}
-          />
-        </Card.Actions>
-      </Card>
-    </ScrollView>
-  </View>
-</Modal>
-
+        visible={isEditModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <Card style={styles.modalCard} mode="elevated">
+              <Card.Title title={t("Editar Mensaje")} />
+              <Card.Content>
+                <TextInput
+                  label={t("Portugués")}
+                  value={editValues.text}
+                  onChangeText={(val) =>
+                    setEditValues({ ...editValues, text: val })
+                  }
+                  style={styles.input}
+                  multiline={true} // Permite varias líneas
+                  numberOfLines={4} // Controla la altura inicial
+                  textAlignVertical="top" // Asegura que el texto comience desde arriba
+                />
+                <TextInput
+                  label={t("Japonés")}
+                  value={editValues.additionalField1}
+                  onChangeText={(val) =>
+                    setEditValues({ ...editValues, additionalField1: val })
+                  }
+                  style={styles.input}
+                  multiline={true}
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </Card.Content>
+              <Card.Actions style={styles.editActions}>
+                <IconButton
+                  icon="content-save"
+                  size={28}
+                  onPress={handleSaveEdit}
+                  iconColor="#4CAF50"
+                  style={styles.actionButton}
+                />
+                <IconButton
+                  icon="close"
+                  size={28}
+                  onPress={() => setIsEditModalVisible(false)}
+                  iconColor="#F44336"
+                  style={styles.actionButton}
+                />
+              </Card.Actions>
+            </Card>
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -345,12 +347,10 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: "#ddd",
-    
   },
   textContainer: {
     flex: 1,
     marginRight: 10,
-    
   },
   dateText: {
     fontSize: 12,
@@ -369,11 +369,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 5,
-    
   },
   modalContent: {
-    marginHorizontal:"auto",
-    marginVertical:"auto",
+    marginHorizontal: "auto",
+    marginVertical: "auto",
     backgroundColor: "#fff",
     borderRadius: 10,
     padding: 10,
@@ -402,7 +401,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 10,
   },
-  
+
   input: {
     marginVertical: 10,
     backgroundColor: "white",
@@ -414,13 +413,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
-    marginLeft:-30,
+    marginLeft: -30,
     marginTop: 20,
   },
   actionButton: {
     marginHorizontal: 45, // Ajusta este valor según el espacio que desees
-    marginVertical:10,
-    
+    marginVertical: 10,
   },
   previewText: {
     fontSize: 16,
