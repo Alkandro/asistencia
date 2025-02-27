@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -19,30 +19,101 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import ButtonGradient from "./ButtonGradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTranslation } from "react-i18next";
 
-const RegisterScreen = ({ navigation }) => {
-  const { t } = useTranslation(); // Hook para traducción
+// ------------- Función auxiliar para calcular edad -------------
+const calcularEdad = (fecha) => {
+  const hoy = new Date();
+  const nacimiento = new Date(fecha);
+  let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edadCalculada--;
+  }
+  return edadCalculada.toString();
+};
 
-  // Estados para los campos de entrada
+// ------------- Función para verificar cumpleaños -------------
+/**
+ * - Verifica si hoy es el cumpleaños (día y mes coinciden).
+ * - Muestra alerta "Feliz cumpleaños" una sola vez al día.
+ * - Actualiza la edad en Firestore (opcional).
+ */
+const checkBirthdayAndUpdateAge = async (uid, fechaNac) => {
+  if (!uid || !fechaNac) return;
+
+  const hoy = new Date();
+  const nacimiento = new Date(fechaNac);
+
+  const diaHoy = hoy.getDate();
+  const mesHoy = hoy.getMonth();
+  const diaNac = nacimiento.getDate();
+  const mesNac = nacimiento.getMonth();
+
+  // 1. Calcula edad nueva
+  const nuevaEdad = calcularEdad(fechaNac);
+
+  // 2. Actualiza en Firestore la nueva edad (opcional)
+  try {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, { edad: nuevaEdad });
+  } catch (error) {
+    console.log("Error actualizando edad:", error);
+  }
+
+  // 3. Verificar si hoy es el cumpleaños
+  if (diaHoy === diaNac && mesHoy === mesNac) {
+    // Para evitar mostrar la alerta varias veces el mismo día:
+    const hoyString = hoy.toDateString(); // por ej: "Tue Feb 28 2025"
+    const ultimaVezMostrado = await AsyncStorage.getItem("cumpleaniosMostrado");
+
+    if (ultimaVezMostrado !== hoyString) {
+      Alert.alert( 
+        t("¡Feliz cumpleaños!"), 
+      t("Que tengas un gran día."),
+      t("TASHIRO JIU JITSU"));
+      // Guardamos la marca de que ya se mostró hoy
+      await AsyncStorage.setItem("cumpleaniosMostrado", hoyString);
+    }
+  }
+};
+
+const RegisterScreen = ({ navigation }) => {
+  const { t, i18n } = useTranslation(); // Hook para traducción
+
+  // Estados de formulario
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [name, setName] = useState(""); // username
+
   const [cinturon, setCinturon] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [provincia, setProvincia] = useState("");
   const [peso, setPeso] = useState("");
   const [altura, setAltura] = useState("");
-  const [edad, setEdad] = useState("");
-  const [genero, setGenero] = useState("");
   const [phone, setPhone] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [apellido, setApellido] = useState("");
+  const [genero, setGenero] = useState("");
+
+  // Fecha de nacimiento: guardamos tanto Date como string para mostrar en UI
+  const [fechaNacimiento, setFechaNacimiento] = useState(null);
+  const [fechaNacimientoTexto, setFechaNacimientoTexto] = useState("");
+
+  // Edad calculada
+  const [edad, setEdad] = useState("");
+
+  // Control del DateTimePicker
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Imagen de perfil
   const [imageUri, setImageUri] = useState(null);
-  const [confirmPassword, setConfirmPassword] = useState("");
   const defaultProfileImage = require("./assets/fotos/tashiro1.png");
 
   // Mapeo de imágenes de cinturones
@@ -54,9 +125,9 @@ const RegisterScreen = ({ navigation }) => {
     black: require("./assets/fotos/blackbelt.png"),
   };
   const getBeltImage = (belt) =>
-    beltImages[belt.toLowerCase()] || beltImages["white"];
+    beltImages[belt?.toLowerCase()] || beltImages.white;
 
-  // Función para seleccionar una imagen
+  // ---------------- SELECCIONAR IMAGEN ----------------
   const selectImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -67,18 +138,17 @@ const RegisterScreen = ({ navigation }) => {
       );
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
     });
 
     if (!result.canceled && result.assets && result.assets[0]) {
-      setImageUri(result.assets[0].uri); // Actualiza el estado global de la imagen
+      setImageUri(result.assets[0].uri);
     }
   };
 
-  // Función de registro
+  // ---------------- REGISTRAR USUARIO ----------------
   const registerUser = async () => {
     if (password !== confirmPassword) {
       Alert.alert("Error", "Las contraseñas no coinciden.");
@@ -92,8 +162,8 @@ const RegisterScreen = ({ navigation }) => {
       );
       const user = userCredential.user;
 
-      const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, {
+      // Preparamos el objeto para guardar en Firestore
+      const userDoc = {
         username: name,
         email: user.email,
         phone: phone,
@@ -102,21 +172,31 @@ const RegisterScreen = ({ navigation }) => {
         provincia: provincia,
         peso: peso,
         altura: altura,
-        edad: edad,
+        edad: edad, // la edad calculada en local
         genero: genero,
         nombre: nombre,
         apellido: apellido,
-        imageUri: imageUri, // Guarda la URI de la imagen en Firestore
+        imageUri: imageUri,
+        // Si quieres guardar la fecha de nacimiento también:
+        fechaNacimiento: fechaNacimiento ? fechaNacimiento.toISOString() : null,
         role: email === "tashas.natura@hotmail.com" ? "admin" : "user",
-      });
+      };
 
-      // Guarda la URI de la imagen en AsyncStorage para persistencia
+      // Guardamos en Firestore
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, userDoc);
+
+      // Si hay imagenUri, la guardamos en AsyncStorage (solo ejemplo de persistencia local)
       if (imageUri) {
         await AsyncStorage.setItem("userImageUri", imageUri);
       } else {
-        await AsyncStorage.removeItem("userImageUri"); // Si es null, eliminar la clave
+        await AsyncStorage.removeItem("userImageUri");
       }
-      
+
+      // ------------ Verificamos si es su cumpleaños y actualizamos edad ------------
+      if (fechaNacimiento) {
+        await checkBirthdayAndUpdateAge(user.uid, fechaNacimiento);
+      }
 
       Alert.alert("Registro exitoso", "Usuario creado");
     } catch (error) {
@@ -127,8 +207,6 @@ const RegisterScreen = ({ navigation }) => {
             email,
             password
           );
-          const user = userCredential.user;
-
           Alert.alert(
             "Inicio de sesión",
             "Has iniciado sesión con tu cuenta existente"
@@ -142,6 +220,42 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
+  // ---------------- ACTUALIZAR FECHA Y EDAD ----------------
+  const seleccionarFecha = (event, selectedDate) => {
+    if (Platform.OS === "android") {
+      if (event.type === "set" && selectedDate) {
+        actualizarFecha(selectedDate);
+      }
+      setShowDatePicker(false);
+    } else {
+      // iOS
+      if (selectedDate) {
+        actualizarFecha(selectedDate);
+      }
+      // En iOS solemos tener un botón "Confirmar" para cerrar
+    }
+  };
+
+  const actualizarFecha = (date) => {
+    setFechaNacimiento(date);
+    const nuevaEdad = calcularEdad(date);
+    setEdad(nuevaEdad);
+
+    // Formateo de la fecha para mostrar en el TextInput
+    const formato = date.toLocaleDateString(i18n.language, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    setFechaNacimientoTexto(formato);
+  };
+
+  // Cerrar el picker en iOS
+  const confirmarFechaIOS = () => {
+    setShowDatePicker(false);
+  };
+
+  // ---------------- RENDER ----------------
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -149,17 +263,22 @@ const RegisterScreen = ({ navigation }) => {
     >
       <SafeAreaView style={styles.container}>
         <ScrollView style={styles.scrollContainer}>
-          {/* Mostrar la imagen seleccionada o la por defecto */}
+
+          {/* BOTÓN PARA SELECCIONAR IMAGEN */}
           <TouchableOpacity style={styles.imageButton} onPress={selectImage}>
-            <Text style={styles.imageButtonText}>{t("Seleccionar Imagen")}</Text>
+            <Text style={styles.imageButtonText}>
+              {t("Seleccionar Imagen")}
+            </Text>
           </TouchableOpacity>
 
+          {/* IMAGEN DE PERFIL */}
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.profileImage} />
           ) : (
             <Image source={defaultProfileImage} style={styles.profileImage} />
           )}
 
+          {/* CAMPOS DE FORMULARIO */}
           <Text style={styles.text}>{t("Nombre")}</Text>
           <TextInput
             style={styles.textIput}
@@ -168,6 +287,7 @@ const RegisterScreen = ({ navigation }) => {
             value={nombre}
             onChangeText={setNombre}
           />
+
           <Text style={styles.text}>{t("Apellido")}</Text>
           <TextInput
             style={styles.textIput}
@@ -176,6 +296,7 @@ const RegisterScreen = ({ navigation }) => {
             value={apellido}
             onChangeText={setApellido}
           />
+
           <Text style={styles.text}>{t("Usuario")}</Text>
           <TextInput
             style={styles.textIput}
@@ -184,6 +305,7 @@ const RegisterScreen = ({ navigation }) => {
             value={name}
             onChangeText={setName}
           />
+
           <Text style={styles.text}>{t("Correo electonico")}</Text>
           <TextInput
             style={styles.textIput}
@@ -194,6 +316,59 @@ const RegisterScreen = ({ navigation }) => {
             onChangeText={setEmail}
             autoCapitalize="none"
           />
+
+          <Text style={styles.text}>{t("Fecha de Nacimiento")}</Text>
+          {/* TextInput para mostrar la fecha + overlay para abrir el picker */}
+          <View style={{ marginBottom: 10 }}>
+            <TextInput
+              style={styles.textIput}
+              placeholder="Selecciona tu fecha"
+              placeholderTextColor="gray"
+              value={fechaNacimientoTexto}
+              editable={false}
+            />
+            <TouchableOpacity
+              style={styles.datePickerOverlay}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={styles.datePickerOverlayText}>Cambiar fecha</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Picker de la fecha */}
+          {showDatePicker && (
+            <View style={styles.datePickerContainer}>
+              <DateTimePicker
+                value={fechaNacimiento || new Date()}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                maximumDate={new Date()}
+                onChange={seleccionarFecha}
+                style={{ flex: 1 }}
+                // En iOS sí se respeta "locale". En Android usa el idioma del SO.
+                locale={Platform.OS === "ios" ? i18n.language : undefined}
+              />
+              {/* Botón Confirmar en iOS */}
+              {Platform.OS === "ios" && (
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={confirmarFechaIOS}
+                >
+                  <Text style={styles.confirmText}>Confirmar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <Text style={styles.text}>{t("Edad")}</Text>
+          <TextInput
+            style={styles.textIput}
+            value={edad}
+            placeholder="0"
+            placeholderTextColor="gray"
+            editable={false}
+          />
+
           <Text style={styles.text}>{t("Teléfono")}</Text>
           <TextInput
             style={styles.textIput}
@@ -212,6 +387,7 @@ const RegisterScreen = ({ navigation }) => {
             value={ciudad}
             onChangeText={setCiudad}
           />
+
           <Text style={styles.text}>{t("Provincia")}</Text>
           <TextInput
             style={styles.textIput}
@@ -220,6 +396,7 @@ const RegisterScreen = ({ navigation }) => {
             value={provincia}
             onChangeText={setProvincia}
           />
+
           <Text style={styles.text}>{t("Peso")}</Text>
           <TextInput
             style={styles.textIput}
@@ -229,6 +406,7 @@ const RegisterScreen = ({ navigation }) => {
             value={peso}
             onChangeText={setPeso}
           />
+
           <Text style={styles.text}>{t("Altura")}</Text>
           <TextInput
             style={styles.textIput}
@@ -238,35 +416,27 @@ const RegisterScreen = ({ navigation }) => {
             value={altura}
             onChangeText={setAltura}
           />
-          <Text style={styles.text}>{t("Edad")}</Text>
-          <TextInput
-            style={styles.textIput}
-            placeholder={t("Edad")}
-            placeholderTextColor="gray"
-            keyboardType="numeric"
-            value={edad}
-            onChangeText={setEdad}
-          />
+
           <Text style={styles.text}>{t("Género")}</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={genero}
               onValueChange={(value) => setGenero(value)}
               mode={Platform.OS === "android" ? "dropdown" : undefined}
-              style={styles.picker1} // O style={styles.picker} si prefieres
+              style={styles.picker1}
             >
               <Picker.Item label={t("Masculino")} value="Masculino" />
               <Picker.Item label={t("Femenino")} value="Femenino" />
             </Picker>
           </View>
-          {/* Dropdown de Cinturón */}
+
           <Text style={styles.text}>{t("Cinturón")}</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={cinturon}
               onValueChange={(value) => setCinturon(value)}
               mode={Platform.OS === "android" ? "dropdown" : undefined}
-              style={styles.picker} // Asegúrate de tener tus estilos
+              style={styles.picker}
             >
               <Picker.Item label={t("Blanco")} value="white" />
               <Picker.Item label={t("Azul")} value="blue" />
@@ -275,11 +445,10 @@ const RegisterScreen = ({ navigation }) => {
               <Picker.Item label={t("Negro")} value="black" />
             </Picker>
           </View>
-
-          {/* Imagen del cinturón */}
           {cinturon ? (
             <Image source={getBeltImage(cinturon)} style={styles.beltImage} />
           ) : null}
+
           <Text style={styles.text}>{t("Contraseña")}</Text>
           <TextInput
             style={styles.textIput}
@@ -290,16 +459,20 @@ const RegisterScreen = ({ navigation }) => {
             secureTextEntry
             onChangeText={setPassword}
           />
+
           <Text style={styles.text}>{t("Confirmar Contraseña")}</Text>
           <TextInput
             style={styles.textIput}
             placeholder={t("Confirmar Contraseña")}
             placeholderTextColor="gray"
+            keyboardType="numeric"
             secureTextEntry
             value={confirmPassword}
             onChangeText={setConfirmPassword}
           />
         </ScrollView>
+
+        {/* BOTÓN DE REGISTRO */}
         <View style={styles.buttonContainer}>
           <ButtonGradient
             title={t("Registrarse")}
@@ -312,6 +485,7 @@ const RegisterScreen = ({ navigation }) => {
   );
 };
 
+// ---------------- ESTILOS ----------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -329,27 +503,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
     borderRadius: 30,
     backgroundColor: "#fff",
-  },
-  buttonContainer: {
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    backgroundColor: "transparent",
-    padding: 10,
-    borderTopWidth: 0,
+    marginBottom: 10,
   },
   text: {
     fontSize: 15,
     fontStyle: "italic",
     fontWeight: "bold",
     marginBottom: 1,
-  },
-  button: {
-    marginHorizontal: "auto",
-    borderRadius: 25,
-    padding: 30,
-    alignItems: "center",
-    justifyContent: "center",
   },
   imageButton: {
     backgroundColor: "#ccc",
@@ -375,18 +535,12 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginTop: 5,
     backgroundColor: "#fff",
+    marginBottom: 10,
   },
   picker: {
     width: "100%",
     height: Platform.OS === "ios" ? 200 : 60,
     color: "#000",
-  },
-  beltImage: {
-    width: 90,
-    height: 55,
-    resizeMode: "contain",
-    alignSelf: "center",
-    marginVertical: 10,
   },
   picker1: {
     width: "100%",
@@ -401,6 +555,61 @@ const styles = StyleSheet.create({
         height: 60,
       },
     }),
+  },
+  beltImage: {
+    width: 90,
+    height: 55,
+    resizeMode: "contain",
+    alignSelf: "center",
+    marginVertical: 10,
+  },
+  buttonContainer: {
+    alignItems: "center",
+    backgroundColor: "transparent",
+    padding: 10,
+    borderTopWidth: 0,
+  },
+  button: {
+    marginHorizontal: "auto",
+    borderRadius: 25,
+    padding: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  datePickerContainer: {
+    ...Platform.select({
+      ios: {
+        backgroundColor: "#fff",
+        marginVertical: 10,
+        borderRadius: 10,
+        padding: 10,
+      },
+    }),
+  },
+  confirmButton: {
+    backgroundColor: "#0080FF",
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  confirmText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  datePickerOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  datePickerOverlayText: {
+    width: "100%",
+    height: "100%",
+    textAlign: "right",
+    textAlignVertical: "center",
+    color: "transparent",
   },
 });
 

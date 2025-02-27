@@ -68,6 +68,8 @@
   "Editar Mensaje": "Edit Message",
   "Eliminar Seleccionados":"Eliminar Seleccionados",
   "confirmDeletion": "Confirm Deletion",
-  "confirmDeleteMessage": "Are you sure you want to delete {{count}} message(s)?"
+  "confirmDeleteMessage": "Are you sure you want to delete {{count}} message(s)?",
+  "¡Feliz cumpleaños!":"Happy birthday!",
+  "Que tengas un gran día.":"Have a great day."
 }
 

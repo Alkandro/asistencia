@@ -18,8 +18,7 @@ import ButtonGradient from "./ButtonGradient";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useTranslation } from 'react-i18next';
-
+import { useTranslation } from "react-i18next";
 
 // Mapeo de imágenes de cinturones
 const beltImages = {
@@ -29,12 +28,11 @@ const beltImages = {
   brown: require("./assets/fotos/brownbelt.png"),
   black: require("./assets/fotos/blackbelt.png"),
 };
-
 const getBeltImage = (belt) =>
   beltImages[belt?.toLowerCase()] || beltImages["white"];
 
 const UserProfileScreen = () => {
-  const { t } = useTranslation();  // Hook para traducción
+  const { t } = useTranslation(); // Hook para traducción
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -80,6 +78,7 @@ const UserProfileScreen = () => {
     try {
       const user = auth.currentUser;
       if (user) {
+        // Añade aqui los campos que quieras actualizar
         const updatedData = { ...newData, cinturon: cinturon };
         await updateDoc(doc(db, "users", user.uid), updatedData);
         setUserData(updatedData);
@@ -92,6 +91,22 @@ const UserProfileScreen = () => {
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
+  }
+
+  // -----------------------------------
+  //   FORMATEAR FECHA DE NACIMIENTO
+  // -----------------------------------
+  let birthDateString = "";
+  if (userData?.fechaNacimiento) {
+    // Convierto el string ISO en objeto Date:
+    const birthDate = new Date(userData.fechaNacimiento);
+    // Lo formateo según el idioma del usuario
+    birthDateString = birthDate.toLocaleDateString("es-ES", {
+      // O puedes usar t("languageCode") o i18n.language
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
   }
 
   return (
@@ -179,6 +194,23 @@ const UserProfileScreen = () => {
                 />
                 <Text style={styles.text}>{userData.provincia}</Text>
               </View>
+
+              {/* FECHA DE NACIMIENTO */}
+              <View style={styles.infoRow}>
+                <MaterialIcons
+                  name="cake"
+                  size={20}
+                  color="#000"
+                  style={styles.icon}
+                />
+                {birthDateString ? (
+                  <Text style={styles.text}>{birthDateString}</Text>
+                ) : (
+                  <Text style={styles.text}>--</Text>
+                )}
+              </View>
+
+              {/* EDAD */}
               <View style={styles.infoRow}>
                 <MaterialIcons
                   name="schedule"
@@ -186,8 +218,11 @@ const UserProfileScreen = () => {
                   color="#000"
                   style={styles.icon}
                 />
-                <Text style={styles.text}>{userData.edad} años</Text>
+                <Text style={styles.text}>
+                  {userData.edad ? `${userData.edad} años` : "--"}
+                </Text>
               </View>
+
               <View style={styles.infoRow}>
                 <MaterialIcons
                   name="scale"
@@ -233,9 +268,7 @@ const UserProfileScreen = () => {
               </View>
             </>
           ) : (
-            <Text style={styles.text1}>
-              No se encontraron datos del usuario
-            </Text>
+            <Text style={styles.text1}>No se encontraron datos del usuario</Text>
           )}
         </View>
       </View>
@@ -244,9 +277,6 @@ const UserProfileScreen = () => {
       <Modal visible={isEditing} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>{t("Editar Perfil")}</Text>
-          {/* Aquí sí usamos ScrollView o KeyboardAwareScrollView 
-              para que el contenido pueda desplazarse al editar 
-          */}
           <KeyboardAwareScrollView
             keyboardShouldPersistTaps="handled"
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -267,9 +297,7 @@ const UserProfileScreen = () => {
             <TextInput
               style={styles.TextInput}
               value={`${newData.apellido}`}
-              onChangeText={(text) =>
-                setNewData({ ...newData, apellido: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, apellido: text })}
               placeholder="Apellido"
               placeholderTextColor="red"
             />
@@ -301,9 +329,11 @@ const UserProfileScreen = () => {
               </Picker>
             </View>
 
-            {/* Vista previa del cinturón */}
             {cinturon ? (
-              <Image source={getBeltImage(cinturon)} style={styles.beltImage} />
+              <Image
+                source={getBeltImage(cinturon)}
+                style={styles.beltImage}
+              />
             ) : null}
 
             <Text style={styles.text1}>{t("Teléfono")}</Text>
@@ -335,14 +365,14 @@ const UserProfileScreen = () => {
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>{t("Edad")}</Text>
+            {/* <Text style={styles.text1}>{t("Edad")}</Text>
             <TextInput
               style={styles.TextInput}
               value={`${newData.edad}`}
               onChangeText={(text) => setNewData({ ...newData, edad: text })}
               placeholder="Edad"
               placeholderTextColor="red"
-            />
+            /> */}
 
             <Text style={styles.text1}>{t("Peso")}</Text>
             <TextInput
@@ -370,6 +400,7 @@ const UserProfileScreen = () => {
               placeholder="Email"
               placeholderTextColor="red"
             />
+
             <Text style={styles.text1}>{t("Género")}</Text>
             <View style={styles.pickerContainer}>
               <Picker
@@ -413,11 +444,7 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: "#fff",
-    // Evita que se corte en el fondo en Android por el bottom tab
-    paddingBottom: Platform.OS === "android" ? 70 : 0,
-    // En iOS, el SafeAreaView de iOS ya aplica un paddingTop automático,
-    // pero si quieres ajustar más, puedes usar:
-    // paddingTop: Platform.OS === 'ios' ? 10 : 0,
+    paddingBottom: Platform.OS === "android" ? 60 : 0,
   },
   container: {
     flex: 1,
@@ -426,8 +453,7 @@ const styles = StyleSheet.create({
   fixedHeader: {
     backgroundColor: "#fff",
     paddingVertical: 10,
-    // Ajusta padding si lo necesitas:
-    paddingTop: Platform.OS === "ios" ? 40 : 20,
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -443,15 +469,12 @@ const styles = StyleSheet.create({
     width: 230,
   },
   profileDataContainer: {
-    // Contenedor para los datos del usuario
-    // Se muestra fijo (sin scroll)
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    //para el espacio entre datos en el perfil
     marginVertical: Platform.OS === "ios" ? 8 : 5,
   },
   icon: {
@@ -480,7 +503,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#DCE6E5",
     alignItems: "center",
     padding: 16,
-    // Agregar un paddingTop extra solo para iOS:
     paddingTop: Platform.OS === "ios" ? 60 : 10,
   },
   modalTitle: {
@@ -502,8 +524,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: "#000",
     alignSelf: "flex-start",
-    // Para separar del borde
-    // ajusta según necesites
   },
   TextInput: {
     padding: 10,
@@ -533,11 +553,10 @@ const styles = StyleSheet.create({
       ios: {
         height: 140,
         marginTop: -40,
-        marginBottom:40,
+        marginBottom: 40,
       },
       android: {
         height: 60,
-        
       },
     }),
   },

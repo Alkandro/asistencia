@@ -74,6 +74,8 @@
   "Editar Mensaje": "メッセージを編集",
   "Eliminar Seleccionados":"選択したものを削除",
   "confirmDeletion": "削除を確認",
-  "confirmDeleteMessage": "本当に{{count}}件のメッセージを削除しますか？"
+  "confirmDeleteMessage": "本当に{{count}}件のメッセージを削除しますか？",
+  "¡Feliz cumpleaños!":"お誕生日おめでとうございます！",
+  "Que tengas un gran día.":"素敵な一日をお過ごしください。"
 }
 

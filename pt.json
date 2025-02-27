@@ -74,6 +74,8 @@
   "Editar Mensaje": "Editar Mensagem",
   "Eliminar Seleccionados":"Excluir Selecionados",
   "confirmDeletion": "Confirmar Exclusão",
-  "confirmDeleteMessage": "Tem certeza que deseja excluir {{count}} mensagem(ns)?"
+  "confirmDeleteMessage": "Tem certeza que deseja excluir {{count}} mensagem(ns)?",
+  "¡Feliz cumpleaños!":"Feliz aniversário!",
+  "Que tengas un gran día.":"Tenha um ótimo dia."
 }
 

@@ -262,37 +262,6 @@ const CheckInScreen = () => {
     return dayjs(date).format("DD/MM/YYYY HH:mm");
   };
 
-  // ================= RENDERIZAR ENCABEZADO (último mensaje) =================
-  // const ListHeader = () => (
-  //   <View style={styles.headerContainer}>
-  //     {latestMessage ? (
-  //       <>
-  //         <Text style={styles.headerTitle}>{t("Mensaje")}</Text>
-
-  //         {/* Tres campos de idioma */}
-  //         {latestMessage.additionalField1 && (
-  //           <View style={{ marginBottom: 8 }}>
-  //             <Text style={styles.headerMessage}>🇧🇷{latestMessage.text}</Text>
-  //             <Text style={styles.text}>
-  //               🇯🇵{latestMessage.additionalField1}
-  //             </Text>
-  //           </View>
-  //         )}
-
-  //         {/* Imagen */}
-  //         {latestMessage.imageUrl && (
-  //           <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
-  //             <Card style={styles.card}>
-  //               <Card.Cover source={{ uri: latestMessage.imageUrl }} />
-  //             </Card>
-  //           </TouchableWithoutFeedback>
-  //         )}
-  //       </>
-  //     ) : (
-  //       <Text style={styles.headerMessage}>{t("No hay mensajes aún")}</Text>
-  //     )}
-  //   </View>
-  // );
   const ListHeader = () => (
     <View style={styles.headerContainer}>
       {latestMessage ? (
