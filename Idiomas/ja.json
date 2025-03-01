@@ -76,6 +76,8 @@
   "confirmDeletion": "削除を確認",
   "confirmDeleteMessage": "本当に{{count}}件のメッセージを削除しますか？",
   "¡Feliz cumpleaños!":"お誕生日おめでとうございます！",
-  "Que tengas un gran día.":"素敵な一日をお過ごしください。"
+  "Que tengas un gran día.":"素敵な一日をお過ごしください。",
+  "Fecha de Nacimiento":"生年月日",
+  "Selecciona tu fecha":"日付を選択してください"
 }
 

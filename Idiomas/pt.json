@@ -76,6 +76,8 @@
   "confirmDeletion": "Confirmar Exclusão",
   "confirmDeleteMessage": "Tem certeza que deseja excluir {{count}} mensagem(ns)?",
   "¡Feliz cumpleaños!":"Feliz aniversário!",
-  "Que tengas un gran día.":"Tenha um ótimo dia."
+  "Que tengas un gran día.":"Tenha um ótimo dia.",
+  "Fecha de Nacimiento":"Data de Nascimento",
+  "Selecciona tu fecha":"Selecione sua data"
 }
 

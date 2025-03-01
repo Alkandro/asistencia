@@ -76,5 +76,7 @@
   "confirmDeletion": "Confirmar Eliminación",
   "confirmDeleteMessage": "¿Estás seguro que deseas eliminar {{count}} mensaje(s)?",
   "¡Feliz cumpleaños!":"¡Feliz cumpleaños!",
-  "Que tengas un gran día.":"Que tengas un gran día."
+  "Que tengas un gran día.":"Que tengas un gran día.",
+  "Fecha de Nacimiento":"Fecha de Nacimiento",
+  "Selecciona tu fecha":"Selecciona tu fecha"
 }

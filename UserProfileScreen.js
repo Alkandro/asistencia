@@ -364,16 +364,6 @@ const UserProfileScreen = () => {
               placeholder="Provincia"
               placeholderTextColor="red"
             />
-
-            {/* <Text style={styles.text1}>{t("Edad")}</Text>
-            <TextInput
-              style={styles.TextInput}
-              value={`${newData.edad}`}
-              onChangeText={(text) => setNewData({ ...newData, edad: text })}
-              placeholder="Edad"
-              placeholderTextColor="red"
-            /> */}
-
             <Text style={styles.text1}>{t("Peso")}</Text>
             <TextInput
               style={styles.TextInput}

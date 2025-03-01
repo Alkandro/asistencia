@@ -322,7 +322,7 @@ const RegisterScreen = ({ navigation }) => {
           <View style={{ marginBottom: 10 }}>
             <TextInput
               style={styles.textIput}
-              placeholder="Selecciona tu fecha"
+              placeholder={t("Selecciona tu fecha")}
               placeholderTextColor="gray"
               value={fechaNacimientoTexto}
               editable={false}
