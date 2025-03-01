@@ -23,24 +23,22 @@ import { auth, db } from "./firebase";
 import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import { SafeAreaView } from "react-native";
-import { useTranslation } from 'react-i18next';
-
+import { useTranslation } from "react-i18next";
 
 const AttendanceHistoryScreen = () => {
-  const { t } = useTranslation();  // Hook para traducción
+  const { t } = useTranslation();
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [monthlyCheckInCount, setMonthlyCheckInCount] = useState({});
 
-  // Estados para los dropdowns
+  // Filtros
   const [selectedYear, setSelectedYear] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
 
-  // Valor animado para el parpadeo
+  // Animación
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // Función para obtener el historial de asistencia y contar los check-ins por mes
   const fetchAttendanceHistory = async () => {
     try {
       setLoading(true);
@@ -80,25 +78,24 @@ const AttendanceHistoryScreen = () => {
     }
   };
 
-  // Función para refrescar los datos
+  // Pull to refresh
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchAttendanceHistory();
     setRefreshing(false);
   };
 
-  // Ejecuta cada vez que la pantalla gana el foco
   useFocusEffect(
     React.useCallback(() => {
       fetchAttendanceHistory();
     }, [])
   );
 
-  // Obtiene el conteo de check-ins para el mes actual
+  // Conteo del mes actual
   const currentMonthKey = dayjs().format("YYYY-MM");
   const currentMonthCheckIns = monthlyCheckInCount[currentMonthKey] || 0;
 
-  // Efecto de parpadeo
+  // Animación de parpadeo
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -116,7 +113,7 @@ const AttendanceHistoryScreen = () => {
     ).start();
   }, [fadeAnim]);
 
-  // 1) AÑOS únicos
+  // Años únicos
   const uniqueYears = Array.from(
     new Set(
       attendanceHistory.map((item) =>
@@ -125,16 +122,15 @@ const AttendanceHistoryScreen = () => {
     )
   ).sort();
 
-  // 2) MESES únicos para el año seleccionado
+  // Meses únicos para el año seleccionado
   const uniqueMonthsForSelectedYear = selectedYear
     ? Array.from(
         new Set(
           attendanceHistory
             .filter(
               (item) =>
-                dayjs(new Date(item.timestamp?.seconds * 1000)).format(
-                  "YYYY"
-                ) === selectedYear
+                dayjs(new Date(item.timestamp?.seconds * 1000)).format("YYYY") ===
+                selectedYear
             )
             .map((item) =>
               dayjs(new Date(item.timestamp?.seconds * 1000)).format("MM")
@@ -143,7 +139,7 @@ const AttendanceHistoryScreen = () => {
       ).sort()
     : [];
 
-  // 3) Filtramos la lista final según año y mes seleccionados
+  // Filtro final
   const filteredAttendanceHistory = attendanceHistory.filter((item) => {
     const itemDate = new Date(item.timestamp?.seconds * 1000);
     const itemYear = dayjs(itemDate).format("YYYY");
@@ -158,7 +154,7 @@ const AttendanceHistoryScreen = () => {
     return true;
   });
 
-  // Función para borrar un item
+  // Borrar un item
   const handleDelete = async (id) => {
     try {
       await deleteDoc(doc(db, "attendanceHistory", id));
@@ -168,13 +164,12 @@ const AttendanceHistoryScreen = () => {
     }
   };
 
-  // Render del Swipeable
   const renderItem = ({ item }) => {
     const swipeRightActions = () => {
       return (
         <View style={styles.deleteContainer}>
           <Text style={styles.deleteText} onPress={() => handleDelete(item.id)}>
-            Borrar
+            {t("Borrar")}
           </Text>
         </View>
       );
@@ -183,12 +178,14 @@ const AttendanceHistoryScreen = () => {
     return (
       <Swipeable renderRightActions={swipeRightActions}>
         <View style={styles.itemContainer}>
-        <Text>
-  <Text style={{ fontWeight: 'bold', color: 'black' }}>{t(" User:")}</Text>
-  <Text style={{ color: 'blue' }}> {item.username}</Text>
-</Text>
           <Text>
-           {t(" Date:")}{" "}
+            <Text style={{ fontWeight: "bold", color: "black" }}>
+              {t("User:")}
+            </Text>
+            <Text style={{ color: "blue" }}> {item.username}</Text>
+          </Text>
+          <Text>
+            {t("Date:")}{" "}
             {new Date(item.timestamp?.seconds * 1000).toLocaleDateString()}
           </Text>
         </View>
@@ -199,7 +196,6 @@ const AttendanceHistoryScreen = () => {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.container}>
-        {/* Picker Año */}
         <Text style={styles.label}>{t("Selecciona el año:")}</Text>
         <Picker
           selectedValue={selectedYear}
@@ -207,9 +203,7 @@ const AttendanceHistoryScreen = () => {
             setSelectedYear(itemValue);
             setSelectedMonth("");
           }}
-          style={
-            Platform.OS === "ios" ? styles.pickerIOS : styles.pickerDefault
-          }
+          style={Platform.OS === "ios" ? styles.pickerIOS : styles.pickerDefault}
           itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : null}
         >
           <Picker.Item label={t("Todos")} value="" />
@@ -218,7 +212,6 @@ const AttendanceHistoryScreen = () => {
           ))}
         </Picker>
 
-        {/* Picker Mes (depende del año seleccionado) */}
         {selectedYear ? (
           <>
             <Text style={styles.label}>{t("Selecciona el mes:")}</Text>
@@ -256,18 +249,20 @@ const AttendanceHistoryScreen = () => {
           <Animated.Text
             style={[
               styles.footerText,
-              { opacity: fadeAnim }, // Animación de opacidad
+              { opacity: fadeAnim }, // parpadeo
             ]}
           >
-            Congratulations! You have worked out
-            <Text style={styles.texto}> {currentMonthCheckIns} </Text>
-            times this month.
+            {t("Congratulations! You have worked out")}{" "}
+            <Text style={styles.texto}>{currentMonthCheckIns}</Text>{" "}
+            {t("times this month.")}
           </Animated.Text>
         </View>
       </View>
     </SafeAreaView>
   );
 };
+
+export default AttendanceHistoryScreen;
 
 const styles = StyleSheet.create({
   safeContainer: {
@@ -279,12 +274,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   pickerIOS: {
-    // Ajusta la altura para que sea más compacto
     height: 80,
     marginVertical: 5,
   },
   pickerItemIOS: {
-    // Ajusta el alto de cada fila de ítem y su tamaño de fuente
     height: 80,
     fontSize: 16,
   },
@@ -300,7 +293,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 0.8,
     backgroundColor: "#fff",
-    fontStyle: "italic",
   },
   deleteContainer: {
     backgroundColor: "red",
@@ -316,10 +308,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     backgroundColor: "#fff",
-
     alignItems: "center",
     borderTopWidth: 3,
     borderTopColor: "#ccc",
+    paddingTop: 10,
+    marginTop: 10,
   },
   footerText: {
     fontSize: 15,
@@ -329,5 +322,3 @@ const styles = StyleSheet.create({
     color: "#3D3BF3",
   },
 });
-
-export default AttendanceHistoryScreen;

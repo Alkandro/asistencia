@@ -9,7 +9,6 @@ import {
   Modal,
   SafeAreaView,
   Platform,
-  ScrollView,
 } from "react-native";
 import { auth, db } from "./firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -28,18 +27,18 @@ const beltImages = {
   brown: require("./assets/fotos/brownbelt.png"),
   black: require("./assets/fotos/blackbelt.png"),
 };
+
 const getBeltImage = (belt) =>
   beltImages[belt?.toLowerCase()] || beltImages["white"];
 
 const UserProfileScreen = () => {
-  const { t } = useTranslation(); // Hook para traducción
+  const { t } = useTranslation();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [newData, setNewData] = useState({});
+  const [newCinturon, setNewCinturon] = useState("");
   const [imageUri, setImageUri] = useState(null);
-  const [cinturon, setNewCinturon] = useState("");
-  const [genero, setNewGenero] = useState("");
 
   useEffect(() => {
     const loadImage = async () => {
@@ -52,6 +51,7 @@ const UserProfileScreen = () => {
     fetchUserData();
   }, []);
 
+  // Obtener datos de Firestore
   const fetchUserData = async () => {
     try {
       const user = auth.currentUser;
@@ -68,22 +68,41 @@ const UserProfileScreen = () => {
     }
   };
 
+  // Para abrir el modal de edición
   const handleEdit = () => {
     setNewData(userData);
     setNewCinturon(userData.cinturon);
     setIsEditing(true);
   };
 
+  // Guardar cambios (reseteando contador si se cambió el cinturón)
   const handleSave = async () => {
     try {
       const user = auth.currentUser;
-      if (user) {
-        // Añade aqui los campos que quieras actualizar
-        const updatedData = { ...newData, cinturon: cinturon };
-        await updateDoc(doc(db, "users", user.uid), updatedData);
-        setUserData(updatedData);
-        setIsEditing(false);
+      if (!user) return;
+
+      const userDocRef = doc(db, "users", user.uid);
+      const snapshot = await getDoc(userDocRef);
+      if (!snapshot.exists()) return;
+
+      // Cinturón actual
+      const currentData = snapshot.data();
+      const oldBelt = currentData.cinturon || "white";
+      const updatedBelt = newCinturon || "white";
+
+      const updatedData = { ...newData, cinturon: updatedBelt };
+
+      // Si cambió de cinturón, reseteamos allTimeCheckIns
+      if (oldBelt !== updatedBelt) {
+        updatedData.allTimeCheckIns = 0;
       }
+
+      // Actualiza en Firestore
+      await updateDoc(userDocRef, updatedData);
+
+      // Actualizamos estado local
+      setUserData(updatedData);
+      setIsEditing(false);
     } catch (error) {
       console.error("Error al actualizar los datos:", error);
     }
@@ -93,16 +112,11 @@ const UserProfileScreen = () => {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
 
-  // -----------------------------------
-  //   FORMATEAR FECHA DE NACIMIENTO
-  // -----------------------------------
+  // Formatear fecha de nacimiento
   let birthDateString = "";
   if (userData?.fechaNacimiento) {
-    // Convierto el string ISO en objeto Date:
     const birthDate = new Date(userData.fechaNacimiento);
-    // Lo formateo según el idioma del usuario
     birthDateString = birthDate.toLocaleDateString("es-ES", {
-      // O puedes usar t("languageCode") o i18n.language
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -112,7 +126,7 @@ const UserProfileScreen = () => {
   return (
     <SafeAreaView style={styles.mainContainer}>
       <View style={styles.container}>
-        {/* Cabecera fija con imagen de perfil y botón de editar */}
+        {/* Cabecera con imagen de perfil y botón de editar */}
         <View style={styles.fixedHeader}>
           <View style={styles.imagenPerfil}>
             {imageUri ? (
@@ -136,7 +150,7 @@ const UserProfileScreen = () => {
           </View>
         </View>
 
-        {/* Sección fija con los datos del usuario (sin scroll) */}
+        {/* Datos del usuario */}
         <View style={styles.profileDataContainer}>
           {userData ? (
             <>
@@ -195,7 +209,6 @@ const UserProfileScreen = () => {
                 <Text style={styles.text}>{userData.provincia}</Text>
               </View>
 
-              {/* FECHA DE NACIMIENTO */}
               <View style={styles.infoRow}>
                 <MaterialIcons
                   name="cake"
@@ -203,14 +216,11 @@ const UserProfileScreen = () => {
                   color="#000"
                   style={styles.icon}
                 />
-                {birthDateString ? (
-                  <Text style={styles.text}>{birthDateString}</Text>
-                ) : (
-                  <Text style={styles.text}>--</Text>
-                )}
+                <Text style={styles.text}>
+                  {birthDateString ? birthDateString : "--"}
+                </Text>
               </View>
 
-              {/* EDAD */}
               <View style={styles.infoRow}>
                 <MaterialIcons
                   name="schedule"
@@ -222,7 +232,6 @@ const UserProfileScreen = () => {
                   {userData.edad ? `${userData.edad} años` : "--"}
                 </Text>
               </View>
-
               <View style={styles.infoRow}>
                 <MaterialIcons
                   name="scale"
@@ -230,7 +239,9 @@ const UserProfileScreen = () => {
                   color="#000"
                   style={styles.icon}
                 />
-                <Text style={styles.text}>{userData.peso} kg</Text>
+                <Text style={styles.text}>
+                  {userData.peso ? `${userData.peso} kg` : "--"}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <MaterialIcons
@@ -239,8 +250,12 @@ const UserProfileScreen = () => {
                   color="#000"
                   style={styles.icon}
                 />
-                <Text style={styles.text}>{userData.altura} cm</Text>
+                <Text style={styles.text}>
+                  {userData.altura ? `${userData.altura} cm` : "--"}
+                </Text>
               </View>
+
+              {/* CINTURÓN */}
               <View style={styles.infoRow}>
                 <Image
                   source={getBeltImage(userData.cinturon)}
@@ -248,6 +263,7 @@ const UserProfileScreen = () => {
                 />
                 <Text style={styles.text}>{userData.cinturon}</Text>
               </View>
+
               <View style={styles.infoRow}>
                 <MaterialIcons
                   name="wc"
@@ -257,6 +273,7 @@ const UserProfileScreen = () => {
                 />
                 <Text style={styles.text}>{userData.genero}</Text>
               </View>
+
               <View style={styles.infoRow}>
                 <MaterialIcons
                   name="email"
@@ -268,12 +285,14 @@ const UserProfileScreen = () => {
               </View>
             </>
           ) : (
-            <Text style={styles.text1}>No se encontraron datos del usuario</Text>
+            <Text style={styles.text1}>
+              {t("No se encontraron datos del usuario")}
+            </Text>
           )}
         </View>
       </View>
 
-      {/* Modal con scroll solo en la parte de edición */}
+      {/* Modal de edición */}
       <Modal visible={isEditing} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>{t("Editar Perfil")}</Text>
@@ -283,11 +302,10 @@ const UserProfileScreen = () => {
             style={{ width: "100%" }}
             contentContainerStyle={styles.modalScrollContent}
           >
-            {/* Campos de edición */}
             <Text style={styles.text1}>{t("Nombre")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.nombre}`}
+              value={`${newData.nombre || ""}`}
               onChangeText={(text) => setNewData({ ...newData, nombre: text })}
               placeholder="Nombre"
               placeholderTextColor="red"
@@ -296,7 +314,7 @@ const UserProfileScreen = () => {
             <Text style={styles.text1}>{t("Apellido")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.apellido}`}
+              value={`${newData.apellido || ""}`}
               onChangeText={(text) => setNewData({ ...newData, apellido: text })}
               placeholder="Apellido"
               placeholderTextColor="red"
@@ -305,7 +323,7 @@ const UserProfileScreen = () => {
             <Text style={styles.text1}>{t("User")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.username}`}
+              value={`${newData.username || ""}`}
               onChangeText={(text) =>
                 setNewData({ ...newData, username: text })
               }
@@ -316,22 +334,22 @@ const UserProfileScreen = () => {
             <Text style={styles.text1}>{t("Cinturón")}</Text>
             <View style={styles.pickerContainer}>
               <Picker
-                selectedValue={cinturon}
+                selectedValue={newCinturon}
                 onValueChange={(value) => setNewCinturon(value)}
                 mode={Platform.OS === "android" ? "dropdown" : undefined}
                 style={styles.picker}
               >
-                <Picker.Item label={t("Blanco")} value="white" />
-                <Picker.Item label={t("Azul")} value="blue" />
-                <Picker.Item label={t("Violeta")} value="purple" />
-                <Picker.Item label={t("Marron")} value="brown" />
-                <Picker.Item label={t("Negro")} value="black" />
+                <Picker.Item label="White" value="white" />
+                <Picker.Item label="Blue" value="blue" />
+                <Picker.Item label="Purple" value="purple" />
+                <Picker.Item label="Brown" value="brown" />
+                <Picker.Item label="Black" value="black" />
               </Picker>
             </View>
 
-            {cinturon ? (
+            {newCinturon ? (
               <Image
-                source={getBeltImage(cinturon)}
+                source={getBeltImage(newCinturon)}
                 style={styles.beltImage}
               />
             ) : null}
@@ -339,7 +357,7 @@ const UserProfileScreen = () => {
             <Text style={styles.text1}>{t("Teléfono")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.phone}`}
+              value={`${newData.phone || ""}`}
               onChangeText={(text) => setNewData({ ...newData, phone: text })}
               placeholder="Teléfono"
               placeholderTextColor="red"
@@ -348,7 +366,7 @@ const UserProfileScreen = () => {
             <Text style={styles.text1}>{t("Ciudad")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.ciudad}`}
+              value={`${newData.ciudad || ""}`}
               onChangeText={(text) => setNewData({ ...newData, ciudad: text })}
               placeholder="Ciudad"
               placeholderTextColor="red"
@@ -357,17 +375,18 @@ const UserProfileScreen = () => {
             <Text style={styles.text1}>{t("Provincia")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.provincia}`}
+              value={`${newData.provincia || ""}`}
               onChangeText={(text) =>
                 setNewData({ ...newData, provincia: text })
               }
               placeholder="Provincia"
               placeholderTextColor="red"
             />
+
             <Text style={styles.text1}>{t("Peso")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.peso}`}
+              value={`${newData.peso || ""}`}
               onChangeText={(text) => setNewData({ ...newData, peso: text })}
               placeholder="Peso"
               placeholderTextColor="red"
@@ -376,16 +395,16 @@ const UserProfileScreen = () => {
             <Text style={styles.text1}>{t("Altura")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.altura}`}
+              value={`${newData.altura || ""}`}
               onChangeText={(text) => setNewData({ ...newData, altura: text })}
               placeholder="Altura"
               placeholderTextColor="red"
             />
 
-            <Text style={styles.text1}>{t("Correo electonico")}</Text>
+            <Text style={styles.text1}>{t("Correo electrónico")}</Text>
             <TextInput
               style={styles.TextInput}
-              value={`${newData.email}`}
+              value={`${newData.email || ""}`}
               onChangeText={(text) => setNewData({ ...newData, email: text })}
               placeholder="Email"
               placeholderTextColor="red"
@@ -407,7 +426,6 @@ const UserProfileScreen = () => {
             </View>
           </KeyboardAwareScrollView>
 
-          {/* Botones de Cancelar y Guardar */}
           <View style={{ flexDirection: "row", marginTop: 20 }}>
             <View style={styles.buttonContainer2}>
               <ButtonGradient
@@ -429,6 +447,8 @@ const UserProfileScreen = () => {
     </SafeAreaView>
   );
 };
+
+export default UserProfileScreen;
 
 const styles = StyleSheet.create({
   mainContainer: {
@@ -475,6 +495,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  text1: {
+    fontSize: 15,
+    fontStyle: "italic",
+    fontWeight: "bold",
+    color: "#000",
+    marginTop: 10,
+  },
   icon1: {
     width: 60,
     height: 20,
@@ -506,14 +533,6 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     alignItems: "center",
     paddingBottom: 20,
-  },
-  text1: {
-    fontSize: 15,
-    fontStyle: "italic",
-    fontWeight: "bold",
-    marginTop: 10,
-    color: "#000",
-    alignSelf: "flex-start",
   },
   TextInput: {
     padding: 10,
@@ -552,40 +571,32 @@ const styles = StyleSheet.create({
   },
   buttonContainer2: {
     alignItems: "center",
-    backgroundColor: "transparent",
     justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    padding: 10,
     borderRadius: 10,
-    margin: -30,
     marginBottom: 10,
-    width: "60%",
+    width: "50%",
   },
   buttonContainer1: {
     alignItems: "center",
-    backgroundColor: "transparent",
     justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    padding: 10,
     borderRadius: 10,
-    margin: -30,
     marginBottom: 10,
-    width: "60%",
+    width: "50%",
   },
   button2: {
     borderRadius: 25,
     padding: 10,
-    width: 180,
+    width: 140,
     marginTop: 15,
-    marginRight: 20,
+    marginRight: 10,
   },
   button1: {
     borderRadius: 25,
     padding: 10,
-    width: 180,
+    width: 140,
     marginTop: 15,
-    marginLeft: 20,
+    marginLeft: 10,
   },
 });
-
-export default UserProfileScreen;

@@ -34,49 +34,32 @@ import {
 } from "firebase/firestore";
 import dayjs from "dayjs";
 import { Card, Paragraph } from "react-native-paper";
+
+// IMPORTANTE: tu librería de estrellas
 import StarRating from "react-native-star-rating-widget";
+
 import { useTranslation } from "react-i18next";
 
 const CheckInScreen = () => {
-  const { t } = useTranslation(); // Hook para traducción
+  const { t } = useTranslation();
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  // Estados
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Último mensaje (de la colección "messages")
   const [latestMessage, setLatestMessage] = useState(null);
-
-  // Modal de imagen
   const [isModalVisible, setIsModalVisible] = useState(false);
-
-  // Última puntuación del usuario
   const [lastRating, setLastRating] = useState(null);
-
-  // === NUEVO: almacenar el nombre de usuario
-  const [username, setUsername] = useState("");
-
-  // Al nivel de otros states
   const [lastRatingDate, setLastRatingDate] = useState(null);
+  const [username, setUsername] = useState("");
+  const [userBelt, setUserBelt] = useState("white");
+  const [allTimeCheckIns, setAllTimeCheckIns] = useState(0);
 
-  const navigation = useNavigation();
-
-  // Recuperamos mensaje de otras pantallas si existe
-  const route = useRoute();
+  // Mensaje personalizado desde otra pantalla
   const { customMessage } = route.params || {};
 
-  // Obtener dimensiones
-  const windowWidth = Dimensions.get("window").width;
-  const cardWidth = windowWidth * 0.95;
-  const modalCardWidth = windowWidth * 0.9;
-
-  // Función para redondear a múltiplos de 0.5
-  const getHalfStarRating = (rating) => {
-    if (!rating) return 0;
-    const parsed = parseFloat(rating);
-    if (isNaN(parsed)) return 0;
-    return Math.round(parsed * 2) / 2;
-  };
-
-  // Suscripción a "messages" para obtener el último mensaje
+  // Suscripción a la última "message"
   useEffect(() => {
     const messagesRef = collection(db, "messages");
     const q = query(messagesRef, orderBy("createdAt", "desc"), limit(1));
@@ -126,7 +109,7 @@ const CheckInScreen = () => {
     }
   };
 
-  // Obtener la última puntuación
+  // Obtener última puntuación de estrellas
   const fetchLastRating = useCallback(async () => {
     try {
       const user = auth.currentUser;
@@ -138,7 +121,6 @@ const CheckInScreen = () => {
             const ratingDoc = querySnapshot.docs[0].data();
             setLastRating(ratingDoc.score);
             setLastRatingDate(ratingDoc.createdAt || null);
-            // Asegúrate de que el campo de fecha se llame "createdAt" en tu DB
           } else {
             setLastRating(null);
             setLastRatingDate(null);
@@ -151,40 +133,43 @@ const CheckInScreen = () => {
     }
   }, []);
 
-  // === NUEVO: Obtener el nombre de usuario
-  const fetchUserName = useCallback(async () => {
+  // Obtener datos de usuario (username, cinturón, total entrenos)
+  const fetchUserData = useCallback(async () => {
     try {
       const user = auth.currentUser;
       if (!user) return;
+
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
         const data = userDocSnap.data();
-        setUsername(data.username || t("Usuario")); // Ajusta como quieras
+        setUsername(data.username || "Usuario");
+        setUserBelt(data.cinturon || "white");
+        setAllTimeCheckIns(data.allTimeCheckIns || 0);
       }
     } catch (error) {
-      console.error("Error al obtener el nombre de usuario:", error);
+      console.error("Error al obtener datos de usuario:", error);
     }
   }, []);
 
-  // Al montar
+  // Llamados iniciales
   useEffect(() => {
     fetchMonthlyCheckIns();
     fetchLastRating();
-    fetchUserName(); // <-- Llamamos también a fetchUserName()
-  }, [fetchLastRating, fetchUserName]);
+    fetchUserData();
+  }, [fetchLastRating, fetchUserData]);
 
-  // useFocusEffect para recargar cuando la pantalla gana foco
+  // Al volver a la pantalla
   useFocusEffect(
     useCallback(() => {
       fetchMonthlyCheckIns();
       fetchLastRating();
-      fetchUserName();
-    }, [fetchLastRating, fetchUserName])
+      fetchUserData();
+    }, [fetchMonthlyCheckIns, fetchLastRating, fetchUserData])
   );
 
-  // Botón de Check-In
+  // Función CheckIn
   const handleCheckIn = async () => {
     if (auth.currentUser) {
       const monthKey = dayjs().format("YYYY-MM");
@@ -195,23 +180,29 @@ const CheckInScreen = () => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           const userName = userData.username || "Usuario";
-          const userBelt = userData.cinturon || "desconocida";
+          const userBeltData = userData.cinturon || "white";
 
+          // Registrar en attendanceHistory
           await recordCheckIn(userData);
+
+          // Incrementar mes y total
           await updateDoc(userDocRef, {
             [`checkIns_${monthKey}`]: increment(1),
+            allTimeCheckIns: increment(1),
           });
 
+          // Actualizar estado local
           const newCheckInCount = monthlyCheckIns + 1;
           setMonthlyCheckIns(newCheckInCount);
+          setAllTimeCheckIns(allTimeCheckIns + 1);
 
           Alert.alert(
             "",
             t(
-              "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBelt}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.",
+              "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBeltData}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.",
               {
                 userName,
-                userBelt,
+                userBeltData,
                 newCheckInCount,
               }
             ),
@@ -234,56 +225,77 @@ const CheckInScreen = () => {
     }
   };
 
-  // Refresh
+  // Pull to refresh
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMonthlyCheckIns();
     await fetchLastRating();
-    await fetchUserName();
+    await fetchUserData();
     setRefreshing(false);
   };
 
-  // Calcular la suma de tres campos adicionales
-  const calculateSum = () => {
-    if (latestMessage && latestMessage.additionalField1) {
-      const field1 = parseFloat(latestMessage.additionalField1);
-
-      if (!isNaN(field1)) {
-        return field1;
-      }
-    }
-    return null;
-  };
-
-  // Formatear fecha
+  // Helpers
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
     const date = timestamp.toDate();
     return dayjs(date).format("DD/MM/YYYY HH:mm");
   };
 
+  // Redondear rating a 0.5
+  const getHalfStarRating = (rating) => {
+    if (!rating) return 0;
+    const parsed = parseFloat(rating);
+    if (isNaN(parsed)) return 0;
+    return Math.round(parsed * 2) / 2;
+  };
+
+  // Lógica para 4 grupos de 40 (white) o 60 (resto)
+  const getBeltProgress = (beltColor, totalCheckIns) => {
+    const color = beltColor.toLowerCase();
+    const total = totalCheckIns || 0;
+
+    let groupSize = 40;
+    if (color !== "white") {
+      groupSize = 60;
+    }
+    const maxGroups = 4;
+
+    let currentGroup = Math.floor(total / groupSize) + 1;
+    if (currentGroup > maxGroups) currentGroup = maxGroups;
+
+    let countInGroup = total % groupSize;
+    // Para mostrar 40/40 o 60/60 si está exacto
+    if (countInGroup === 0 && total > 0 && currentGroup <= maxGroups) {
+      countInGroup = groupSize;
+    }
+
+    return `${countInGroup}/${groupSize} - ${t("Grupo")} ${currentGroup} ${t(
+      "de"
+    )} ${maxGroups}`;
+  };
+
+  // Encabezado (mensaje)
   const ListHeader = () => (
     <View style={styles.headerContainer}>
       {latestMessage ? (
         <>
           <Text style={styles.headerTitle}>{t("Mensaje")}</Text>
-  
-          {/* Mensajes con títulos en lugar de banderas */}
+          {/* Textos */}
           {latestMessage.text && (
             <View style={styles.messageContainer}>
               <Text style={styles.messageTitle}>{t("Portugués")}:</Text>
               <Text style={styles.messageText}>{latestMessage.text}</Text>
             </View>
           )}
-  
           {latestMessage.additionalField1 && (
             <View style={styles.messageContainer}>
               <Text style={styles.messageTitle}>{t("Japonés")}:</Text>
-              <Text style={styles.messageText}>{latestMessage.additionalField1}</Text>
+              <Text style={styles.messageText}>
+                {latestMessage.additionalField1}
+              </Text>
             </View>
           )}
-  
-          {/* Imagen si existe */}
+          {/* Imagen */}
           {latestMessage.imageUrl && (
             <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
               <Card style={styles.card}>
@@ -297,20 +309,24 @@ const CheckInScreen = () => {
       )}
     </View>
   );
-  
 
-
-  // ================= PIE DE LISTA (última puntuación + mensaje adicional) =================
+  // Pie de la lista
   const ListFooter = () => {
     const halfStarLast = getHalfStarRating(lastRating);
+    const beltProgress = getBeltProgress(userBelt, allTimeCheckIns);
 
     return (
       <View style={styles.footerContainer}>
-        {/* AQUÍ MOSTRAMOS EL USERNAME */}
+        {/* Progreso de cinturón */}
         <Text style={styles.footerTitle}>
+          {t("Progreso de cinturón")} ({userBelt})
+        </Text>
+        <Text style={styles.footerRatingText}>{beltProgress}</Text>
+
+        {/* Sección de última puntuación (StarRating) SIEMPRE visible */}
+        <Text style={[styles.footerTitle, { marginTop: 20 }]}>
           {t("Última Puntuación de")} {username}
         </Text>
-
         {lastRating ? (
           <>
             <Text style={styles.footerRatingText}>
@@ -333,14 +349,12 @@ const CheckInScreen = () => {
         )}
 
         {lastRatingDate && (
-          <Text
-            style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}
-          >
+          <Text style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}>
             {t("Ultima puntuación:")} {formatDate(lastRatingDate)}
           </Text>
         )}
 
-        {/* Mensaje personalizado de otra pantalla */}
+        {/* Mensaje personalizado (opcional) */}
         {customMessage && (
           <View style={{ marginTop: 20 }}>
             <Text style={styles.messageTitle}>Mensaje</Text>
@@ -351,7 +365,7 @@ const CheckInScreen = () => {
     );
   };
 
-  // ================= RENDER PRINCIPAL =================
+  // Render principal
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
@@ -366,7 +380,7 @@ const CheckInScreen = () => {
           }
         />
 
-        {/* Botón de Check-In */}
+        {/* Botón Check-In */}
         <View style={styles.buttonContainer}>
           <ButtonGradient
             onPress={handleCheckIn}
@@ -376,7 +390,7 @@ const CheckInScreen = () => {
         </View>
       </View>
 
-      {/* Modal para mostrar la imagen en grande */}
+      {/* Modal de imagen en grande */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -401,13 +415,13 @@ const CheckInScreen = () => {
                       }
                     />
                     <Card.Content>
-                      <Paragraph style={{ textAlign: "center" }}>{t("Portugues")}: {latestMessage.text}</Paragraph>
+                      <Paragraph style={{ textAlign: "center" }}>
+                        {t("Portugues")}: {latestMessage.text}
+                      </Paragraph>
                       {latestMessage.additionalField1 && (
-                        <>
-                          <Paragraph>
-                          {t("Japones")}: {latestMessage.additionalField1}
-                          </Paragraph>
-                        </>
+                        <Paragraph>
+                          {t("Japonés")}: {latestMessage.additionalField1}
+                        </Paragraph>
                       )}
                     </Card.Content>
                   </Card>
@@ -428,7 +442,6 @@ const CheckInScreen = () => {
 
 export default CheckInScreen;
 
-// ====== ESTILOS ======
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -444,17 +457,24 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
     textAlign: "center",
-    textAlign: "center"
   },
   headerMessage: {
     fontSize: 16,
     marginBottom: 8,
     color: "#333",
   },
-  text: {
+  messageContainer: {
+    marginBottom: 5,
+  },
+  messageTitle: {
     fontSize: 16,
-    marginBottom: 4,
+    fontWeight: "bold",
     color: "#333",
+  },
+  messageText: {
+    fontSize: 15,
+    color: "#333",
+    marginLeft: 10,
   },
   card: {
     marginVertical: 10,
@@ -467,17 +487,10 @@ const styles = StyleSheet.create({
   footerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 8,
   },
   footerRatingText: {
     fontSize: 16,
     marginBottom: 8,
-    color: "#333",
-  },
-  messageTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 5,
     color: "#333",
   },
   customMessageText: {
