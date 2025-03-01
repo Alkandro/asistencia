@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   TouchableWithoutFeedback,
   Modal,
+  Platform,
   Dimensions,
   FlatList,
 } from "react-native";
@@ -34,18 +35,21 @@ import {
 } from "firebase/firestore";
 import dayjs from "dayjs";
 import { Card, Paragraph } from "react-native-paper";
-
-// IMPORTANTE: tu librería de estrellas
 import StarRating from "react-native-star-rating-widget";
-
 import { useTranslation } from "react-i18next";
+import { BlurView } from "expo-blur";
 
 const CheckInScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute();
 
-  // Estados
+   // Intensidades diferentes para Android / iOS
+   
+   const tintValue = Platform.OS === "android" ? "light" : "light";
+   const intensityValue = Platform.OS === "android" ? 100 : 10;
+
+  // ESTADOS
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [latestMessage, setLatestMessage] = useState(null);
@@ -59,7 +63,7 @@ const CheckInScreen = () => {
   // Mensaje personalizado desde otra pantalla
   const { customMessage } = route.params || {};
 
-  // Suscripción a la última "message"
+  // ==== 1) Suscripción a "messages" ====
   useEffect(() => {
     const messagesRef = collection(db, "messages");
     const q = query(messagesRef, orderBy("createdAt", "desc"), limit(1));
@@ -76,7 +80,7 @@ const CheckInScreen = () => {
     return () => unsubscribe();
   }, []);
 
-  // Obtener los check-ins de este mes
+  // ==== 2) Obtener check-ins de este mes ====
   const fetchMonthlyCheckIns = async () => {
     try {
       const user = auth.currentUser;
@@ -109,7 +113,7 @@ const CheckInScreen = () => {
     }
   };
 
-  // Obtener última puntuación de estrellas
+  // ==== 3) Última puntuación ====
   const fetchLastRating = useCallback(async () => {
     try {
       const user = auth.currentUser;
@@ -133,7 +137,7 @@ const CheckInScreen = () => {
     }
   }, []);
 
-  // Obtener datos de usuario (username, cinturón, total entrenos)
+  // ==== 4) Obtener datos de usuario (cinturón, total entrenos) ====
   const fetchUserData = useCallback(async () => {
     try {
       const user = auth.currentUser;
@@ -153,14 +157,13 @@ const CheckInScreen = () => {
     }
   }, []);
 
-  // Llamados iniciales
+  // ==== useEffect + useFocusEffect ====
   useEffect(() => {
     fetchMonthlyCheckIns();
     fetchLastRating();
     fetchUserData();
   }, [fetchLastRating, fetchUserData]);
 
-  // Al volver a la pantalla
   useFocusEffect(
     useCallback(() => {
       fetchMonthlyCheckIns();
@@ -169,7 +172,7 @@ const CheckInScreen = () => {
     }, [fetchMonthlyCheckIns, fetchLastRating, fetchUserData])
   );
 
-  // Función CheckIn
+  // ==== 5) Botón TRAINING ====
   const handleCheckIn = async () => {
     if (auth.currentUser) {
       const monthKey = dayjs().format("YYYY-MM");
@@ -182,16 +185,16 @@ const CheckInScreen = () => {
           const userName = userData.username || "Usuario";
           const userBeltData = userData.cinturon || "white";
 
-          // Registrar en attendanceHistory
+          // Guarda en attendanceHistory
           await recordCheckIn(userData);
 
-          // Incrementar mes y total
+          // Incrementar conteo mensual y total
           await updateDoc(userDocRef, {
             [`checkIns_${monthKey}`]: increment(1),
             allTimeCheckIns: increment(1),
           });
 
-          // Actualizar estado local
+          // Actualiza estado local
           const newCheckInCount = monthlyCheckIns + 1;
           setMonthlyCheckIns(newCheckInCount);
           setAllTimeCheckIns(allTimeCheckIns + 1);
@@ -225,7 +228,7 @@ const CheckInScreen = () => {
     }
   };
 
-  // Pull to refresh
+  // ==== 6) Pull to Refresh ====
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMonthlyCheckIns();
@@ -234,53 +237,82 @@ const CheckInScreen = () => {
     setRefreshing(false);
   };
 
-  // Helpers
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "";
-    const date = timestamp.toDate();
-    return dayjs(date).format("DD/MM/YYYY HH:mm");
-  };
+  // ==== 7) Helpers para Dan / Progreso ====
 
-  // Redondear rating a 0.5
-  const getHalfStarRating = (rating) => {
-    if (!rating) return 0;
-    const parsed = parseFloat(rating);
-    if (isNaN(parsed)) return 0;
-    return Math.round(parsed * 2) / 2;
-  };
-
-  // Lógica para 4 grupos de 40 (white) o 60 (resto)
-  const getBeltProgress = (beltColor, totalCheckIns) => {
+  /**
+   * Devuelve la información de Dan y conteo.
+   * Separa la idea de "dan actual" de "dan recién completado".
+   */
+  const calculateDanInfo = (beltColor, totalCheckIns) => {
     const color = beltColor.toLowerCase();
     const total = totalCheckIns || 0;
 
-    let groupSize = 40;
-    if (color !== "white") {
-      groupSize = 60;
-    }
-    const maxGroups = 4;
+    // Determinar si son grupos de 40 (white) o 60 (resto)
+    const groupSize = color === "white" ? 40 : 60;
+    const maxDan = 4;
 
-    let currentGroup = Math.floor(total / groupSize) + 1;
-    if (currentGroup > maxGroups) currentGroup = maxGroups;
+    // rawGroup = cuántos grupos completos (0, 1, 2, 3, 4…)
+    const rawGroup = Math.floor(total / groupSize); // p.ej 40 entrenos => rawGroup=1
+    // currentDan = rawGroup + 1, pero no pasar de 4
+    let currentDan = rawGroup + 1;
+    if (currentDan > maxDan) currentDan = maxDan;
 
+    // Conteo dentro de este Dan
     let countInGroup = total % groupSize;
-    // Para mostrar 40/40 o 60/60 si está exacto
-    if (countInGroup === 0 && total > 0 && currentGroup <= maxGroups) {
+    // Ajustamos para que si total es múltiplo exacto (40, 80…), setee a groupSize
+    // y en ese caso rawGroup indica el Dan que se completó.
+    if (countInGroup === 0 && total > 0) {
       countInGroup = groupSize;
     }
 
-    return `${countInGroup}/${groupSize} - ${t("Grupo")} ${currentGroup} ${t(
-      "de"
-    )} ${maxGroups}`;
+    return { rawGroup, currentDan, groupSize, countInGroup };
   };
 
-  // Encabezado (mensaje)
+  /**
+   * Determina la etiqueta del Dan (1 => "Primer Dan", 2 => "Segundo Dan", etc.)
+   */
+  const getDanLabel = (danNumber) => {
+    switch (danNumber) {
+      case 1:
+        return "Primer Dan";
+      case 2:
+        return "Segundo Dan";
+      case 3:
+        return "Tercer Dan";
+      case 4:
+        return "Cuarto Dan";
+      default:
+        return "";
+    }
+  };
+
+  /**
+   * Retorna mensaje de felicitación si el usuario completó un Dan
+   * (rawGroup indica cuántos Dan completos lleva).
+   */
+  const getCompletionMessage = (rawGroup) => {
+    // rawGroup = 1 => completado Dan 1
+    // rawGroup = 2 => completado Dan 2, etc.
+    switch (rawGroup) {
+      case 1:
+        return "¡Felicidades! Completaste el Primer Dan.";
+      case 2:
+        return "¡Felicidades! Completaste el Segundo Dan.";
+      case 3:
+        return "¡Felicidades! Completaste el Tercer Dan.";
+      case 4:
+        return "¡Felicidades! Estás listo para el cambio de cinturón.";
+      default:
+        return "";
+    }
+  };
+
+  // === 8) Encabezado (último mensaje) ===
   const ListHeader = () => (
     <View style={styles.headerContainer}>
       {latestMessage ? (
         <>
           <Text style={styles.headerTitle}>{t("Mensaje")}</Text>
-          {/* Textos */}
           {latestMessage.text && (
             <View style={styles.messageContainer}>
               <Text style={styles.messageTitle}>{t("Portugués")}:</Text>
@@ -295,7 +327,6 @@ const CheckInScreen = () => {
               </Text>
             </View>
           )}
-          {/* Imagen */}
           {latestMessage.imageUrl && (
             <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
               <Card style={styles.card}>
@@ -310,20 +341,41 @@ const CheckInScreen = () => {
     </View>
   );
 
-  // Pie de la lista
+  // === 9) Pie de la lista (progreso + star rating) ===
   const ListFooter = () => {
-    const halfStarLast = getHalfStarRating(lastRating);
-    const beltProgress = getBeltProgress(userBelt, allTimeCheckIns);
+    const halfStarLast = lastRating ? Math.round(lastRating * 2) / 2 : 0;
+
+    // Calculamos la info
+    const { rawGroup, currentDan, groupSize, countInGroup } = calculateDanInfo(
+      userBelt,
+      allTimeCheckIns
+    );
+    // "Primer Dan", "Segundo Dan" etc.
+    const currentDanLabel = getDanLabel(currentDan);
+
+    // Armamos "17/40 - Segundo Dan"
+    const beltProgressText = `${countInGroup}/${groupSize} - ${currentDanLabel}`;
+
+    // Si countInGroup === groupSize => Completó "rawGroup" Dan
+    let completionMsg = "";
+    if (countInGroup === groupSize) {
+      completionMsg = getCompletionMessage(rawGroup);
+    }
 
     return (
       <View style={styles.footerContainer}>
-        {/* Progreso de cinturón */}
         <Text style={styles.footerTitle}>
-          {t("Progreso de cinturón")} ({userBelt})
+          {t("Progreso del cinturón")} ({userBelt})
         </Text>
-        <Text style={styles.footerRatingText}>{beltProgress}</Text>
+        {/* EJ: "17/40 - Segundo Dan" */}
+        <Text style={styles.footerRatingText}>{beltProgressText}</Text>
 
-        {/* Sección de última puntuación (StarRating) SIEMPRE visible */}
+        {/* Mensaje si completó un Dan */}
+        {completionMsg ? (
+          <Text style={styles.completionMessage}>{completionMsg}</Text>
+        ) : null}
+
+        {/* Sección de Star Rating */}
         <Text style={[styles.footerTitle, { marginTop: 20 }]}>
           {t("Última Puntuación de")} {username}
         </Text>
@@ -349,8 +401,13 @@ const CheckInScreen = () => {
         )}
 
         {lastRatingDate && (
-          <Text style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}>
-            {t("Ultima puntuación:")} {formatDate(lastRatingDate)}
+          <Text
+            style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}
+          >
+            {t("Ultima puntuación:")}{" "}
+            {lastRatingDate
+              ? dayjs(lastRatingDate.toDate()).format("DD/MM/YYYY HH:mm")
+              : ""}
           </Text>
         )}
 
@@ -365,7 +422,7 @@ const CheckInScreen = () => {
     );
   };
 
-  // Render principal
+  // === RENDER PRINCIPAL ===
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
@@ -378,19 +435,20 @@ const CheckInScreen = () => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          contentContainerStyle={{ paddingBottom: 80 }} 
         />
 
-        {/* Botón Check-In */}
-        <View style={styles.buttonContainer}>
+        {/* Botón de Check-In */}
+        <BlurView tint={tintValue} intensity={intensityValue} style={styles.bottomBar}>
           <ButtonGradient
             onPress={handleCheckIn}
             title={t("TRAINING")}
             style={styles.button}
           />
-        </View>
+        </BlurView>
       </View>
 
-      {/* Modal de imagen en grande */}
+      {/* Modal para mostrar la imagen en grande */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -408,9 +466,9 @@ const CheckInScreen = () => {
                       title={t("Detalles del Mensaje")}
                       subtitle={
                         latestMessage.createdAt
-                          ? `Publicado el ${formatDate(
-                              latestMessage.createdAt
-                            )}`
+                          ? `Publicado el ${dayjs(
+                              latestMessage.createdAt.toDate()
+                            ).format("DD/MM/YYYY HH:mm")}`
                           : "Sin fecha"
                       }
                     />
@@ -442,6 +500,7 @@ const CheckInScreen = () => {
 
 export default CheckInScreen;
 
+/** ====== ESTILOS ====== */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -493,12 +552,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: "#333",
   },
+  completionMessage: {
+    fontSize: 15,
+    color: "green",
+    fontWeight: "600",
+    marginTop: 5,
+  },
   customMessageText: {
     fontSize: 16,
     color: "#333",
   },
   buttonContainer: {
-    padding: 20,
+    padding: 10,
   },
   button: {
     alignSelf: "center",
@@ -524,5 +589,20 @@ const styles = StyleSheet.create({
   closeButton: {
     marginTop: 10,
     alignSelf: "center",
+  },
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    // Ajusta la altura de la barra
+    height: 70,
+    // Alineamos el contenido (nuestro botón) al centro
+    justifyContent: "center",
+    alignItems: "center",
+    // Opcional: un borde arriba, color semitransparente
+    borderTopWidth:1,
+    borderRadius:3,
+    borderTopColor: "rgba(255,255,255,0.3)",
   },
 });
