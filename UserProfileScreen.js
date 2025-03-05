@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: Platform.OS === "ios" ? 8 : 5,
+    marginVertical: Platform.OS === "ios" ? 8 : 3,
   },
   icon: {
     marginRight: 8,
