@@ -304,13 +304,13 @@ const CheckInScreen = () => {
   function getDanLabel(danNumber) {
     switch (danNumber) {
       case 1:
-        return "Primer Dan";
+        return t("Primer Dan");
       case 2:
-        return "Segundo Dan";
+        return t("Segundo Dan");
       case 3:
-        return "Tercer Dan";
+        return t("Tercer Dan");
       case 4:
-        return "Cuarto Dan";
+        return t("Cuarto Dan");
       default:
         return "";
     }

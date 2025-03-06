@@ -339,11 +339,11 @@ const UserProfileScreen = () => {
                 mode={Platform.OS === "android" ? "dropdown" : undefined}
                 style={styles.picker}
               >
-                <Picker.Item label="White" value="white" />
-                <Picker.Item label="Blue" value="blue" />
-                <Picker.Item label="Purple" value="purple" />
-                <Picker.Item label="Brown" value="brown" />
-                <Picker.Item label="Black" value="black" />
+                <Picker.Item label={t("Blanco")} value="white" />
+                <Picker.Item label={t("Azul")} value="blue" />
+                <Picker.Item label={t("Violeta")} value="purple" />
+                <Picker.Item label={t("Marron")} value="brown" />
+                <Picker.Item label={t("Negro")} value="black" />
               </Picker>
             </View>
 
