@@ -5,8 +5,10 @@ import { collection, onSnapshot, getDocs } from 'firebase/firestore';
 import { useNavigation } from "@react-navigation/native";
 import ButtonGradient from "../ButtonGradient";
 import { db, auth } from '../firebase';
+import { useTranslation } from "react-i18next";
 
 const UserListScreen = () => {
+  const { t, } = useTranslation(); // Hook para traducción
   const [users, setUsers] = useState([]);
   const navigation = useNavigation();
 
@@ -46,9 +48,9 @@ const UserListScreen = () => {
           navigation.navigate("UserDetailScreen", { userId: item.id });
         }}
       >
-        <Text style={styles.userText}>User: {item.username || "No registrado"}</Text>
-        <Text style={styles.userText}>Name: {item.nombre || "No registrado"}</Text>
-        <Text style={styles.userText}>Apellido: {item.apellido || "No registrado"}</Text>
+        <Text style={styles.userText}>{t("User")}: {item.username || "No registrado"}</Text>
+        <Text style={styles.userText}>{t("Nombre")}: {item.nombre || "No registrado"}</Text>
+        <Text style={styles.userText}>{t("Apellido")}: {item.apellido || "No registrado"}</Text>
       </TouchableOpacity>
     );
   };
@@ -56,7 +58,7 @@ const UserListScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Lista de Usuarios</Text>
+      <Text style={styles.title}>{t("Lista de Usuarios")}</Text>
 
       <FlatList
         data={users}
@@ -67,7 +69,7 @@ const UserListScreen = () => {
       <View style={styles.buttonContainer}>
         <ButtonGradient
           onPress={handleSignOut}
-          title="Sign Out"
+          title={t("Salir")}
           style={styles.button}
         />
       </View>

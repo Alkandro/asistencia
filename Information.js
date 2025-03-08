@@ -17,7 +17,7 @@ const Information = () => {
         <Text style={styles.titulo1}>
          090 6516 3248
         </Text>
-        <Text style={styles.titulo}>Dirección</Text>
+        <Text style={styles.titulo}>{t("Direccion")}</Text>
         <Text style={styles.titulo1}>
           〒367-0051 埼玉県本庄市本庄１-１-２{"\n"}もとまちハイツ 201号室
         </Text>

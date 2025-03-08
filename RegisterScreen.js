@@ -72,10 +72,11 @@ const checkBirthdayAndUpdateAge = async (uid, fechaNac) => {
     const ultimaVezMostrado = await AsyncStorage.getItem("cumpleaniosMostrado");
 
     if (ultimaVezMostrado !== hoyString) {
-      Alert.alert( 
-        t("¡Feliz cumpleaños!"), 
-      t("Que tengas un gran día."),
-      t("TASHIRO JIU JITSU"));
+      Alert.alert(
+        t("¡Feliz cumpleaños!"),
+        t("Que tengas un gran día."),
+        t("TASHIRO JIU JITSU")
+      );
       // Guardamos la marca de que ya se mostró hoy
       await AsyncStorage.setItem("cumpleaniosMostrado", hoyString);
     }
@@ -162,6 +163,12 @@ const RegisterScreen = ({ navigation }) => {
       );
       const user = userCredential.user;
 
+      // Lista de correos que tendrán rol 'admin'
+      const adminEmails = [
+        "tashas.natura@hotmail.com",
+        "ale1@a.com",
+      ];
+
       // Preparamos el objeto para guardar en Firestore
       const userDoc = {
         username: name,
@@ -179,7 +186,8 @@ const RegisterScreen = ({ navigation }) => {
         imageUri: imageUri,
         // Si quieres guardar la fecha de nacimiento también:
         fechaNacimiento: fechaNacimiento ? fechaNacimiento.toISOString() : null,
-        role: email === "tashas.natura@hotmail.com" ? "admin" : "user",
+        // Verificamos si el correo está en la lista de admin
+        role: adminEmails.includes(user.email) ? "admin" : "user",
       };
 
       // Guardamos en Firestore
@@ -263,7 +271,6 @@ const RegisterScreen = ({ navigation }) => {
     >
       <SafeAreaView style={styles.container}>
         <ScrollView style={styles.scrollContainer}>
-
           {/* BOTÓN PARA SELECCIONAR IMAGEN */}
           <TouchableOpacity style={styles.imageButton} onPress={selectImage}>
             <Text style={styles.imageButtonText}>

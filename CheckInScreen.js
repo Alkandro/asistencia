@@ -63,7 +63,7 @@ const CheckInScreen = () => {
 
   // Intensidades diferentes para Android / iOS (si quieres un blur distinto)
   const tintValue = Platform.OS === "android" ? "light" : "light";
-  const intensityValue = Platform.OS === "android" ? 100 : 10;
+  const intensityValue = Platform.OS === "android" ? 0 : 0;
 
   // ESTADOS
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
@@ -220,7 +220,7 @@ const CheckInScreen = () => {
           Alert.alert(
             "",
             t(
-              "🎉 Bienvenido, {{userName}}!\n\nMejora tus técnicas en tu cinturón {{userBeltData}}.\n\n🏋️‍♂️ Este mes: {{newCheckInCount}} entrenamientos.",
+              "🎉 Bienvenido, {{userName}}!\n\ntu cinturón es color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.",
               {
                 userName,
                 userBeltData,
@@ -378,12 +378,45 @@ const CheckInScreen = () => {
     if (countInGroup === groupSize) {
       completionMsg = getCompletionMessage(rawGroup);
     }
+    const beltColorMap = {
+      blue: "blue",
+      purple: "#AA60C8",
+      brown: "#8B4513", // por ejemplo
+      black: "black",
+    };
 
     return (
       <View style={styles.footerContainer}>
-        <Text style={styles.footerTitle}>
-          {t("Progreso del cinturón")} ({userBelt})
-        </Text>
+          {/* En vez de usar un solo <Text> inline, componemos una vista en horizontal */}
+  <View style={{ flexDirection: "row", alignItems: "center" }}>
+    <Text style={styles.footerTitle}>
+      {t("Progreso del cinturón →")} 
+    </Text>
+
+    {/* Caja para el color/fondo del cinturón */}
+    <View
+      style={{
+        backgroundColor:
+          userBelt === "white" ? "black" : "transparent", // Fondo negro solo si "white"
+        borderRadius: 4,
+        paddingHorizontal: 6,
+        marginLeft: 8,
+      }}
+    >
+      <Text
+        style={{
+          color:
+            userBelt === "white"
+              ? "white"
+              : beltColorMap[userBelt] || "#333", // El color del texto si NO es blanco
+          fontSize: 19, // Ajusta al tamaño que quieras
+          fontWeight: "bold",
+        }}
+      >
+        {userBelt.charAt(0).toUpperCase() + userBelt.slice(1)}
+      </Text>
+    </View>
+  </View>
         <Text style={styles.footerRatingText}>{beltProgressText}</Text>
         {completionMsg ? (
           <Text style={styles.completionMessage}>{completionMsg}</Text>

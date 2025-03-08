@@ -242,7 +242,10 @@ const UserBottomTabs = ({ navigation, route }) => {
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "blue",
-        tabBarInactiveTintColor: "gray",
+        tabBarInactiveTintColor: "black",
+        tabBarStyle: {
+          backgroundColor: "#d3d3d3", // Por ejemplo, un gris claro
+        },
       })}
     >
       <Tab.Screen

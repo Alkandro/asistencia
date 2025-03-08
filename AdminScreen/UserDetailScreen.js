@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  TextInput, // <--- Importamos TextInput para editar
 } from "react-native";
 import {
   doc,
   getDoc,
+  updateDoc,
   collection,
   query,
   where,
@@ -21,31 +23,93 @@ import {
   serverTimestamp,
   deleteDoc,
 } from "firebase/firestore";
-import { db, auth } from "../firebase"; // Ajusta la ruta
+import { db, auth } from "../firebase";
 import { useRoute } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
+import { useTranslation } from "react-i18next";
 
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
-import "dayjs/locale/pt";
+import "dayjs/locale/es";
 import "dayjs/locale/ja";
 import "dayjs/locale/en";
-import "dayjs/locale/es";
+import "dayjs/locale/pt";
 
 import StarRating from "react-native-star-rating-widget";
-import { SwipeListView } from "react-native-swipe-list-view"; // <--- Importa la librería
+import { SwipeListView } from "react-native-swipe-list-view";
 
+
+// dayjs config
 dayjs.extend(localeData);
 dayjs.locale("es");
-dayjs.locale("en");
 dayjs.locale("ja");
+dayjs.locale("en");
 dayjs.locale("pt");
 
+
+// ----------------------------------
+// FUNCIONES AUXILIARES
+// ----------------------------------
+function calculateDanInfo(beltColor, totalCheckIns) {
+  const color = beltColor?.toLowerCase() || "white";
+  const groupSize = color === "white" ? 40 : 60;
+  const maxDan = 4;
+
+  const rawGroup = Math.floor(totalCheckIns / groupSize);
+  let currentDan = rawGroup + 1;
+  if (currentDan > maxDan) currentDan = maxDan;
+
+  let countInGroup = totalCheckIns % groupSize;
+  if (countInGroup === 0 && totalCheckIns > 0) {
+    countInGroup = groupSize;
+  }
+
+  return { rawGroup, currentDan, groupSize, countInGroup };
+}
+
+
+
+/**
+ * checkDansCompletion:
+ * - Verifica si el usuario completó un nuevo Dan en su cinturón actual
+ * - Guarda un objeto en `danCompletes` si detecta Dan completado
+ * - Evita usar serverTimestamp() dentro de arrays → usaremos new Date().
+ */
+async function checkDansCompletion(userData, getDanLabel) {
+  if (!userData?.cinturon) return;
+  const total = userData.allTimeCheckIns || 0;
+
+  let danCompletes = userData.danCompletes || [];
+  const { rawGroup, groupSize } = calculateDanInfo(userData.cinturon, total);
+
+  if (rawGroup >= 1 && rawGroup <= 4) {
+    const found = danCompletes.find((obj) => obj.dan === rawGroup);
+    if (!found) {
+      danCompletes.push({
+        dan: rawGroup,
+        groupSize,
+        count: groupSize,
+        completedOn: new Date(),
+      });
+      await updateDoc(doc(db, "users", userData.uid), { danCompletes });
+      Alert.alert(
+        "¡Dan Completado!",
+        `${getDanLabel(rawGroup)} completado (${groupSize}/${groupSize}) ✓.`
+      );
+    }
+  }
+}
+
+
+// ----------------------------------
+// COMPONENTE PRINCIPAL
+// ----------------------------------
 export default function UserDetailScreen() {
   const route = useRoute();
   const { userId } = route.params;
+  const { t, i18n } = useTranslation(); // Hook para traducción
 
-  // ====== ESTADOS ======
+  // Estados
   const [userData, setUserData] = useState(null);
   const [monthlyCheckInCount, setMonthlyCheckInCount] = useState({});
   const [ratings, setRatings] = useState([]);
@@ -54,14 +118,33 @@ export default function UserDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Para desplegar/ocultar sections
+  // Expandir/cerrar detalles
   const [userDetailExpanded, setUserDetailExpanded] = useState(false);
   const [ratingsHistoryExpanded, setRatingsHistoryExpanded] = useState(false);
 
-  // Para check-ins por año
+  // Expandir por año
   const [expandedYear, setExpandedYear] = useState(null);
 
-  // ====== EFECTOS ======
+  // ***** ESTADO para la edición manual de entrenamientos *****
+  const [manualCheckIns, setManualCheckIns] = useState(""); // campo de texto
+
+
+  function getDanLabel(danNumber) {
+    switch (danNumber) {
+      case 1:
+          return t("Primer Dan");
+        case 2:
+          return t("Segundo Dan");
+        case 3:
+          return t("Tercer Dan");
+        case 4:
+          return t("Cuarto Dan");
+        default:
+          return "";
+      }
+    }
+
+  // Efectos
   useEffect(() => {
     loadData();
   }, [userId]);
@@ -82,93 +165,120 @@ export default function UserDetailScreen() {
     setRefreshing(false);
   }, [userId]);
 
-  // ====== OBTENER DATOS DE USUARIO ======
+  // ----------------------------------
+  // OBTENER DATOS DEL USUARIO
+  // ----------------------------------
   const fetchUserData = async () => {
     try {
       const userRef = doc(db, "users", userId);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        setUserData(userSnap.data());
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        setUserData({ uid: userId, ...data });
+
+        // Chequear Dan completado
+        await checkDansCompletion({ uid: userId, ...data }, getDanLabel);
+
+        // Al cargar, si existe allTimeCheckIns, ponerlo en manualCheckIns
+        if (data.allTimeCheckIns != null) {
+          setManualCheckIns(String(data.allTimeCheckIns));
+        }
       } else {
         Alert.alert("Error", "El usuario no existe.");
       }
     } catch (error) {
-      console.error("Error al obtener datos del usuario:", error);
+      console.error("Error al obtener datos usuario:", error);
       Alert.alert("Error", "No se pudo obtener los datos del usuario.");
     }
   };
 
-  // ====== OBTENER CHECK-INS ======
+  // ----------------------------------
+  // GUARDAR EDICIÓN MANUAL DE ENTRENAMIENTOS
+  // ----------------------------------
+  const handleSaveManual = async () => {
+    if (!userData) return;
+    const newVal = parseInt(manualCheckIns, 10);
+    if (isNaN(newVal)) {
+      Alert.alert("Error", "Por favor ingresa un número válido");
+      return;
+    }
+    try {
+      const userDocRef = doc(db, "users", userData.uid);
+      await updateDoc(userDocRef, {
+        allTimeCheckIns: newVal,
+      });
+      Alert.alert("Éxito", `Entrenamientos ajustados a ${newVal}`);
+
+      // Opcional: volver a cargar la data desde Firestore
+      await loadData();
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "No se pudo actualizar");
+    }
+  };
+
+  // ----------------------------------
+  // OBTENER HISTORIAL CHECK-INS
+  // ----------------------------------
   const fetchMonthlyCheckInCount = useCallback(async () => {
     try {
-      const attendanceRef = collection(db, "attendanceHistory");
-      const q = query(attendanceRef, where("userId", "==", userId));
-      const querySnapshot = await getDocs(q);
+      const ref = collection(db, "attendanceHistory");
+      const qy = query(ref, where("userId", "==", userId));
+      const qs = await getDocs(qy);
 
-      const countsByMonth = {};
-
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const timestamp = data.timestamp?.seconds
-          ? new Date(data.timestamp.seconds * 1000)
+      const obj = {};
+      qs.forEach((docSnap) => {
+        const d = docSnap.data();
+        const ts = d.timestamp?.seconds
+          ? new Date(d.timestamp.seconds * 1000)
           : null;
-        if (timestamp) {
-          const monthKey = dayjs(timestamp).format("YYYY-MM-01");
-          countsByMonth[monthKey] = (countsByMonth[monthKey] || 0) + 1;
+        if (ts) {
+          const mk = dayjs(ts).format("YYYY-MM-01");
+          obj[mk] = (obj[mk] || 0) + 1;
         }
       });
-
-      setMonthlyCheckInCount(countsByMonth);
-    } catch (error) {
-      console.error("Error al obtener historial del usuario:", error);
-      Alert.alert("Error", "No se pudo obtener el historial de entrenamientos.");
+      setMonthlyCheckInCount(obj);
+    } catch (e) {
+      console.error("Error historial:", e);
+      Alert.alert("Error", "No se pudo obtener el historial.");
     }
   }, [userId]);
 
-  // ====== OBTENER PUNTUACIONES ======
+  // ----------------------------------
+  // OBTENER LISTA DE PUNTUACIONES
+  // ----------------------------------
   const fetchRatings = useCallback(async () => {
     try {
-      const ratingsRef = collection(db, "users", userId, "ratings");
-      const q = query(ratingsRef, orderBy("createdAt", "desc"));
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const ratingsList = [];
-          snapshot.forEach((docSnap) => {
-            ratingsList.push({ id: docSnap.id, ...docSnap.data() });
-          });
-          setRatings(ratingsList);
+      const ref = collection(db, "users", userId, "ratings");
+      const qy = query(ref, orderBy("createdAt", "desc"));
+      const unsub = onSnapshot(qy, (snap) => {
+        const arr = [];
+        snap.forEach((dd) => arr.push({ id: dd.id, ...dd.data() }));
+        setRatings(arr);
 
-          // Calcular promedio
-          if (ratingsList.length > 0) {
-            const total = ratingsList.reduce((acc, curr) => acc + curr.score, 0);
-            const average = (total / ratingsList.length).toFixed(1);
-            setAverageRating(average);
-
-            // Ajustar 'score' a la última puntuación
-            setScore(ratingsList[0].score);
-          } else {
-            setAverageRating(null);
-          }
-        },
-        (error) => {
-          console.error("Error al obtener las puntuaciones:", error);
-          Alert.alert("Error", "No se pudo obtener las puntuaciones del usuario.");
+        if (arr.length > 0) {
+          const total = arr.reduce((acc, c) => acc + c.score, 0);
+          const avg = (total / arr.length).toFixed(1);
+          setAverageRating(avg);
+          setScore(arr[0].score); // la última puntuación
+        } else {
+          setAverageRating(null);
         }
-      );
-
-      return () => unsubscribe();
+      });
+      return () => unsub();
     } catch (error) {
-      console.error("Error al obtener puntuaciones:", error);
+      console.error("Error puntuaciones:", error);
     }
   }, [userId]);
 
-  // ====== ENVIAR PUNTUACIÓN ======
+  // ----------------------------------
+  // ENVIAR PUNTUACIÓN
+  // ----------------------------------
   const handleSubmitRating = async () => {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        Alert.alert("Error", "Debes estar autenticado para enviar una puntuación.");
+        Alert.alert("Error", "Debes iniciar sesión para puntuar.");
         return;
       }
       const ratingsRef = collection(db, "users", userId, "ratings");
@@ -177,60 +287,47 @@ export default function UserDetailScreen() {
         createdAt: serverTimestamp(),
         ratedBy: currentUser.uid,
       });
-      Alert.alert("Éxito", "Puntuación enviada correctamente.");
+      Alert.alert("Exito", "Puntuación enviada.");
     } catch (error) {
-      console.error("Error al enviar la puntuación: ", error);
+      console.error("Error enviando puntuación:", error);
       Alert.alert("Error", "No se pudo enviar la puntuación.");
     }
   };
 
-  // ====== ELIMINAR PUNTUACIÓN ======
+  // ----------------------------------
+  // ELIMINAR PUNTUACIÓN (swipe)
+  // ----------------------------------
   const handleDeleteRating = async (ratingId) => {
     try {
-      const ratingDocRef = doc(db, "users", userId, "ratings", ratingId);
-      await deleteDoc(ratingDocRef);
-      // Alert.alert("Eliminar", "Puntuación eliminada correctamente.");
-    } catch (error) {
-      console.error("Error al eliminar la puntuación:", error);
+      await deleteDoc(doc(db, "users", userId, "ratings", ratingId));
+    } catch (err) {
+      console.error("Error al eliminar puntuación:", err);
       Alert.alert("Error", "No se pudo eliminar la puntuación.");
     }
   };
 
-  // ========== Agrupar Check-Ins por año ==========
-  const groupedByYear = Object.keys(monthlyCheckInCount).reduce((acc, month) => {
-    const year = dayjs(month).year();
-    if (!acc[year]) acc[year] = [];
-    acc[year].push({ month, count: monthlyCheckInCount[month] });
-    return acc;
-  }, {});
-  const toggleYear = (year) => {
-    setExpandedYear(expandedYear === year ? null : year);
+  // ----------------------------------
+  // SWIPE LIST
+  // ----------------------------------
+  const renderFrontItem = ({ item }) => {
+    return (
+      <View style={styles.rowFront}>
+        <Text style={styles.ratingScore}>⭐ {item.score}/10</Text>
+        <Text style={styles.ratingDate}>
+          {item.createdAt
+            ? dayjs(item.createdAt.toDate()).format("DD/MM/YYYY HH:mm")
+            : "Sin fecha"}
+        </Text>
+      </View>
+    );
   };
 
-  // ========== RENDERIZAR VISTAS DEL SWIPE LIST VIEW ==========
-
-  // 1) Vista frontal
-  const renderFrontItem = ({ item }) => (
-    <View style={styles.rowFront}>
-      <Text style={styles.ratingScore}>⭐ {item.score}/10</Text>
-      <Text style={styles.ratingDate}>
-        {item.createdAt
-          ? dayjs(item.createdAt.toDate()).format("DD/MM/YYYY HH:mm")
-          : "Sin fecha"}
-      </Text>
-    </View>
-  );
-
-  // 2) Vista oculta: mostrará el botón "Eliminar" al deslizar a la derecha
-  //    Y la dejamos vacía al otro lado (o podríamos poner algo extra si quisieras).
   const renderHiddenItem = ({ item }, rowMap) => {
     return (
       <View style={styles.rowBack}>
-        {/* Al lado derecho, el botón "Eliminar" */}
         <TouchableOpacity
           style={styles.backRightBtn}
           onPress={() => {
-            // Opcionalmente cierra la fila
             if (rowMap[item.id]) rowMap[item.id].closeRow();
             handleDeleteRating(item.id);
           }}
@@ -241,20 +338,16 @@ export default function UserDetailScreen() {
     );
   };
 
-  // 3) Detectar swipe en dirección opuesta (hacia la **izquierda**) para borrar sin botón
-  //    onSwipeValueChange se dispara cada vez que se arrastra; revisamos "direction" y "value"
-  //    si "direction" === 'left' y "value" > umbral, borramos.
   const handleSwipeValueChange = (swipeData) => {
     const { key, value, direction } = swipeData;
-    // EJEMPLO: si arrastran 70 píxeles o más hacia la izquierda => borrar
-    // Nota: Al deslizar a la izquierda, `value` suele ser positivo.
     if (direction === "left" && value > 100) {
-      // rowKey === item.id
       handleDeleteRating(key);
     }
   };
 
-  // ========== LOADING ==========
+  // ----------------------------------
+  // LOADING / VALIDACIÓN
+  // ----------------------------------
   if (loading) {
     return (
       <View style={styles.center}>
@@ -262,8 +355,6 @@ export default function UserDetailScreen() {
       </View>
     );
   }
-
-  // ========== SIN USUARIO ==========
   if (!userData) {
     return (
       <View style={styles.center}>
@@ -272,103 +363,177 @@ export default function UserDetailScreen() {
     );
   }
 
-  // ========== ENCABEZADO DE LA LISTA ==========
-  const ListHeader = () => {
-    return (
-      <View>
-        {/* ======== DROPDOWN: DETALLE DEL USUARIO ======== */}
-        <TouchableOpacity
-          style={styles.dropdownHeader}
-          onPress={() => setUserDetailExpanded(!userDetailExpanded)}
-        >
-          <Text style={styles.dropdownHeaderText}>Detalle del Usuario</Text>
-          <Icon
-            name={userDetailExpanded ? "chevron-up" : "chevron-down"}
-            size={20}
-            color="#333"
-          />
-        </TouchableOpacity>
+  // ----------------------------------
+  // CALCULAR DAN ACTUAL
+  // ----------------------------------
+  const allTime = userData.allTimeCheckIns || 0;
+  const { rawGroup, currentDan, groupSize, countInGroup } = calculateDanInfo(
+    userData.cinturon,
+    allTime
+  );
+  const danLabel = getDanLabel(currentDan);
 
-        {userDetailExpanded && (
-          <View style={styles.dropdownContent}>
-            <Text style={styles.text}>Username: {userData.username || "No registrado"}</Text>
-      <Text style={styles.text}>Nombre: {userData.nombre || "No registrado"}</Text>
-      <Text style={styles.text}>Apellido: {userData.apellido || "No registrado"}</Text>
-      <Text style={styles.text}>Email: {userData.email || "No registrado"}</Text>
-      <Text style={styles.text}>Teléfono: {userData.phone || "No registrado"}</Text>
-      <Text style={styles.text}>Cinturón: {userData.cinturon || "No registrado"}</Text>
-      <Text style={styles.text}>Ciudad: {userData.ciudad || "No registrado"}</Text>
-      <Text style={styles.text}>Provincia: {userData.provincia || "No registrado"}</Text>
-      <Text style={styles.text}>Peso: {userData.peso || "No registrado"}</Text>
-      <Text style={styles.text}>Altura: {userData.altura || "No registrado"}</Text>
-      <Text style={styles.text}>Edad: {userData.edad || "No registrado"}</Text>
-      <Text style={styles.text}>Género: {userData.genero || "No registrado"}</Text>
-          </View>
-        )}
+  // ----------------------------------
+  // DAN COMPLETADOS DE ESTE CINTURÓN
+  // ----------------------------------
+  const danCompletes = userData.danCompletes || [];
+  danCompletes.sort((a, b) => a.dan - b.dan);
 
-        {/* ======== PROMEDIO + RATING + BOTÓN (FIJOS) ======== */}
-        <View style={styles.fixedRatingContainer}>
-          {averageRating && (
-            <View style={styles.averageContainer}>
-              <Text style={styles.averageText}>
-                Promedio de Puntuaciones: {averageRating}/10
-              </Text>
-            </View>
-          )}
+  const danCompletionUI = danCompletes.map((dc) => (
+    <Text key={dc.dan} style={styles.danItem}>
+      {getDanLabel(dc.dan)} completado ({dc.count}/{dc.groupSize}) ✓
+    </Text>
+  ));
 
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingLabel}>Puntuación:</Text>
-            <StarRating
-              rating={score}
-              onChange={setScore}
-              maxStars={10}
-              color="#f1c40f"
-              starSize={25}
+  // ----------------------------------
+  // LIST HEADER
+  // ----------------------------------
+  const ListHeader = () => (
+    <View>
+      {/* Botón para expandir detalle del usuario */}
+      <TouchableOpacity
+        style={styles.dropdownHeader}
+        onPress={() => setUserDetailExpanded(!userDetailExpanded)}
+      >
+        <Text style={styles.dropdownHeaderText}>{t("Detalle del Usuario")}</Text>
+        <Icon
+          name={userDetailExpanded ? "chevron-up" : "chevron-down"}
+          size={20}
+          color="#333"
+        />
+      </TouchableOpacity>
+
+      {userDetailExpanded && (
+        <View style={styles.dropdownContent}>
+          {/* Datos básicos */}
+          <Text style={styles.text}>{t("Usuario")}: {userData.username || "--"}</Text>
+          <Text style={styles.text}>{t("Nombre")}: {userData.nombre || "--"}</Text>
+          <Text style={styles.text}>{t("Apellido")}: {userData.apellido || "--"}</Text>
+          <Text style={styles.text}>{t("Correo electonico")}: {userData.email || "--"}</Text>
+          <Text style={styles.text}>{t("Teléfono")}: {userData.phone || "--"}</Text>
+          <Text style={styles.text}>{t("Ciudad")}: {userData.ciudad || "--"}</Text>
+          <Text style={styles.text}>{t("Provincia")}: {userData.provincia || "--"}</Text>       
+          <Text style={styles.text}>{t("Peso")}: {userData.peso || "--"}</Text>
+          <Text style={styles.text}>{t("Altura")}: {userData.altura || "--"}</Text>
+          <Text style={styles.text}>{t("Edad")}: :{userData.edad || "--"}</Text>
+          <Text style={styles.text}>{t("Género")}: {userData.genero || "--"}</Text>
+          <Text style={styles.text}>{t("Cinturón")}: {userData.cinturon || "--"}</Text>
+
+          {/* Muestra la cant. actual de entrenos */}
+          <Text style={[styles.text, { marginTop: 8 }]}>
+            {t("Entrenamientos")} : {allTime}
+          </Text>
+
+          {/* === TextInput para AJUSTAR entrenamientos manualmente === */}
+          <View
+            style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}
+          >
+            <TextInput
+              style={styles.manualInput}
+              keyboardType="numeric"
+              value={manualCheckIns}
+              onChangeText={setManualCheckIns}
+              placeholder="Cantidad"
+              placeholderTextColor="#aaa"
             />
             <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmitRating}
+              style={styles.adjustButton}
+              onPress={handleSaveManual}
             >
-              <Text style={styles.submitButtonText}>Enviar Puntuación</Text>
+              <Text style={styles.adjustButtonText}>{t("Ajustar")}</Text>
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* ======== DROPDOWN: LISTA DE PUNTUACIONES ======== */}
-        <TouchableOpacity
-          style={styles.dropdownHeader}
-          onPress={() => setRatingsHistoryExpanded(!ratingsHistoryExpanded)}
-        >
-          <Text style={styles.dropdownHeaderText}>Historial de Puntuaciones</Text>
-          <Icon
-            name={ratingsHistoryExpanded ? "chevron-up" : "chevron-down"}
-            size={20}
-            color="#333"
-          />
-        </TouchableOpacity>
-
-        {ratingsHistoryExpanded && ratings.length === 0 && (
-          <Text style={[styles.text, { textAlign: "center", marginVertical: 8 }]}>
-            No hay puntuaciones aún.
+          {/* Dan actual */}
+          <Text style={[styles.text, { marginTop: 8, fontWeight: "bold" }]}>
+            {t("Dan actual")}: {danLabel}
           </Text>
+          <Text style={[styles.text, { marginBottom: 10 }]}>
+            {countInGroup}/{groupSize} {t("entrenamientos")}
+          </Text>
+
+          {/* Dans completados en ESTE cinturón */}
+          {danCompletes.length > 0 && (
+            <>
+              <Text style={[styles.text, { fontWeight: "bold", marginTop: 8 }]}>
+                {t("Dans Completados del Cinturon")} {userData.cinturon}
+              </Text>
+              <View style={styles.dansContainer}>{danCompletionUI}</View>
+            </>
+          )}
+        </View>
+      )}
+
+      {/* PUNTUACIONES */}
+      <View style={styles.fixedRatingContainer}>
+        {averageRating && (
+          <View style={styles.averageContainer}>
+            <Text style={styles.averageText}>{t("Promedio de Puntuaciones:")} {averageRating}/10</Text> 
+          </View>
         )}
+        <View style={styles.ratingContainer}>
+          <Text style={styles.ratingLabel}>{t("Puntuacion")}:</Text>
+          <StarRating
+            rating={score}
+            onChange={setScore}
+            maxStars={10}
+            color="#f1c40f"
+            starSize={25}
+          />
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={handleSubmitRating}
+          >
+            <Text style={styles.submitButtonText}>{t("Enviar Puntuación")}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    );
+
+      {/* Historial de Puntuaciones (Dropdown) */}
+      <TouchableOpacity
+        style={styles.dropdownHeader}
+        onPress={() => setRatingsHistoryExpanded(!ratingsHistoryExpanded)}
+      >
+        <Text style={styles.dropdownHeaderText}>{t("Historial de Puntuaciones")}</Text>
+        <Icon
+          name={ratingsHistoryExpanded ? "chevron-up" : "chevron-down"}
+          size={20}
+          color="#333"
+        />
+      </TouchableOpacity>
+
+      {ratingsHistoryExpanded && ratings.length === 0 && (
+        <Text style={[styles.text, { textAlign: "center", marginVertical: 8 }]}>
+          {t("No hay puntuaciones aún.")}
+        </Text>
+      )}
+    </View>
+  );
+
+  // Agrupar Check-Ins por año
+  const groupedByYear = Object.keys(monthlyCheckInCount).reduce((acc, mk) => {
+    const yr = dayjs(mk).year();
+    if (!acc[yr]) acc[yr] = [];
+    acc[yr].push({ month: mk, count: monthlyCheckInCount[mk] });
+    return acc;
+  }, {});
+
+  const toggleYear = (year) => {
+    setExpandedYear(expandedYear === year ? null : year);
   };
 
-  // ========== RENDER PRINCIPAL ==========
   return (
     <View style={{ flex: 1 }}>
       <SwipeListView
         data={ratingsHistoryExpanded ? ratings : []}
         keyExtractor={(item) => item.id}
-        renderItem={renderFrontItem}       // Vista frontal
-        renderHiddenItem={renderHiddenItem} // Vista oculta (botón "Eliminar")
-        disableLeftSwipe={false}  // Permitimos swipe a la izquierda
-        disableRightSwipe={false} // Permitimos swipe a la derecha
-        leftOpenValue={400}        // Al arrastrar 70 px a la izquierda, se abriría la parte oculta (no la usamos, pero es necesario un valor)
-        rightOpenValue={-100}      // Al arrastrar 70 px a la derecha, aparece el botón "Eliminar"
-        onSwipeValueChange={handleSwipeValueChange} // Detectamos arrastre para borrar directo al hacer swipe a la izq
+        renderItem={renderFrontItem}
+        renderHiddenItem={renderHiddenItem}
+        disableLeftSwipe={false}
+        disableRightSwipe={false}
+        leftOpenValue={400}
+        rightOpenValue={-100}
+        onSwipeValueChange={handleSwipeValueChange}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -384,9 +549,11 @@ export default function UserDetailScreen() {
                       onPress={() => toggleYear(year)}
                       style={styles.yearRow}
                     >
-                      <Text style={styles.yearText}>Año {year}</Text>
+                      <Text style={styles.yearText}>{t("Año")} {year}</Text>
                       <Icon
-                        name={expandedYear === year ? "chevron-up" : "chevron-down"}
+                        name={
+                          expandedYear === year ? "chevron-up" : "chevron-down"
+                        }
                         size={20}
                         color="#333"
                       />
@@ -396,13 +563,13 @@ export default function UserDetailScreen() {
                         {groupedByYear[year]
                           .sort((a, b) => dayjs(a.month).diff(dayjs(b.month)))
                           .map(({ month, count }) => {
-                            const formattedMonth =
-                              dayjs(month).format("MMMM").charAt(0).toUpperCase() +
-                              dayjs(month).format("MMMM").slice(1);
-
+                            const formattedMonth = dayjs(month).format("MMMM");
+                            const firstCap =
+                              formattedMonth.charAt(0).toUpperCase() +
+                              formattedMonth.slice(1);
                             return (
                               <View key={month} style={styles.monthRow}>
-                                <Text style={styles.monthText}>{formattedMonth}</Text>
+                                <Text style={styles.monthText}>{firstCap}</Text>
                                 <Text style={styles.countText}>{count}</Text>
                               </View>
                             );
@@ -413,7 +580,9 @@ export default function UserDetailScreen() {
                 ))}
             </View>
           ) : (
-            <Text style={styles.text}>No hay datos de historial disponibles</Text>
+            <Text style={styles.text}>
+              {t("No hay datos de historial disponibles")}
+            </Text>
           )
         }
       />
@@ -421,7 +590,9 @@ export default function UserDetailScreen() {
   );
 }
 
-// ========== ESTILOS ==========
+// ----------------------------------
+// ESTILOS
+// ----------------------------------
 const styles = StyleSheet.create({
   center: {
     flex: 1,
@@ -461,7 +632,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   averageText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     color: "#333",
   },
@@ -485,8 +656,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
-
-  // Lo que se ve normalmente (frontal)
   rowFront: {
     backgroundColor: "#fff",
     borderBottomColor: "#eee",
@@ -496,19 +665,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-
-  // Lo que se ve al deslizar (vista oculta)
   rowBack: {
     flex: 1,
-    backgroundColor: "red", // color de fondo general
+    backgroundColor: "red",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    // paddingRight: 15, // si quieres añadir espacio
   },
-  // Botón de eliminar a la derecha
   backRightBtn: {
-    backgroundColor: "red", // <--- Cambia aquí el color
+    backgroundColor: "red",
     width: 80,
     alignItems: "center",
     justifyContent: "center",
@@ -517,7 +682,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
-
   ratingScore: {
     fontSize: 16,
     color: "#333",
@@ -526,8 +690,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#999",
   },
-
-  // Historial de Check-Ins
   yearContainer: {
     marginBottom: 8,
     backgroundColor: "#f0f0f0",
@@ -560,5 +722,35 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 16,
     color: "#888",
+  },
+  dansContainer: {
+    marginVertical: 10,
+  },
+  danItem: {
+    fontSize: 15,
+    marginBottom: 2,
+    color: "#333",
+  },
+
+  // ***** ESTILO PARA NUESTRO NUEVO TEXTINPUT Y BOTÓN *****
+  manualInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 10,
+    color: "#000",
+  },
+  adjustButton: {
+    backgroundColor: "#2ecc71",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  adjustButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
