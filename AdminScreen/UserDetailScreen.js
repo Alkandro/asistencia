@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
-  TextInput, // <--- Importamos TextInput para editar
+  TextInput,
 } from "react-native";
 import {
   doc,
@@ -37,7 +37,7 @@ import "dayjs/locale/pt";
 
 import StarRating from "react-native-star-rating-widget";
 import { SwipeListView } from "react-native-swipe-list-view";
-
+import { ScrollView } from "react-native-gesture-handler";
 
 // dayjs config
 dayjs.extend(localeData);
@@ -45,7 +45,7 @@ dayjs.locale("es");
 dayjs.locale("ja");
 dayjs.locale("en");
 dayjs.locale("pt");
-
+// Puedes comentar o dejar dayjs.locale(...) si no necesitas forzar un idioma global
 
 // ----------------------------------
 // FUNCIONES AUXILIARES
@@ -67,14 +67,6 @@ function calculateDanInfo(beltColor, totalCheckIns) {
   return { rawGroup, currentDan, groupSize, countInGroup };
 }
 
-
-
-/**
- * checkDansCompletion:
- * - Verifica si el usuario completó un nuevo Dan en su cinturón actual
- * - Guarda un objeto en `danCompletes` si detecta Dan completado
- * - Evita usar serverTimestamp() dentro de arrays → usaremos new Date().
- */
 async function checkDansCompletion(userData, getDanLabel) {
   if (!userData?.cinturon) return;
   const total = userData.allTimeCheckIns || 0;
@@ -100,14 +92,13 @@ async function checkDansCompletion(userData, getDanLabel) {
   }
 }
 
-
 // ----------------------------------
 // COMPONENTE PRINCIPAL
 // ----------------------------------
 export default function UserDetailScreen() {
   const route = useRoute();
   const { userId } = route.params;
-  const { t, i18n } = useTranslation(); // Hook para traducción
+  const { t } = useTranslation();
 
   // Estados
   const [userData, setUserData] = useState(null);
@@ -125,24 +116,23 @@ export default function UserDetailScreen() {
   // Expandir por año
   const [expandedYear, setExpandedYear] = useState(null);
 
-  // ***** ESTADO para la edición manual de entrenamientos *****
-  const [manualCheckIns, setManualCheckIns] = useState(""); // campo de texto
-
+  // ESTADO para la edición manual de entrenamientos
+  const [manualCheckIns, setManualCheckIns] = useState("");
 
   function getDanLabel(danNumber) {
     switch (danNumber) {
       case 1:
-          return t("Primer Dan");
-        case 2:
-          return t("Segundo Dan");
-        case 3:
-          return t("Tercer Dan");
-        case 4:
-          return t("Cuarto Dan");
-        default:
-          return "";
-      }
+        return t("Primer Dan");
+      case 2:
+        return t("Segundo Dan");
+      case 3:
+        return t("Tercer Dan");
+      case 4:
+        return t("Cuarto Dan");
+      default:
+        return "";
     }
+  }
 
   // Efectos
   useEffect(() => {
@@ -208,8 +198,6 @@ export default function UserDetailScreen() {
         allTimeCheckIns: newVal,
       });
       Alert.alert("Éxito", `Entrenamientos ajustados a ${newVal}`);
-
-      // Opcional: volver a cargar la data desde Firestore
       await loadData();
     } catch (e) {
       console.error(e);
@@ -378,139 +366,13 @@ export default function UserDetailScreen() {
   // ----------------------------------
   const danCompletes = userData.danCompletes || [];
   danCompletes.sort((a, b) => a.dan - b.dan);
-
   const danCompletionUI = danCompletes.map((dc) => (
     <Text key={dc.dan} style={styles.danItem}>
       {getDanLabel(dc.dan)} completado ({dc.count}/{dc.groupSize}) ✓
     </Text>
   ));
 
-  // ----------------------------------
-  // LIST HEADER
-  // ----------------------------------
-  const ListHeader = () => (
-    <View>
-      {/* Botón para expandir detalle del usuario */}
-      <TouchableOpacity
-        style={styles.dropdownHeader}
-        onPress={() => setUserDetailExpanded(!userDetailExpanded)}
-      >
-        <Text style={styles.dropdownHeaderText}>{t("Detalle del Usuario")}</Text>
-        <Icon
-          name={userDetailExpanded ? "chevron-up" : "chevron-down"}
-          size={20}
-          color="#333"
-        />
-      </TouchableOpacity>
-
-      {userDetailExpanded && (
-        <View style={styles.dropdownContent}>
-          {/* Datos básicos */}
-          <Text style={styles.text}>{t("Usuario")}: {userData.username || "--"}</Text>
-          <Text style={styles.text}>{t("Nombre")}: {userData.nombre || "--"}</Text>
-          <Text style={styles.text}>{t("Apellido")}: {userData.apellido || "--"}</Text>
-          <Text style={styles.text}>{t("Correo electonico")}: {userData.email || "--"}</Text>
-          <Text style={styles.text}>{t("Teléfono")}: {userData.phone || "--"}</Text>
-          <Text style={styles.text}>{t("Ciudad")}: {userData.ciudad || "--"}</Text>
-          <Text style={styles.text}>{t("Provincia")}: {userData.provincia || "--"}</Text>       
-          <Text style={styles.text}>{t("Peso")}: {userData.peso || "--"}</Text>
-          <Text style={styles.text}>{t("Altura")}: {userData.altura || "--"}</Text>
-          <Text style={styles.text}>{t("Edad")}: :{userData.edad || "--"}</Text>
-          <Text style={styles.text}>{t("Género")}: {userData.genero || "--"}</Text>
-          <Text style={styles.text}>{t("Cinturón")}: {userData.cinturon || "--"}</Text>
-
-          {/* Muestra la cant. actual de entrenos */}
-          <Text style={[styles.text, { marginTop: 8 }]}>
-            {t("Entrenamientos")} : {allTime}
-          </Text>
-
-          {/* === TextInput para AJUSTAR entrenamientos manualmente === */}
-          <View
-            style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}
-          >
-            <TextInput
-              style={styles.manualInput}
-              keyboardType="numeric"
-              value={manualCheckIns}
-              onChangeText={setManualCheckIns}
-              placeholder="Cantidad"
-              placeholderTextColor="#aaa"
-            />
-            <TouchableOpacity
-              style={styles.adjustButton}
-              onPress={handleSaveManual}
-            >
-              <Text style={styles.adjustButtonText}>{t("Ajustar")}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Dan actual */}
-          <Text style={[styles.text, { marginTop: 8, fontWeight: "bold" }]}>
-            {t("Dan actual")}: {danLabel}
-          </Text>
-          <Text style={[styles.text, { marginBottom: 10 }]}>
-            {countInGroup}/{groupSize} {t("entrenamientos")}
-          </Text>
-
-          {/* Dans completados en ESTE cinturón */}
-          {danCompletes.length > 0 && (
-            <>
-              <Text style={[styles.text, { fontWeight: "bold", marginTop: 8 }]}>
-                {t("Dans Completados del Cinturon")} {userData.cinturon}
-              </Text>
-              <View style={styles.dansContainer}>{danCompletionUI}</View>
-            </>
-          )}
-        </View>
-      )}
-
-      {/* PUNTUACIONES */}
-      <View style={styles.fixedRatingContainer}>
-        {averageRating && (
-          <View style={styles.averageContainer}>
-            <Text style={styles.averageText}>{t("Promedio de Puntuaciones:")} {averageRating}/10</Text> 
-          </View>
-        )}
-        <View style={styles.ratingContainer}>
-          <Text style={styles.ratingLabel}>{t("Puntuacion")}:</Text>
-          <StarRating
-            rating={score}
-            onChange={setScore}
-            maxStars={10}
-            color="#f1c40f"
-            starSize={25}
-          />
-          <TouchableOpacity
-            style={styles.submitButton}
-            onPress={handleSubmitRating}
-          >
-            <Text style={styles.submitButtonText}>{t("Enviar Puntuación")}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Historial de Puntuaciones (Dropdown) */}
-      <TouchableOpacity
-        style={styles.dropdownHeader}
-        onPress={() => setRatingsHistoryExpanded(!ratingsHistoryExpanded)}
-      >
-        <Text style={styles.dropdownHeaderText}>{t("Historial de Puntuaciones")}</Text>
-        <Icon
-          name={ratingsHistoryExpanded ? "chevron-up" : "chevron-down"}
-          size={20}
-          color="#333"
-        />
-      </TouchableOpacity>
-
-      {ratingsHistoryExpanded && ratings.length === 0 && (
-        <Text style={[styles.text, { textAlign: "center", marginVertical: 8 }]}>
-          {t("No hay puntuaciones aún.")}
-        </Text>
-      )}
-    </View>
-  );
-
-  // Agrupar Check-Ins por año
+  // Agrupar Check-Ins por año (para el ListFooter)
   const groupedByYear = Object.keys(monthlyCheckInCount).reduce((acc, mk) => {
     const yr = dayjs(mk).year();
     if (!acc[yr]) acc[yr] = [];
@@ -522,9 +384,199 @@ export default function UserDetailScreen() {
     setExpandedYear(expandedYear === year ? null : year);
   };
 
+  // 1. Función para capitalizar
+function capitalize(str) {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// 2. Objeto para mapear el nombre del cinturón a un color
+const beltColors = {
+  blue: "blue",
+  purple: "#AA60C8",
+  brown: "#8B4513", // por ejemplo
+  black: "black",
+};
+
+
+  // ----------------------------------
+  // RENDER PRINCIPAL
+  // ----------------------------------
   return (
+  
     <View style={{ flex: 1 }}>
+      {/* 
+        1) MOVEMOS TODA LA “CABECERA” FUERA DE LA LISTA
+           Incluyendo TextInput y detalles del usuario
+      */}
+      <View style={{ paddingHorizontal: 10, backgroundColor: "#f8f8f8" }}>
+        {/* Detalle del Usuario (desplegable) */}
+        <TouchableOpacity
+          style={styles.dropdownHeader}
+          onPress={() => setUserDetailExpanded(!userDetailExpanded)}
+        >
+          <Text style={styles.dropdownHeaderText}>
+            {t("Detalle del Usuario")}
+          </Text>
+          <Icon
+            name={userDetailExpanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color="#333"
+          />
+        </TouchableOpacity>
+
+        {/* Contenido expandible */}
+        {userDetailExpanded && (
+          <View style={styles.dropdownContent}>
+            <Text style={styles.text}>
+              {t("Usuario")}: {userData.username || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Nombre")}: {userData.nombre || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Apellido")}: {userData.apellido || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Correo electonico")}: {userData.email || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Teléfono")}: {userData.phone || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Ciudad")}: {userData.ciudad || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Provincia")}: {userData.provincia || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Peso")}: {userData.peso || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Altura")}: {userData.altura || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Edad")}: {userData.edad || "--"}
+            </Text>
+            <Text style={styles.text}>
+              {t("Género")}: {userData.genero || "--"}
+            </Text>
+            <Text style={styles.text}>
+  {t("Cinturón")}:{" "}
+  <Text style={{ color: beltColors[userData.cinturon.toLowerCase()] }}>
+    {capitalize(userData.cinturon)}
+  </Text>
+</Text>
+
+            {/* Muestra la cant. actual de entrenos */}
+            <Text style={[styles.text, { marginTop: 8 }]}>
+              {t("Entrenamientos")}: {allTime}
+            </Text>
+
+            {/* TextInput para Ajustar entrenamientos manualmente */}
+            <View
+              style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}
+            >
+              <TextInput
+                style={styles.manualInput}
+                keyboardType="numeric"
+                value={manualCheckIns}
+                onChangeText={setManualCheckIns}
+                placeholder="Cantidad"
+                placeholderTextColor="#aaa"
+              />
+              <TouchableOpacity
+                style={styles.adjustButton}
+                onPress={handleSaveManual}
+              >
+                <Text style={styles.adjustButtonText}>
+                  {t("Ajustar")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Dan actual */}
+            <Text style={[styles.text, { marginTop: 8, fontWeight: "bold" }]}>
+              {t("Dan actual")}: {danLabel}
+            </Text>
+            <Text style={[styles.text, { marginBottom: 10 }]}>
+              {countInGroup}/{groupSize} {t("entrenamientos")}
+            </Text>
+
+            {/* Dans completados en ESTE cinturón */}
+            {danCompletes.length > 0 && (
+              <>
+               <Text style={[styles.text, { fontWeight: "bold", marginTop: 8 }]}>
+  {t("Dans Completados del Cinturon")}{" "}
+  <Text style={{ color: beltColors[userData.cinturon.toLowerCase()] }}>
+    {capitalize(userData.cinturon)}
+  </Text>
+</Text>
+                <View style={styles.dansContainer}>{danCompletionUI}</View>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* PUNTUACIONES */}
+        <View style={styles.fixedRatingContainer}>
+          {averageRating && (
+            <View style={styles.averageContainer}>
+              <Text style={styles.averageText}>
+                {t("Promedio de Puntuaciones:")} {averageRating}/10
+              </Text>
+            </View>
+          )}
+          <View style={styles.ratingContainer}>
+            <Text style={styles.ratingLabel}>{t("Puntuacion")}:</Text>
+            <StarRating
+              rating={score}
+              onChange={setScore}
+              maxStars={10}
+              color="#f1c40f"
+              starSize={25}
+            />
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleSubmitRating}
+            >
+              <Text style={styles.submitButtonText}>
+                {t("Enviar Puntuación")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Historial de Puntuaciones (Dropdown) */}
+        <TouchableOpacity
+          style={styles.dropdownHeader}
+          onPress={() => setRatingsHistoryExpanded(!ratingsHistoryExpanded)}
+        >
+          <Text style={styles.dropdownHeaderText}>
+            {t("Historial de Puntuaciones")}
+          </Text>
+          <Icon
+            name={ratingsHistoryExpanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color="#333"
+          />
+        </TouchableOpacity>
+
+        {ratingsHistoryExpanded && ratings.length === 0 && (
+          <Text style={[styles.text, { textAlign: "center", marginVertical: 8 }]}>
+            {t("No hay puntuaciones aún.")}
+          </Text>
+        )}
+      </View>
+
+      {/* 
+        2) SWIPE LISTVIEW PARA MOSTRAR EL HISTORIAL DE PUNTUACIONES 
+        (sin ListHeaderComponent)
+      */}
       <SwipeListView
+        // Para que no se cierre el teclado al tocar dentro de la lista:
+        keyboardShouldPersistTaps="handled"
+
         data={ratingsHistoryExpanded ? ratings : []}
         keyExtractor={(item) => item.id}
         renderItem={renderFrontItem}
@@ -537,7 +589,7 @@ export default function UserDetailScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        ListHeaderComponent={<ListHeader />}
+        // SIN ListHeaderComponent, pues movimos todo el contenido afuera
         ListFooterComponent={
           Object.keys(groupedByYear).length > 0 ? (
             <View>
@@ -549,7 +601,9 @@ export default function UserDetailScreen() {
                       onPress={() => toggleYear(year)}
                       style={styles.yearRow}
                     >
-                      <Text style={styles.yearText}>{t("Año")} {year}</Text>
+                      <Text style={styles.yearText}>
+                        {t("Año")} {year}
+                      </Text>
                       <Icon
                         name={
                           expandedYear === year ? "chevron-up" : "chevron-down"
@@ -580,13 +634,12 @@ export default function UserDetailScreen() {
                 ))}
             </View>
           ) : (
-            <Text style={styles.text}>
-              {t("No hay datos de historial disponibles")}
-            </Text>
+            <Text style={styles.text}>{t("No hay datos de historial disponibles")}</Text>
           )
         }
       />
     </View>
+    
   );
 }
 
@@ -629,7 +682,7 @@ const styles = StyleSheet.create({
   },
   averageContainer: {
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 5,
   },
   averageText: {
     fontSize: 16,
@@ -731,8 +784,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     color: "#333",
   },
-
-  // ***** ESTILO PARA NUESTRO NUEVO TEXTINPUT Y BOTÓN *****
   manualInput: {
     flex: 1,
     borderWidth: 1,
