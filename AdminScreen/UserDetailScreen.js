@@ -69,8 +69,21 @@ function calculateDanInfo(beltColor, totalCheckIns) {
 
 async function checkDansCompletion(userData, getDanLabel) {
   if (!userData?.cinturon) return;
-  const total = userData.allTimeCheckIns || 0;
+  const currentBelt = userData.cinturon.toLowerCase();
 
+  // Si existe un lastCinturon y es distinto al cinturón actual, reinicia los dans completados
+  if (userData.lastCinturon && userData.lastCinturon !== currentBelt) {
+    await updateDoc(doc(db, "users", userData.uid), {
+      danCompletes: [],
+      lastCinturon: currentBelt,
+    });
+    userData.danCompletes = [];
+  } else if (!userData.lastCinturon) {
+    // Si no existe, lo establecemos con el cinturón actual
+    await updateDoc(doc(db, "users", userData.uid), { lastCinturon: currentBelt });
+  }
+
+  const total = userData.allTimeCheckIns || 0;
   let danCompletes = userData.danCompletes || [];
   const { rawGroup, groupSize } = calculateDanInfo(userData.cinturon, total);
 
@@ -91,6 +104,7 @@ async function checkDansCompletion(userData, getDanLabel) {
     }
   }
 }
+
 
 // ----------------------------------
 // COMPONENTE PRINCIPAL
@@ -364,7 +378,7 @@ export default function UserDetailScreen() {
   // ----------------------------------
   // DAN COMPLETADOS DE ESTE CINTURÓN
   // ----------------------------------
-  const danCompletes = userData.danCompletes || [];
+  const danCompletes = (userData.danCompletes || []).filter(dc => dc.groupSize === groupSize);
   danCompletes.sort((a, b) => a.dan - b.dan);
   const danCompletionUI = danCompletes.map((dc) => (
     <Text key={dc.dan} style={styles.danItem}>
