@@ -75,6 +75,8 @@ const CheckInScreen = () => {
   const [username, setUsername] = useState("");
   const [userBelt, setUserBelt] = useState("white");
   const [allTimeCheckIns, setAllTimeCheckIns] = useState(0);
+  const [lastCheckInTime, setLastCheckInTime] = useState(null);
+
 
   // Mensaje personalizado desde otra pantalla
   const { customMessage } = route.params || {};
@@ -188,6 +190,18 @@ const CheckInScreen = () => {
 
   // ==== Botón TRAINING con lógica de ascenso a siguiente cinturón al completar 4/4 ====
   const handleCheckIn = async () => {
+     // Verifica si ya se realizó un check‑in recientemente
+  if (lastCheckInTime) {
+    const diff = Date.now() - lastCheckInTime.getTime();
+    const sixHours = 6 * 60 * 60* 1000; // 6 horas  en milisegundos
+    if (diff < sixHours) {
+      Alert.alert(
+        "Espera un momento",
+        "Debes esperar al menos 6 horas"
+      );
+      return;
+    }
+  }
     if (auth.currentUser) {
       const monthKey = dayjs().format("YYYY-MM");
       const userDocRef = doc(db, "users", auth.currentUser.uid);
@@ -208,6 +222,9 @@ const CheckInScreen = () => {
             [`checkIns_${monthKey}`]: increment(1),
             allTimeCheckIns: increment(1),
           });
+
+          // Actualizar la hora del último check‑in
+        setLastCheckInTime(new Date());
 
           // Actualizamos estado local
           const newCheckInCount = monthlyCheckIns + 1;
