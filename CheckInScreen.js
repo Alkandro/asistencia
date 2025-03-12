@@ -187,6 +187,24 @@ const CheckInScreen = () => {
       fetchUserData();
     }, [fetchMonthlyCheckIns, fetchLastRating, fetchUserData])
   );
+  
+  useEffect(() => {
+    const fetchLastCheckIn = async () => {
+      if (auth.currentUser) {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.lastCheckIn) {
+            setLastCheckInTime(new Date(data.lastCheckIn.seconds * 1000));
+          }
+        }
+      }
+    };
+  
+    fetchLastCheckIn();
+  }, []);
+  
 
   // ==== Botón TRAINING con lógica de ascenso a siguiente cinturón al completar 4/4 ====
   const handleCheckIn = async () => {
@@ -221,6 +239,7 @@ const CheckInScreen = () => {
           await updateDoc(userDocRef, {
             [`checkIns_${monthKey}`]: increment(1),
             allTimeCheckIns: increment(1),
+            lastCheckIn: new Date(), // Guardamos el último check‑in
           });
 
           // Actualizar la hora del último check‑in
@@ -251,6 +270,8 @@ const CheckInScreen = () => {
               },
             ]
           );
+
+          
 
           // ===== DETECTAR SI TERMINÓ LOS 4 GRUPOS (4/4) Y CAMBIAR CINTURÓN =====
           const { rawGroup, countInGroup, groupSize } = calculateDanInfo(
