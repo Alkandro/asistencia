@@ -77,7 +77,6 @@ const CheckInScreen = () => {
   const [allTimeCheckIns, setAllTimeCheckIns] = useState(0);
   const [lastCheckInTime, setLastCheckInTime] = useState(null);
 
-
   // Mensaje personalizado desde otra pantalla
   const { customMessage } = route.params || {};
 
@@ -187,7 +186,7 @@ const CheckInScreen = () => {
       fetchUserData();
     }, [fetchMonthlyCheckIns, fetchLastRating, fetchUserData])
   );
-  
+
   useEffect(() => {
     const fetchLastCheckIn = async () => {
       if (auth.currentUser) {
@@ -201,25 +200,25 @@ const CheckInScreen = () => {
         }
       }
     };
-  
+
     fetchLastCheckIn();
   }, []);
-  
 
   // ==== Botón TRAINING con lógica de ascenso a siguiente cinturón al completar 4/4 ====
   const handleCheckIn = async () => {
-     // Verifica si ya se realizó un check‑in recientemente
-  if (lastCheckInTime) {
-    const diff = Date.now() - lastCheckInTime.getTime();
-    const sixHours = 6 * 60 * 60* 1000; // 6 horas  en milisegundos
-    if (diff < sixHours) {
-      Alert.alert(
-        "Espera un momento",
-        "Debes esperar al menos 6 horas"
-      );
-      return;
+    // Verifica si ya se realizó un check‑in recientemente
+    if (lastCheckInTime) {
+      const diff = Date.now() - lastCheckInTime.getTime();
+      const sixHours = 0 * 0 * 0 * 1000; // 0 horas  en milisegundos
+      // const sixHours = 6 * 60 * 60* 1000; // 6 horas  en milisegundos
+      if (diff < sixHours) {
+        Alert.alert(
+          t("Espera un momento"),
+          t("Debes esperar al menos 6 horas")
+        );
+        return;
+      }
     }
-  }
     if (auth.currentUser) {
       const monthKey = dayjs().format("YYYY-MM");
       const userDocRef = doc(db, "users", auth.currentUser.uid);
@@ -243,7 +242,7 @@ const CheckInScreen = () => {
           });
 
           // Actualizar la hora del último check‑in
-        setLastCheckInTime(new Date());
+          setLastCheckInTime(new Date());
 
           // Actualizamos estado local
           const newCheckInCount = monthlyCheckIns + 1;
@@ -271,8 +270,6 @@ const CheckInScreen = () => {
             ]
           );
 
-          
-
           // ===== DETECTAR SI TERMINÓ LOS 4 GRUPOS (4/4) Y CAMBIAR CINTURÓN =====
           const { rawGroup, countInGroup, groupSize } = calculateDanInfo(
             userBeltData,
@@ -294,8 +291,14 @@ const CheckInScreen = () => {
               setAllTimeCheckIns(0);
 
               Alert.alert(
-                "¡Cinturón Ascendido!",
-                `Has completado los 4 Dans de ${userBeltData}.\n¡Ahora eres cinturón ${nextBelt}!`
+                "",
+                t(
+                  "¡Cinturón Ascendido!\n\nHas completado los 4 Dans de {{userBeltData}}",
+                  {
+                    userBeltData,
+                    nextBelt,
+                  }
+                )
               );
             }
           }
@@ -320,7 +323,7 @@ const CheckInScreen = () => {
     setRefreshing(false);
   };
 
-  // ==== Helpers para Dan / Progreso ====  
+  // ==== Helpers para Dan / Progreso ====
   const calculateDanInfo = (beltColor, totalCheckIns) => {
     const color = beltColor.toLowerCase();
     const total = totalCheckIns || 0;
@@ -425,36 +428,33 @@ const CheckInScreen = () => {
 
     return (
       <View style={styles.footerContainer}>
-          {/* En vez de usar un solo <Text> inline, componemos una vista en horizontal */}
-  <View style={{ flexDirection: "row", alignItems: "center" }}>
-    <Text style={styles.footerTitle}>
-      {t("Progreso del cinturón →")} 
-    </Text>
+        {/* En vez de usar un solo <Text> inline, componemos una vista en horizontal */}
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text style={styles.footerTitle}>{t("Progreso del cinturón →")}</Text>
 
-    {/* Caja para el color/fondo del cinturón */}
-    <View
-      style={{
-        backgroundColor:
-          userBelt === "white" ? "black" : "transparent", // Fondo negro solo si "white"
-        borderRadius: 4,
-        paddingHorizontal: 6,
-        marginLeft: 8,
-      }}
-    >
-      <Text
-        style={{
-          color:
-            userBelt === "white"
-              ? "white"
-              : beltColorMap[userBelt] || "#333", // El color del texto si NO es blanco
-          fontSize: 19, // Ajusta al tamaño que quieras
-          fontWeight: "bold",
-        }}
-      >
-        {userBelt.charAt(0).toUpperCase() + userBelt.slice(1)}
-      </Text>
-    </View>
-  </View>
+          {/* Caja para el color/fondo del cinturón */}
+          <View
+            style={{
+              backgroundColor: userBelt === "white" ? "black" : "transparent", // Fondo negro solo si "white"
+              borderRadius: 4,
+              paddingHorizontal: 6,
+              marginLeft: 8,
+            }}
+          >
+            <Text
+              style={{
+                color:
+                  userBelt === "white"
+                    ? "white"
+                    : beltColorMap[userBelt] || "#333", // El color del texto si NO es blanco
+                fontSize: 19, // Ajusta al tamaño que quieras
+                fontWeight: "bold",
+              }}
+            >
+              {userBelt.charAt(0).toUpperCase() + userBelt.slice(1)}
+            </Text>
+          </View>
+        </View>
         <Text style={styles.footerRatingText}>{beltProgressText}</Text>
         {completionMsg ? (
           <Text style={styles.completionMessage}>{completionMsg}</Text>
@@ -485,7 +485,9 @@ const CheckInScreen = () => {
         )}
 
         {lastRatingDate && (
-          <Text style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}>
+          <Text
+            style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}
+          >
             {t("Ultima puntuación:")}{" "}
             {lastRatingDate
               ? dayjs(lastRatingDate.toDate()).format("DD/MM/YYYY HH:mm")

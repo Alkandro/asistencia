@@ -108,6 +108,9 @@
   "Año": "Año",
   "Usuarios":"Usuarios",
   "Vista previa":"Vista previa",
-  "Lista de Usuarios":"Lista de Usuarios"
+  "Lista de Usuarios":"Lista de Usuarios",
+  "Espera un momento":"Espera un momento",
+  "Debes esperar al menos 6 horas":"Debes esperar al menos 6 horas",
+  "¡Cinturón Ascendido!\n\nHas completado los 4 Dans de {{userBeltData}}":"¡Cinturón Ascendido!\n\nHas completado los 4 Dans de {{userBeltData}}"
 }
 

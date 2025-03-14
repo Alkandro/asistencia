@@ -103,7 +103,10 @@
   "Año": "年",
   "Usuarios":"ユーザー",  
   "Vista previa":"プレビュー",
-  "Lista de Usuarios":"ユーザーリスト"
+  "Lista de Usuarios":"ユーザーリスト",
+  "Espera un momento":"少々お待ちください",
+  "Debes esperar al menos 6 horas":"少なくとも6時間はお待ちください",
+  "¡Cinturón Ascendido!\n\nHas completado los 4 Dans de {{userBeltData}}":"昇級しました！\n\n{{userBeltData}}の4段を完了しました"
 
 }
 

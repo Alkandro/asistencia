@@ -97,6 +97,9 @@
   "Año": "Year",
   "Usuarios":"Users",
   "Vista previa":"Preview",
-  "Lista de Usuarios":"User List"
+  "Lista de Usuarios":"User List",
+  "Espera un momento":"Wait a moment",
+  "Debes esperar al menos 6 horas":"You must wait at least 6 hours",
+  "¡Cinturón Ascendido!\n\nHas completado los 4 Dans de {{userBeltData}}": "Belt Promoted!\n\nYou have completed the 4 Dans of {{userBeltData}}"
 }
 

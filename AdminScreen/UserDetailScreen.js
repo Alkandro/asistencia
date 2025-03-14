@@ -3,7 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
+  Keyboard, 
+  TouchableWithoutFeedback, 
   ActivityIndicator,
+  Platform,
   TouchableOpacity,
   RefreshControl,
   Alert,
@@ -417,7 +420,8 @@ const beltColors = {
   // RENDER PRINCIPAL
   // ----------------------------------
   return (
-  
+    
+    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
     <View style={{ flex: 1 }}>
       {/* 
         1) MOVEMOS TODA LA “CABECERA” FUERA DE LA LISTA
@@ -653,7 +657,7 @@ const beltColors = {
         }
       />
     </View>
-    
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -686,7 +690,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    marginBottom: 4,
+    marginBottom: Platform.select({ android: -4, ios: 4 }),
     color: "#333",
   },
   fixedRatingContainer: {
@@ -792,6 +796,7 @@ const styles = StyleSheet.create({
   },
   dansContainer: {
     marginVertical: 10,
+    marginBottom: Platform.select({ android: -20, ios: 4 }),
   },
   danItem: {
     fontSize: 15,
