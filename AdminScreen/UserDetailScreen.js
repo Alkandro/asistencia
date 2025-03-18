@@ -121,7 +121,7 @@ export default function UserDetailScreen() {
   const [userData, setUserData] = useState(null);
   const [monthlyCheckInCount, setMonthlyCheckInCount] = useState({});
   const [ratings, setRatings] = useState([]);
-  const [score, setScore] = useState(5);
+  const [score, setScore] = useState(0);
   const [averageRating, setAverageRating] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

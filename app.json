@@ -15,7 +15,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Esta aplicación necesita acceder a la cámara para tomar fotos.",
-        "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceder a la galería para seleccionar fotos."
+        "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceder a la galería para seleccionar fotos.",
+        "NSPhotoLibraryAddUsageDescription": "Explica para qué guardas en la galería",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       },
       "bundleIdentifier": "com.alkandro.Asistencia"
     },
