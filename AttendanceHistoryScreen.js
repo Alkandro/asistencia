@@ -180,12 +180,12 @@ const AttendanceHistoryScreen = () => {
         <View style={styles.itemContainer}>
           <Text>
             <Text style={{ fontWeight: "bold", color: "black" }}>
-              {t("User:")}
+              {t(" User:")}
             </Text>
             <Text style={{ color: "blue" }}> {item.username}</Text>
           </Text>
           <Text>
-            {t("Date:")}{" "}
+            {t(" Date:")}{" "}
             {new Date(item.timestamp?.seconds * 1000).toLocaleDateString()}
           </Text>
         </View>
