@@ -77,18 +77,17 @@ const UserListScreen = () => {
             }}
             style={{ flex: 1 }}
           >
-            <View style={styles.nameBadgeContainer}>
-              <Text style={[styles.userName, { color: textColor }]}>
-                {item.nombre || "No registrado"}
-              </Text>
-              {(item.newTrainings ?? 0) > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.newTrainings}</Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
+             <Text style={[styles.userName, { color: textColor }]}>
+            {item.nombre || "No registrado"}
+          </Text>
+        </TouchableOpacity>
 
+        <View style={styles.badgeArrowContainer}>
+          {(item.newTrainings ?? 0) > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.newTrainings}</Text>
+            </View>
+          )}
           <TouchableOpacity onPress={() => setExpanded(!expanded)}>
             <Icon
               name={expanded ? "chevron-up" : "chevron-down"}
@@ -97,23 +96,24 @@ const UserListScreen = () => {
             />
           </TouchableOpacity>
         </View>
-        {expanded && (
-          <View style={styles.userDetails}>
-            <Text style={[styles.userText, { color: textColor }]}>
-              {t("User")}: {item.username || "No registrado"}
-            </Text>
-            <Text style={[styles.userText, { color: textColor }]}>
-              {t("Nombre")}: {item.nombre || "No registrado"}
-            </Text>
-            <Text style={[styles.userText, { color: textColor }]}>
-              {t("Apellido")}: {item.apellido || "No registrado"}
-            </Text>
-            {/* Otros detalles adicionales */}
-          </View>
-        )}
       </View>
-    );
-  };
+      {expanded && (
+        <View style={styles.userDetails}>
+          <Text style={[styles.userText, { color: textColor }]}>
+            {t("User")}: {item.username || "No registrado"}
+          </Text>
+          <Text style={[styles.userText, { color: textColor }]}>
+            {t("Nombre")}: {item.nombre || "No registrado"}
+          </Text>
+          <Text style={[styles.userText, { color: textColor }]}>
+            {t("Apellido")}: {item.apellido || "No registrado"}
+          </Text>
+          {/* Otros detalles adicionales */}
+        </View>
+      )}
+    </View>
+  );
+};
 
   return (
     <View style={styles.container}>
@@ -167,11 +167,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   badge: {
-    backgroundColor: "red",
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: 8,
+    backgroundColor: "#F18314",
+    width: 24, // ancho fijo
+    height: 24, // alto fijo
+    borderRadius: 12, // la mitad de 24 para que sea circular
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10, // separa el badge de la flecha
   },
   badgeText: {
     color: "white",
@@ -196,6 +198,10 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: "center",
     justifyContent: "center",
+  },
+  badgeArrowContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
 

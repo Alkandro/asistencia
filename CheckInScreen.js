@@ -237,6 +237,7 @@ const CheckInScreen = () => {
           // Actualizar conteo mensual + total
           await updateDoc(userDocRef, {
             [`checkIns_${monthKey}`]: increment(1),
+            newTrainings: increment(1), // Incrementa el contador del badge
             allTimeCheckIns: increment(1),
             lastCheckIn: new Date(), // Guardamos el último check‑in
           });

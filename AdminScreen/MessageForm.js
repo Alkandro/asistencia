@@ -17,6 +17,8 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useTranslation } from "react-i18next";
 
+
+
 const MessageForm = React.forwardRef(
   (
     {
@@ -24,7 +26,6 @@ const MessageForm = React.forwardRef(
       setMessage,
       additionalField1,
       setAdditionalField1,
-
       localImageUri,
       setLocalImageUri,
       uploading,
@@ -36,6 +37,8 @@ const MessageForm = React.forwardRef(
     ref
   ) => {
     const { t } = useTranslation(); // Hook para traducción
+    const defaultImage = require("../assets/fotos/tashiroblack.png");
+
     return (
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -105,7 +108,7 @@ const MessageForm = React.forwardRef(
             {localImageUri && (
               <View style={styles.imagePreviewContainer}>
                 <Image
-                  source={{ uri: localImageUri }}
+                  source={localImageUri ? { uri: localImageUri } : defaultImage}
                   style={styles.imagePreview}
                   resizeMode="cover"
                 />
@@ -171,7 +174,8 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   imagePreviewContainer: {
-    marginBottom: 10,
+    marginTop: 40, // Aumenta el espacio arriba de la imagen
+  marginBottom: 40, // Aumenta el espacio debajo (opcional)
     alignItems: "center",
   },
   imagePreview: {
