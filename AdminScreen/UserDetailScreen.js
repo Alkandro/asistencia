@@ -3,14 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  Keyboard, 
-  TouchableWithoutFeedback, 
+  Keyboard,
+  TouchableWithoutFeedback,
   ActivityIndicator,
   Platform,
   TouchableOpacity,
   RefreshControl,
   Alert,
   TextInput,
+  
 } from "react-native";
 import {
   doc,
@@ -38,9 +39,9 @@ import "dayjs/locale/ja";
 import "dayjs/locale/en";
 import "dayjs/locale/pt";
 
-import StarRating from "react-native-star-rating-widget";
+
 import { SwipeListView } from "react-native-swipe-list-view";
-import { ScrollView } from "react-native-gesture-handler";
+
 
 // dayjs config
 dayjs.extend(localeData);
@@ -83,7 +84,9 @@ async function checkDansCompletion(userData, getDanLabel) {
     userData.danCompletes = [];
   } else if (!userData.lastCinturon) {
     // Si no existe, lo establecemos con el cinturón actual
-    await updateDoc(doc(db, "users", userData.uid), { lastCinturon: currentBelt });
+    await updateDoc(doc(db, "users", userData.uid), {
+      lastCinturon: currentBelt,
+    });
   }
 
   const total = userData.allTimeCheckIns || 0;
@@ -108,7 +111,6 @@ async function checkDansCompletion(userData, getDanLabel) {
   }
 }
 
-
 // ----------------------------------
 // COMPONENTE PRINCIPAL
 // ----------------------------------
@@ -125,15 +127,8 @@ export default function UserDetailScreen() {
   const [averageRating, setAverageRating] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Expandir/cerrar detalles
-  const [userDetailExpanded, setUserDetailExpanded] = useState(false);
   const [ratingsHistoryExpanded, setRatingsHistoryExpanded] = useState(false);
-
-  // Expandir por año
   const [expandedYear, setExpandedYear] = useState(null);
-
-  // ESTADO para la edición manual de entrenamientos
   const [manualCheckIns, setManualCheckIns] = useState("");
 
   function getDanLabel(danNumber) {
@@ -381,7 +376,9 @@ export default function UserDetailScreen() {
   // ----------------------------------
   // DAN COMPLETADOS DE ESTE CINTURÓN
   // ----------------------------------
-  const danCompletes = (userData.danCompletes || []).filter(dc => dc.groupSize === groupSize);
+  const danCompletes = (userData.danCompletes || []).filter(
+    (dc) => dc.groupSize === groupSize
+  );
   danCompletes.sort((a, b) => a.dan - b.dan);
   const danCompletionUI = danCompletes.map((dc) => (
     <Text key={dc.dan} style={styles.danItem}>
@@ -402,19 +399,18 @@ export default function UserDetailScreen() {
   };
 
   // 1. Función para capitalizar
-function capitalize(str) {
-  if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+  function capitalize(str) {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
 
-// 2. Objeto para mapear el nombre del cinturón a un color
-const beltColors = {
-  blue: "blue",
-  purple: "#AA60C8",
-  brown: "#8B4513", // por ejemplo
-  black: "black",
-};
-
+  // 2. Objeto para mapear el nombre del cinturón a un color
+  const beltColors = {
+    blue: "blue",
+    purple: "#AA60C8",
+    brown: "#8B4513", // por ejemplo
+    black: "black",
+  };
 
   // ----------------------------------
   // RENDER PRINCIPAL
@@ -422,78 +418,65 @@ const beltColors = {
   return (
     
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-    <View style={{ flex: 1 }}>
-      {/* 
-        1) MOVEMOS TODA LA “CABECERA” FUERA DE LA LISTA
-           Incluyendo TextInput y detalles del usuario
-      */}
-      <View style={{ paddingHorizontal: 10, backgroundColor: "#f8f8f8" }}>
-        {/* Detalle del Usuario (desplegable) */}
-        <TouchableOpacity
-          style={styles.dropdownHeader}
-          onPress={() => setUserDetailExpanded(!userDetailExpanded)}
-        >
-          <Text style={styles.dropdownHeaderText}>
-            {t("Detalle del Usuario")}
-          </Text>
-          <Icon
-            name={userDetailExpanded ? "chevron-up" : "chevron-down"}
-            size={20}
-            color="#333"
-          />
-        </TouchableOpacity>
+      <View style={{ flex: 1 }}>
 
-        {/* Contenido expandible */}
-        {userDetailExpanded && (
+        <View style={{ paddingHorizontal: 10, backgroundColor: "#f8f8f8" }}>
+  
           <View style={styles.dropdownContent}>
             <Text style={styles.text}>
-              {t("Usuario")}: {userData.username || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Usuario")}</Text>: {userData.username || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Nombre")}: {userData.nombre || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Nombre")}</Text>: {userData.nombre || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Apellido")}: {userData.apellido || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Apellido")}</Text>: {userData.apellido || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Correo electonico")}: {userData.email || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Correo electonico")}</Text>: {userData.email || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Teléfono")}: {userData.phone || "--"}
+            <Text style={{ fontWeight: 'bold' }}> {t("Teléfono")}</Text>: {userData.phone || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Ciudad")}: {userData.ciudad || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Ciudad")}</Text>: {userData.ciudad || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Provincia")}: {userData.provincia || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Provincia")}</Text>: {userData.provincia || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Peso")}: {userData.peso || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Peso")}</Text>: {userData.peso || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Altura")}: {userData.altura || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Altura")}</Text>: {userData.altura || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Edad")}: {userData.edad || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Edad")}</Text>: {userData.edad || "--"}
             </Text>
             <Text style={styles.text}>
-              {t("Género")}: {userData.genero || "--"}
+            <Text style={{ fontWeight: 'bold' }}>{t("Género")}</Text>: {userData.genero || "--"}
             </Text>
             <Text style={styles.text}>
-  {t("Cinturón")}:{" "}
-  <Text style={{ color: beltColors[userData.cinturon.toLowerCase()] }}>
-    {capitalize(userData.cinturon)}
-  </Text>
-</Text>
+            <Text style={{ fontWeight: 'bold' }}>{t("Cinturón")}</Text>:{" "}
+              <Text
+                style={{ color: beltColors[userData.cinturon.toLowerCase()] }}
+              >
+                {capitalize(userData.cinturon)}
+              </Text>
+            </Text>
 
             {/* Muestra la cant. actual de entrenos */}
             <Text style={[styles.text, { marginTop: 8 }]}>
-              {t("Entrenamientos")}: {allTime}
+            <Text style={{ fontWeight: 'bold' }}>{t("Entrenamientos")}</Text>: {allTime}
             </Text>
 
             {/* TextInput para Ajustar entrenamientos manualmente */}
             <View
-              style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 8,
+              }}
             >
               <TextInput
                 style={styles.manualInput}
@@ -507,9 +490,7 @@ const beltColors = {
                 style={styles.adjustButton}
                 onPress={handleSaveManual}
               >
-                <Text style={styles.adjustButtonText}>
-                  {t("Ajustar")}
-                </Text>
+                <Text style={styles.adjustButtonText}>{t("Ajustar")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -524,140 +505,99 @@ const beltColors = {
             {/* Dans completados en ESTE cinturón */}
             {danCompletes.length > 0 && (
               <>
-               <Text style={[styles.text, { fontWeight: "bold", marginTop: 8 }]}>
-  {t("Dans Completados del Cinturon")}{" "}
-  <Text style={{ color: beltColors[userData.cinturon.toLowerCase()] }}>
-    {capitalize(userData.cinturon)}
-  </Text>
-</Text>
+                <Text
+                  style={[styles.text, { fontWeight: "bold", marginTop: 8 }]}
+                >
+                  {t("Dans Completados del Cinturon")}{" "}
+                  <Text
+                    style={{
+                      color: beltColors[userData.cinturon.toLowerCase()],
+                    }}
+                  >
+                    {capitalize(userData.cinturon)}
+                  </Text>
+                </Text>
                 <View style={styles.dansContainer}>{danCompletionUI}</View>
               </>
             )}
           </View>
-        )}
-
-        {/* PUNTUACIONES */}
-        <View style={styles.fixedRatingContainer}>
-          {averageRating && (
-            <View style={styles.averageContainer}>
-              <Text style={styles.averageText}>
-                {t("Promedio de Puntuaciones:")} {averageRating}/10
-              </Text>
-            </View>
-          )}
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingLabel}>{t("Puntuacion")}:</Text>
-            <StarRating
-              rating={score}
-              onChange={setScore}
-              maxStars={10}
-              color="#f1c40f"
-              starSize={25}
-            />
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmitRating}
-            >
-              <Text style={styles.submitButtonText}>
-                {t("Enviar Puntuación")}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
-        {/* Historial de Puntuaciones (Dropdown) */}
-        <TouchableOpacity
-          style={styles.dropdownHeader}
-          onPress={() => setRatingsHistoryExpanded(!ratingsHistoryExpanded)}
-        >
-          <Text style={styles.dropdownHeaderText}>
-            {t("Historial de Puntuaciones")}
-          </Text>
-          <Icon
-            name={ratingsHistoryExpanded ? "chevron-up" : "chevron-down"}
-            size={20}
-            color="#333"
-          />
-        </TouchableOpacity>
+        <SwipeListView
+          // Para que no se cierre el teclado al tocar dentro de la lista:
+          keyboardShouldPersistTaps="handled"
+          data={ratingsHistoryExpanded ? ratings : []}
+          keyExtractor={(item) => item.id}
+          renderItem={renderFrontItem}
+          renderHiddenItem={renderHiddenItem}
+          disableLeftSwipe={false}
+          disableRightSwipe={false}
+          leftOpenValue={400}
+          rightOpenValue={-100}
+          onSwipeValueChange={handleSwipeValueChange}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          // SIN ListHeaderComponent, pues movimos todo el contenido afuera
+          ListFooterComponent={
+            Object.keys(groupedByYear).length > 0 ? (
+              <View>
+                {Object.keys(groupedByYear)
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .map((year) => (
+                    <View key={year} style={styles.yearContainer}>
+                      <TouchableOpacity
+                        onPress={() => toggleYear(year)}
+                        style={styles.yearRow}
+                      >
+                        <Text style={styles.yearText}>
+                          {t("Año")} {year}
+                        </Text>
+                        <Icon
+                          name={
+                            expandedYear === year
+                              ? "chevron-up"
+                              : "chevron-down"
+                          }
+                          size={20}
+                          color="#333"
+                        />
+                      </TouchableOpacity>
 
-        {ratingsHistoryExpanded && ratings.length === 0 && (
-          <Text style={[styles.text, { textAlign: "center", marginVertical: 8 }]}>
-            {t("No hay puntuaciones aún.")}
-          </Text>
-        )}
+                      {expandedYear === year && (
+                        <View style={styles.monthContainer}>
+                          {groupedByYear[year]
+                            .sort((a, b) => dayjs(a.month).diff(dayjs(b.month)))
+                            .map(({ month, count }) => {
+                              const formattedMonth =
+                                dayjs(month).format("MMMM");
+                              const firstCap =
+                                formattedMonth.charAt(0).toUpperCase() +
+                                formattedMonth.slice(1);
+                              return (
+                                <View key={month} style={styles.monthRow}>
+                                  <Text style={styles.monthText}>
+                                    {firstCap}
+                                  </Text>
+                                  <Text style={styles.countText}>{count}</Text>
+                                </View>
+                              );
+                            })}
+                        </View>
+                      )}
+                    </View>
+                  ))}
+              </View>
+            ) : (
+              <Text style={styles.text}>
+                {t("No hay datos de historial disponibles")}
+              </Text>
+            )
+          }
+        />
       </View>
-
-      {/* 
-        2) SWIPE LISTVIEW PARA MOSTRAR EL HISTORIAL DE PUNTUACIONES 
-        (sin ListHeaderComponent)
-      */}
-      <SwipeListView
-        // Para que no se cierre el teclado al tocar dentro de la lista:
-        keyboardShouldPersistTaps="handled"
-
-        data={ratingsHistoryExpanded ? ratings : []}
-        keyExtractor={(item) => item.id}
-        renderItem={renderFrontItem}
-        renderHiddenItem={renderHiddenItem}
-        disableLeftSwipe={false}
-        disableRightSwipe={false}
-        leftOpenValue={400}
-        rightOpenValue={-100}
-        onSwipeValueChange={handleSwipeValueChange}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        // SIN ListHeaderComponent, pues movimos todo el contenido afuera
-        ListFooterComponent={
-          Object.keys(groupedByYear).length > 0 ? (
-            <View>
-              {Object.keys(groupedByYear)
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .map((year) => (
-                  <View key={year} style={styles.yearContainer}>
-                    <TouchableOpacity
-                      onPress={() => toggleYear(year)}
-                      style={styles.yearRow}
-                    >
-                      <Text style={styles.yearText}>
-                        {t("Año")} {year}
-                      </Text>
-                      <Icon
-                        name={
-                          expandedYear === year ? "chevron-up" : "chevron-down"
-                        }
-                        size={20}
-                        color="#333"
-                      />
-                    </TouchableOpacity>
-                    {expandedYear === year && (
-                      <View style={styles.monthContainer}>
-                        {groupedByYear[year]
-                          .sort((a, b) => dayjs(a.month).diff(dayjs(b.month)))
-                          .map(({ month, count }) => {
-                            const formattedMonth = dayjs(month).format("MMMM");
-                            const firstCap =
-                              formattedMonth.charAt(0).toUpperCase() +
-                              formattedMonth.slice(1);
-                            return (
-                              <View key={month} style={styles.monthRow}>
-                                <Text style={styles.monthText}>{firstCap}</Text>
-                                <Text style={styles.countText}>{count}</Text>
-                              </View>
-                            );
-                          })}
-                      </View>
-                    )}
-                  </View>
-                ))}
-            </View>
-          ) : (
-            <Text style={styles.text}>{t("No hay datos de historial disponibles")}</Text>
-          )
-        }
-      />
-    </View>
     </TouchableWithoutFeedback>
+   
   );
 }
 
@@ -690,7 +630,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    marginBottom: Platform.select({ android: -4, ios: 4 }),
+    marginBottom: Platform.select({ android: 0.5, ios: 4 }),
     color: "#333",
   },
   fixedRatingContainer: {
@@ -706,7 +646,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
-  },
+  }, 
   ratingContainer: {
     alignItems: "center",
   },
@@ -823,4 +763,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
+  
 });

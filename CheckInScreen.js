@@ -255,7 +255,7 @@ const CheckInScreen = () => {
           Alert.alert(
             "",
             t(
-              "🎉 Bienvenido, {{userName}}!\n\ntu cinturón es color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.",
+              "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.",
               {
                 userName,
                 userBeltData,
@@ -460,29 +460,9 @@ const CheckInScreen = () => {
           <Text style={styles.completionMessage}>{completionMsg}</Text>
         ) : null}
 
-        <Text style={[styles.footerTitle, { marginTop: 20 }]}>
-          {t("Última Puntuación de")} {username}
-        </Text>
-        {lastRating ? (
-          <>
-            <Text style={styles.footerRatingText}>
-              {t("Tu última puntuación:")} {lastRating}/10
-            </Text>
-            <StarRating
-              rating={halfStarLast}
-              onChange={() => {}}
-              maxStars={10}
-              color="#f1c40f"
-              starSize={22}
-              enableHalfStar={true}
-              disable={true}
-            />
-          </>
-        ) : (
-          <Text style={styles.footerRatingText}>
-            {t("Aún no tienes puntuaciones registradas")}
-          </Text>
-        )}
+       
+        
+        
 
         {lastRatingDate && (
           <Text
@@ -495,12 +475,7 @@ const CheckInScreen = () => {
           </Text>
         )}
 
-        {customMessage && (
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.messageTitle}>Mensaje</Text>
-            <Text style={styles.customMessageText}>{customMessage}</Text>
-          </View>
-        )}
+        
       </View>
     );
   };
@@ -656,6 +631,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 70,
+    width:390,
     justifyContent: "center",
     alignItems: "center",
     borderTopWidth: 1,
@@ -664,6 +640,7 @@ const styles = StyleSheet.create({
   },
   button: {
     alignSelf: "center",
+    fontSize:13,
   },
   modalOverlay: {
     flex: 1,

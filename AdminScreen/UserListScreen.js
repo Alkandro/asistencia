@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  Alert, 
-  TouchableOpacity 
-} from 'react-native';
-import { collection, onSnapshot } from 'firebase/firestore';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
+import { collection, onSnapshot } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
 import ButtonGradient from "../ButtonGradient";
-import { db, auth } from '../firebase';
+import { db, auth } from "../firebase";
 import { useTranslation } from "react-i18next";
+import Icon from "react-native-vector-icons/Ionicons";
+import { updateDoc, doc } from "firebase/firestore";
 
 const UserListScreen = () => {
   const { t } = useTranslation();
@@ -21,15 +23,14 @@ const UserListScreen = () => {
   useEffect(() => {
     const usersRef = collection(db, "users");
 
-    // Suscripción en tiempo real
     const unsubscribe = onSnapshot(
       usersRef,
       (snapshot) => {
         const userList = [];
         snapshot.forEach((docSnap) => {
           const userData = docSnap.data();
-          // Si el usuario NO es admin y es user (role !== "admin"), lo agregamos a la lista.
           if (userData.role !== "admin") {
+            // Suponemos que en cada usuario se incluye la propiedad "newTrainings"
             userList.push({ id: docSnap.id, ...userData });
           }
         });
@@ -40,38 +41,79 @@ const UserListScreen = () => {
       }
     );
 
-    // Cancelar la suscripción al desmontar el componente.
     return () => unsubscribe();
   }, []);
 
   const handleSignOut = async () => {
     try {
       await auth.signOut();
-      // Al no haber usuario, la app renderizará el stack de autenticación.
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
   };
+  const handleNewTraining = async (userId, currentTrainings = 0) => {
+    const userRef = doc(db, "users", userId);
+    const newValue = currentTrainings + 1;
+    await updateDoc(userRef, { newTrainings: newValue });
+  };
+  
+  
 
-  const renderUserItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.userItem}
-      onPress={() => {
-        // Navega a la pantalla de detalle, pasando el ID del usuario.
-        navigation.navigate("UserDetailScreen", { userId: item.id });
-      }}
-    >
-      <Text style={styles.userText}>
-        {t("User")}: {item.username || "No registrado"}
-      </Text>
-      <Text style={styles.userText}>
-        {t("Nombre")}: {item.nombre || "No registrado"}
-      </Text>
-      <Text style={styles.userText}>
-        {t("Apellido")}: {item.apellido || "No registrado"}
-      </Text>
-    </TouchableOpacity>
-  );
+  // Componente para cada usuario con dropdown, fondo intercalado y badge de notificación
+  const UserItem = ({ item, index }) => {
+    const [expanded, setExpanded] = useState(false);
+    // Fondo y color de texto intercalados:
+    const backgroundColor = index % 2 === 0 ? "black" : "white";
+    const textColor = index % 2 === 0 ? "white" : "black";
+
+    return (
+      <View style={[styles.userItem, { backgroundColor }]}>
+        <View style={styles.userHeaderRow}>
+          <TouchableOpacity
+            onPress={async () => {
+              // Actualiza newTrainings a 0 (o a otro valor) para el usuario antes de navegar
+              await updateDoc(doc(db, "users", item.id), { newTrainings: 0 });
+              navigation.navigate("UserDetailScreen", { userId: item.id });
+            }}
+            style={{ flex: 1 }}
+          >
+            <View style={styles.nameBadgeContainer}>
+              <Text style={[styles.userName, { color: textColor }]}>
+                {item.nombre || "No registrado"}
+              </Text>
+              {(item.newTrainings ?? 0) > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{item.newTrainings}</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+            <Icon
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={textColor}
+            />
+          </TouchableOpacity>
+        </View>
+        {expanded && (
+          <View style={styles.userDetails}>
+            <Text style={[styles.userText, { color: textColor }]}>
+              {t("User")}: {item.username || "No registrado"}
+            </Text>
+            <Text style={[styles.userText, { color: textColor }]}>
+              {t("Nombre")}: {item.nombre || "No registrado"}
+            </Text>
+            <Text style={[styles.userText, { color: textColor }]}>
+              {t("Apellido")}: {item.apellido || "No registrado"}
+            </Text>
+            {/* Otros detalles adicionales */}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -80,7 +122,7 @@ const UserListScreen = () => {
       <FlatList
         data={users}
         keyExtractor={(item) => item.id}
-        renderItem={renderUserItem}
+        renderItem={({ item, index }) => <UserItem item={item} index={index} />}
       />
 
       <View style={styles.buttonContainer}>
@@ -96,7 +138,7 @@ const UserListScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, 
+    flex: 1,
     padding: 16,
     backgroundColor: "#fff",
   },
@@ -107,8 +149,38 @@ const styles = StyleSheet.create({
   },
   userItem: {
     paddingVertical: 10,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
+  },
+  userHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  nameBadgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  badge: {
+    backgroundColor: "red",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  userDetails: {
+    marginTop: 8,
+    paddingLeft: 10,
   },
   userText: {
     fontSize: 16,

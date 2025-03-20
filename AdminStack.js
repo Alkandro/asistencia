@@ -4,10 +4,12 @@ import { createStackNavigator } from "@react-navigation/stack";
 import UserDetailScreen from "./AdminScreen/UserDetailScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import AdminTabNavigator from "./AdminScreen/AdminTabNavigator";
+import { useTranslation } from "react-i18next";
 
 const Stack = createStackNavigator();
 
 const AdminStack = () => {
+  const { t } = useTranslation();
   return (
     <Stack.Navigator initialRouteName="AdminTabs">
       {/* 1) Ruta que muestra el TabNavigator */}
@@ -23,7 +25,7 @@ const AdminStack = () => {
         name="UserDetailScreen"
         component={UserDetailScreen}
         options={{ 
-          title: "Detalle del usuario" ,
+          title: t("Detalle del Usuario") ,
           headerBackTitleVisible: false,
         }}
       />
