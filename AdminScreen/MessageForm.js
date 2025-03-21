@@ -9,9 +9,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -38,17 +36,11 @@ const MessageForm = React.forwardRef(
     const { t } = useTranslation(); // Hook para traducción
 
     return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "position"}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          {/* Scroll para que todo sea desplazable */}
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.formContainer}>
+        <View style={styles.formContainer}>
               <Text style={styles.label}>
                 {editingMessage ? t("Editar Mensaje:") : t("Portugués")}
               </Text>
@@ -143,8 +135,7 @@ const MessageForm = React.forwardRef(
               <View style={styles.separator} />
             </View>
           </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+       
     );
   }
 );

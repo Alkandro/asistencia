@@ -8,6 +8,10 @@ import {
   Keyboard,
   Alert,
   Image,
+  Text,
+  ActivityIndicator,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { auth, storage, db } from "../firebase";
 import * as ImagePicker from "expo-image-picker";
@@ -142,11 +146,16 @@ export default function CreateMessageScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.keyboardView}
-      >
-        <ScrollView keyboardShouldPersistTaps="always">
+    <KeyboardAvoidingView
+      style={styles.keyboardView}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "android" ? 80 : 20} // Ajusta según necesidad
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
           <MessageForm
             ref={textInputRef}
             message={message}
@@ -162,8 +171,23 @@ export default function CreateMessageScreen() {
             defaultImage={defaultImage}
           />
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+    {uploading && (
+  <View style={styles.overlay}>
+    <View style={styles.loaderContainer}>
+      {/* <Image
+        source={require("../assets/fotos/uploading.gif")} // opcional: animación personalizada
+        style={{ width: 100, height: 100 }}
+      /> */}
+      {/* O el clásico spinner */}
+      <ActivityIndicator size="large" color="#fff" />
+      <Text style={styles.loadingText}>Subiendo imagen...</Text>
+    </View>
+  </View>
+)}
+  </SafeAreaView>
+  
   );
 }
 
@@ -175,4 +199,33 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  
+  loaderContainer: {
+    backgroundColor: "#333",
+    padding: 25,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  
+  loadingText: {
+    marginTop: 10,
+    color: "#fff",
+    fontSize: 16,
+  },
+  
 });

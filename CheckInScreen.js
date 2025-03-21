@@ -395,8 +395,12 @@ const CheckInScreen = () => {
           )}
           {latestMessage.imageUrl && (
             <TouchableWithoutFeedback onPress={() => setIsModalVisible(true)}>
-              <Card style={styles.card}>
-                <Card.Cover source={{ uri: latestMessage.imageUrl }} />
+              <Card style={[styles.card, { alignItems: "center" }]}>
+                <Card.Cover
+                  source={{ uri: latestMessage.imageUrl }}
+                  style={{ width: 350, height: 250, borderRadius: 8 }} // 👈 Ajustá el tamaño a gusto
+                  resizeMode="cover"
+                />
               </Card>
             </TouchableWithoutFeedback>
           )}
@@ -461,10 +465,6 @@ const CheckInScreen = () => {
           <Text style={styles.completionMessage}>{completionMsg}</Text>
         ) : null}
 
-       
-        
-        
-
         {lastRatingDate && (
           <Text
             style={[styles.footerRatingText, { marginTop: 15, fontSize: 12 }]}
@@ -475,8 +475,6 @@ const CheckInScreen = () => {
               : ""}
           </Text>
         )}
-
-        
       </View>
     );
   };
@@ -525,7 +523,11 @@ const CheckInScreen = () => {
               <View style={styles.modalContent}>
                 {latestMessage?.imageUrl && (
                   <Card style={styles.modalCard}>
-                    <Card.Cover source={{ uri: latestMessage.imageUrl }} />
+                    <Card.Cover
+                      source={{ uri: latestMessage.imageUrl }}
+                      style={{ width: "100%", height: 350 }} // O el alto que prefieras
+                      resizeMode="cover"
+                    />
                     <Card.Title
                       title={t("Detalles del Mensaje")}
                       subtitle={
@@ -537,7 +539,7 @@ const CheckInScreen = () => {
                       }
                     />
                     <Card.Content>
-                      <Paragraph style={{ textAlign: "center" }}>
+                      <Paragraph>
                         {t("Portugues")}: {latestMessage.text}
                       </Paragraph>
                       {latestMessage.additionalField1 && (
@@ -632,7 +634,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 70,
-    width:390,
+    width: 390,
     justifyContent: "center",
     alignItems: "center",
     borderTopWidth: 1,
@@ -641,7 +643,7 @@ const styles = StyleSheet.create({
   },
   button: {
     alignSelf: "center",
-    fontSize:13,
+    fontSize: 13,
   },
   modalOverlay: {
     flex: 1,

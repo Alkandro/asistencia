@@ -15,6 +15,7 @@ const AdminTabNavigator = () => {
   return (
     <Tab.Navigator
   screenOptions={({ route }) => ({
+   
     tabBarIcon: ({ color, size }) => {
       let iconName = "home";
       if (route.name === "UserList") iconName = "user-group";
@@ -22,6 +23,7 @@ const AdminTabNavigator = () => {
       else if (route.name === "MessagePreviewScreen") iconName = "eye";
       return <Icon name={iconName} size={size} color={color} />;
     },
+    tabBarHideOnKeyboard: true,
     tabBarActiveTintColor: "blue",
     tabBarInactiveTintColor: "black",
     headerTitleAlign: "center",
