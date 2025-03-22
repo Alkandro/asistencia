@@ -30,6 +30,8 @@ import {
 } from "firebase/storage";
 import MessageForm from "./MessageForm";
 import { useTranslation } from "react-i18next";
+import LottieView from "lottie-react-native";
+
 
 export default function CreateMessageScreen() {
   const { t } = useTranslation(); // Hook para traducción
@@ -181,8 +183,14 @@ export default function CreateMessageScreen() {
         style={{ width: 100, height: 100 }}
       /> */}
       {/* O el clásico spinner */}
-      <ActivityIndicator size="large" color="#fff" />
-      <Text style={styles.loadingText}>Subiendo imagen...</Text>
+      <LottieView
+  source={require("../assets/lottie/mano.json")}
+  autoPlay
+  loop
+  style={{ width: 150, height: 150 }}
+/>
+
+      <Text style={styles.loadingText}>{t("Subiendo imagen...")}</Text>
     </View>
   </View>
 )}

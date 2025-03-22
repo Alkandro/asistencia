@@ -9,7 +9,7 @@
   "Don't have an account?": "Crear una cuenta",
   "Mensaje": "Mensaje",
   "TRAINING": "ENTRENAMIENTO DE HOY",
-  "🎉 Bienvenido, {{userName}}!\n\ntu cinturón es color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.": "🎉 Bienvenido, {{userName}}!\n\ntu cinturón es color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.",
+  "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.": "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.",
   "No hay mensajes aún": "No hay mensajes aún",
   "Última Puntuación de": "Última Puntuación de",
   "Ultima puntuación:": "Ultima puntuación",
@@ -112,5 +112,6 @@
   "Espera un momento":"Espera un momento",
   "Debes esperar al menos 6 horas":"Debes esperar al menos 6 horas",
   "¡Cinturón Ascendido!\n\nHas completado los 4 Dans de {{userBeltData}}":"¡Cinturón Ascendido!\n\nHas completado los 4 Dans de {{userBeltData}}"
+  
 }
 

@@ -96,6 +96,8 @@ const CheckInScreen = () => {
     return () => unsubscribe();
   }, []);
 
+  
+
   // ==== Obtener check-ins de este mes ====
   const fetchMonthlyCheckIns = async () => {
     try {
@@ -230,6 +232,7 @@ const CheckInScreen = () => {
           const userData = userDoc.data();
           const userName = userData.username || "Usuario";
           const userBeltData = userData.cinturon || "white";
+          const capitalizedBelt = userBeltData.charAt(0).toUpperCase() + userBeltData.slice(1);
 
           // Registrar el check-in en attendanceHistory
           await recordCheckIn(userData);
@@ -259,7 +262,7 @@ const CheckInScreen = () => {
               "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.",
               {
                 userName,
-                userBeltData,
+                userBeltData:capitalizedBelt,
                 newCheckInCount,
               }
             ),

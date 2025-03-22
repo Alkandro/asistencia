@@ -1,7 +1,7 @@
 {
   "¡Bienvenido!": "Welcome!",
   "Mensaje": "Message",
-  "🎉 Bienvenido, {{userName}}!\n\ntu cinturón es color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.": "🎉 Welcome, {{userName}}!\n\nYour belt color is {{userBeltData}}.\n\n🏋️‍♂️ This month you've trained {{newCheckInCount}} times.",
+  "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.": "🎉 Welcome, {{userName}}!\n\nBelt color {{userBeltData}}.\n\n🏋️‍♂️ You trained {{newCheckInCount}} times this month.",
   "No hay mensajes aún": "No messages yet",
   "Última Puntuación de": "Last Score of",
   "Ultima puntuación:": "Last Score",
