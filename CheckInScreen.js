@@ -20,6 +20,7 @@ import {
 } from "@react-navigation/native";
 import { auth, db } from "./firebase";
 import ButtonGradient from "./ButtonGradient";
+import { StyledInput } from "./StyledInput";
 import {
   doc,
   getDoc,
