@@ -411,6 +411,10 @@
 // });
 
 // export default AppDrawer;
+
+
+
+
 import React, {
   useState,
   useCallback,
@@ -429,14 +433,15 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  StatusBar,
+  ActivityIndicator,
 } from "react-native";
-import Icon from "react-native-vector-icons/Ionicons";
+import { Ionicons } from '@expo/vector-icons';
 import CheckInScreen from "./CheckInScreen";
 import AttendanceHistoryScreen from "./AttendanceHistoryScreen";
 import UserProfileScreen from "./UserProfileScreen";
 import Information from "./Information";
-import ButtonMinimal from "./ButtonMinimal";
-import CardMinimal from "./CardMinimal";
+import BeltProgressScreen from "./BeltProgressScreen";
 import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
@@ -455,6 +460,18 @@ const Drawer = createDrawerNavigator();
 
 dayjs.extend(localeData);
 
+// Mapeo de imágenes de cinturones
+const beltImages = {
+  white: require("./assets/fotos/whitebelt.png"),
+  blue: require("./assets/fotos/bluebelt.png"),
+  purple: require("./assets/fotos/purplebelt.png"),
+  brown: require("./assets/fotos/brownbelt.png"),
+  black: require("./assets/fotos/blackbelt.png"),
+};
+
+const getBeltImage = (belt) =>
+  beltImages[belt?.toLowerCase()] || beltImages["white"];
+
 const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language || "es";
@@ -466,12 +483,15 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
   const [userBelt, setUserBelt] = useState("white");
   const [allTimeCheckIns, setAllTimeCheckIns] = useState(0);
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const drawerStatus = useDrawerStatus();
 
   // Función para cargar la información del usuario
   const loadUserData = async () => {
     try {
+      setLoading(true);
+      
       // Cargar imagen desde AsyncStorage
       const imageUri = await AsyncStorage.getItem("userImageUri");
       setUserImageUri(imageUri);
@@ -487,15 +507,23 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
           setFirstName(data.nombre || data.username || "Usuario");
           setUserBelt(data.cinturon || "white");
           setAllTimeCheckIns(data.allTimeCheckIns || 0);
+          
+          // SINCRONIZACIÓN CORREGIDA - Usar datos directos de Firebase
+          const monthlyData = data.monthlyCheckInCount || {};
+          const currentMonthKey = dayjs().format("YYYY-MM");
+          const monthCount = monthlyData[currentMonthKey] || 0;
+          
+          console.log("Drawer - Datos mensuales:", monthlyData); // Debug
+          console.log("Drawer - Mes actual:", currentMonthKey); // Debug
+          console.log("Drawer - Entrenamientos este mes:", monthCount); // Debug
+          
+          setMonthlyCheckIns(monthCount);
         }
       }
-
-      // Calcular entrenamientos del mes actual
-      const currentMonthKey = dayjs().format("YYYY-MM");
-      const monthCount = monthlyCheckInCount[currentMonthKey] || 0;
-      setMonthlyCheckIns(monthCount);
     } catch (error) {
       console.error("Error al cargar datos del usuario:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -536,7 +564,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
 
   // Calcular progreso del cinturón
   const calculateDanInfo = (beltColor, totalCheckIns) => {
-    const color = beltColor.toLowerCase();
+    const color = beltColor?.toLowerCase() || "white";
     const total = totalCheckIns || 0;
     const groupSize = color === "white" ? 40 : 60;
     const maxDan = 4;
@@ -608,10 +636,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       id: 'progress',
       title: t("Progreso del Cinturón"),
       icon: "trophy-outline",
-      onPress: () => {
-        // Navegar a una pantalla de progreso detallado si existe
-        navigation.closeDrawer();
-      },
+      onPress: () => navigation.navigate("BeltProgress"),
     },
     {
       id: 'messages',
@@ -627,29 +652,49 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
     },
   ];
 
+  // Usar datos del prop si están disponibles, sino usar estado local
+  const displayMonthlyCheckIns = monthlyCheckInCount ? 
+    (monthlyCheckInCount[dayjs().format("YYYY-MM")] || 0) : 
+    monthlyCheckIns;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.spinnerContainer}>
+            <ActivityIndicator size="large" color="#000000" />
+          </View>
+          <Text style={styles.loadingText}>{t("Cargando...")}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            tintColor="#000000"
+          />
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header con logo */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.closeDrawer()}>
-            <Icon name="arrow-back" size={24} color="#333333" />
-          </TouchableOpacity>
-         
-        </View>
-
         {/* Perfil del usuario */}
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             {userImageUri ? (
-              <Image source={{ uri: userImageUri }} style={styles.avatar} />
+              <Image 
+                source={{ uri: userImageUri }} 
+                style={styles.avatar}
+                defaultSource={require("./assets/fotos/tashiro1.png")}
+              />
             ) : (
               <Image
                 source={require("./assets/fotos/tashiro1.png")}
@@ -659,27 +704,26 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
           </View>
           <Text style={styles.userName}>{firstName}</Text>
           <Text style={styles.userHandle}>@{username}</Text>
-        </View>
-
-        {/* Card de progreso rápido */}
-        <CardMinimal style={styles.progressCard}>
-          <View style={styles.progressRow}>
-            <View style={styles.beltIconContainer}>
-              <View 
-                style={[
-                  styles.beltIcon,
-                  { backgroundColor: getBeltColor(userBelt) }
-                ]}
+          
+          {/* Progreso del cinturón debajo de la foto - CON IMAGEN DEL CINTURÓN */}
+          <View style={styles.beltProgressSection}>
+            <View style={styles.beltProgressHeader}>
+              <Image
+                source={getBeltImage(userBelt)}
+                style={styles.beltImage}
               />
+              <View style={styles.beltProgressInfo}>
+                <Text style={styles.progressText}>{beltProgressText}</Text>
+                <Text style={[styles.beltText, { color: getBeltColor(userBelt) }]}>
+                  {userBelt.charAt(0).toUpperCase() + userBelt.slice(1)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.progressInfo}>
-              <Text style={styles.progressText}>{beltProgressText}</Text>
-              <Text style={styles.monthlyText}>
-                {t("Entrenamientos este mes: {{count}}", { count: monthlyCheckIns })}
-              </Text>
-            </View>
+            <Text style={styles.monthlyText}>
+              {t("Entrenamientos este mes: {{count}}", { count: displayMonthlyCheckIns })}
+            </Text>
           </View>
-        </CardMinimal>
+        </View>
 
         {/* Navegación principal */}
         <View style={styles.navigationSection}>
@@ -690,7 +734,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
               onPress={item.onPress}
               activeOpacity={0.7}
             >
-              <Icon name={item.icon} size={20} color="#333333" style={styles.menuIcon} />
+              <Ionicons name={item.icon} size={20} color="#333333" style={styles.menuIcon} />
               <Text style={styles.menuText}>{item.title}</Text>
             </TouchableOpacity>
           ))}
@@ -702,20 +746,22 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
         </View>
       </ScrollView>
 
-      {/* Botón de cerrar sesión */}
+      {/* Botón de cerrar sesión - solo texto e icono sin fondo */}
       <View style={styles.logoutSection}>
-        <ButtonMinimal
+        <TouchableOpacity
           onPress={handleSignOut}
-          title={t("Cerrar Sesión")}
-          variant="danger"
           style={styles.logoutButton}
-        />
+          activeOpacity={0.7}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#DC3545" style={styles.logoutIcon} />
+          <Text style={styles.logoutText}>{t("Cerrar Sesión")}</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
-const UserBottomTabs = ({ navigation, route }) => {
+const UserBottomTabs = ({ navigation, route, monthlyCheckInCount, fetchMonthlyCheckInCount }) => {
   const { t } = useTranslation();
 
   // Cambiar dinámicamente el título de la pantalla activa
@@ -743,7 +789,7 @@ const UserBottomTabs = ({ navigation, route }) => {
           if (route.name === "Registrarse") iconName = "checkmark-circle-outline";
           else if (route.name === "Historial") iconName = "time-outline";
           else if (route.name === "Profile") iconName = "person-outline";
-          return <Icon name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#000000",
         tabBarInactiveTintColor: "#666666",
@@ -763,12 +809,19 @@ const UserBottomTabs = ({ navigation, route }) => {
     >
       <Tab.Screen
         name="Registrarse"
-        component={CheckInScreen}
         options={{
           title: t("Inicio"),
           headerShown: false,
         }}
-      />
+      >
+        {(props) => (
+          <CheckInScreen
+            {...props}
+            monthlyCheckInCount={monthlyCheckInCount}
+            fetchMonthlyCheckInCount={fetchMonthlyCheckInCount}
+          />
+        )}
+      </Tab.Screen>
       <Tab.Screen
         name="Historial"
         component={AttendanceHistoryScreen}
@@ -802,25 +855,41 @@ const AppDrawer = ({ monthlyCheckInCount, fetchMonthlyCheckInCount }) => (
     screenOptions={{
       drawerStyle: styles.drawerStyle,
       headerStyle: styles.headerStyle,
-      headerTintColor: "#FFFFFF",
+      headerTintColor: "#000000",
       headerTitleStyle: {
         fontWeight: '600',
+        color: "#000000",
       },
     }}
   >
     <Drawer.Screen
       name="UserTabs"
-      component={UserBottomTabs}
       options={{ 
         title: "TASHIRO JIU-JITSU", 
         headerTitleAlign: "center",
       }}
-    />
+    >
+      {(props) => (
+        <UserBottomTabs
+          {...props}
+          monthlyCheckInCount={monthlyCheckInCount}
+          fetchMonthlyCheckInCount={fetchMonthlyCheckInCount}
+        />
+      )}
+    </Drawer.Screen>
     <Drawer.Screen
       name="Information"
       component={Information}
       options={{ 
         title: "Información",
+        headerTitleAlign: "center",
+      }}
+    />
+    <Drawer.Screen
+      name="BeltProgress"
+      component={BeltProgressScreen}
+      options={{ 
+        title: "Progreso del Cinturón",
         headerTitleAlign: "center",
       }}
     />
@@ -832,96 +901,94 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  spinnerContainer: {
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#666666",
+    textAlign: "center",
+  },
   scrollContainer: {
     flex: 1,
   },
   contentContainer: {
     paddingBottom: 20,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 10 : 20,
-    paddingBottom: 10,
-  },
-  logoContainer: {
-    flex: 1,
-    alignItems: "center",
-    marginLeft: -24, // Compensar el botón de atrás
-  },
-  logo: {
-    width: 40,
-    height: 40,
-    marginBottom: 8,
-    resizeMode: "contain",
-  },
-  logoText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#000000",
-    letterSpacing: 1,
-  },
-  logoSubtext: {
-    fontSize: 12,
-    color: "#666666",
-    letterSpacing: 0.5,
-  },
   profileSection: {
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 10,
-    marginTop:-40,
+    paddingTop: Platform.OS === "ios" ? 20 : 40,
+    paddingBottom: 30,
   },
   avatarContainer: {
-    marginBottom: 10,
+    marginBottom: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   userName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
     color: "#000000",
     marginBottom: 4,
   },
   userHandle: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666666",
+    marginBottom: 20,
   },
-  progressCard: {
-    marginHorizontal: 20,
-    marginBottom: 5,
+  beltProgressSection: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    width: "100%",
   },
-  progressRow: {
+  beltProgressHeader: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 12,
   },
-  beltIconContainer: {
+  beltImage: {
+    width: 50,
+    height: 20,
+    resizeMode: "contain",
     marginRight: 12,
   },
-  beltIcon: {
-    width: 30,
-    height: 15,
-    borderRadius: 3,
-  },
-  progressInfo: {
+  beltProgressInfo: {
     flex: 1,
   },
   progressText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#000000",
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  beltText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   monthlyText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#666666",
+    textAlign: "center",
   },
   navigationSection: {
     paddingHorizontal: 20,
+    paddingTop: 20,
   },
   menuItem: {
     flexDirection: "row",
@@ -942,7 +1009,7 @@ const styles = StyleSheet.create({
   },
   appInfoSection: {
     paddingHorizontal: 20,
-    paddingTop: 5,
+    paddingTop: 30,
     alignItems: "center",
   },
   versionText: {
@@ -951,21 +1018,36 @@ const styles = StyleSheet.create({
   },
   logoutSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: Platform.OS === "ios" ? 30 : 20,
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
   },
   logoutButton: {
-    marginBottom: Platform.OS === 'ios' ? 10 : 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  logoutIcon: {
+    marginRight: 8,
+  },
+  logoutText: {
+    fontSize: 16,
+    color: "#DC3545",
+    fontWeight: "500",
   },
   drawerStyle: {
     width: 280,
     backgroundColor: "#FFFFFF",
   },
   headerStyle: {
-    backgroundColor: "#000000",
-    elevation: 0,
-    shadowOpacity: 0,
+    backgroundColor: "#FFFFFF",
+    elevation: 1,
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
 });
 

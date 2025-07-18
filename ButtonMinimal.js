@@ -1,115 +1,163 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import React from "react";
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
 
-const ButtonMinimal = ({ onPress, title, style, textStyle, disabled = false, variant = 'primary' }) => {
+const ButtonMinimal = ({
+  onPress,
+  title,
+  variant = "primary",
+  disabled = false,
+  loading = false,
+  style,
+  textStyle,
+  ...props
+}) => {
   const getButtonStyle = () => {
+    const baseStyle = [styles.button];
+    
     switch (variant) {
-      case 'secondary':
-        return [styles.buttonSecondary, disabled && styles.buttonDisabled];
-      case 'outline':
-        return [styles.buttonOutline, disabled && styles.buttonDisabled];
-      case 'danger':
-        return [styles.buttonDanger, disabled && styles.buttonDisabled];
+      case "secondary":
+        baseStyle.push(styles.secondary);
+        break;
+      case "outline":
+        baseStyle.push(styles.outline);
+        break;
+      case "danger":
+        baseStyle.push(styles.danger);
+        break;
       default:
-        return [styles.buttonPrimary, disabled && styles.buttonDisabled];
+        baseStyle.push(styles.primary);
     }
+    
+    if (disabled) {
+      baseStyle.push(styles.disabled);
+    }
+    
+    if (style) {
+      baseStyle.push(style);
+    }
+    
+    return baseStyle;
   };
 
   const getTextStyle = () => {
+    const baseStyle = [styles.text];
+    
     switch (variant) {
-      case 'secondary':
-        return styles.textSecondary;
-      case 'outline':
-        return styles.textOutline;
-      case 'danger':
-        return styles.textDanger;
+      case "secondary":
+        baseStyle.push(styles.secondaryText);
+        break;
+      case "outline":
+        baseStyle.push(styles.outlineText);
+        break;
+      case "danger":
+        baseStyle.push(styles.dangerText);
+        break;
       default:
-        return styles.textPrimary;
+        baseStyle.push(styles.primaryText);
     }
+    
+    if (disabled) {
+      baseStyle.push(styles.disabledText);
+    }
+    
+    if (textStyle) {
+      baseStyle.push(textStyle);
+    }
+    
+    return baseStyle;
   };
 
   return (
     <TouchableOpacity
-      style={[getButtonStyle(), style]}
-      onPress={disabled ? null : onPress}
-      activeOpacity={disabled ? 1 : 0.8}
+      style={getButtonStyle()}
+      onPress={onPress}
+      disabled={disabled || loading}
+      activeOpacity={0.8}
+      {...props}
     >
-      <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+      {loading ? (
+        <ActivityIndicator 
+          size="small" 
+          color={variant === "primary" || variant === "danger" ? "#FFFFFF" : "#000000"}
+          style={styles.loadingIndicator}
+        />
+      ) : (
+        <Text style={getTextStyle()}>{title}</Text>
+      )}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  // Botón primario - Negro con texto blanco
-  buttonPrimary: {
-    backgroundColor: '#000000',
+  button: {
     paddingVertical: 15,
     paddingHorizontal: 30,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 50,
+    // Sombra específica para iOS
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  textPrimary: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  primary: {
+    backgroundColor: "#000000",
   },
-
-  // Botón secundario - Gris con texto negro
-  buttonSecondary: {
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
+  secondary: {
+    backgroundColor: "#F5F5F5",
   },
-  textSecondary: {
-    color: '#333333',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Botón outline - Transparente con borde negro
-  buttonOutline: {
-    backgroundColor: 'transparent',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
+  outline: {
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
+    borderColor: "#000000",
   },
-  textOutline: {
-    color: '#000000',
+  danger: {
+    backgroundColor: "#DC3545",
+  },
+  disabled: {
+    backgroundColor: "#E0E0E0",
+    borderColor: "#E0E0E0",
+  },
+  text: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
+    textAlign: "center",
   },
-
-  // Botón de peligro - Rojo para logout
-  buttonDanger: {
-    backgroundColor: '#DC3545',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
+  primaryText: {
+    color: "#FFFFFF",
   },
-  textDanger: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  secondaryText: {
+    color: "#000000",
   },
-
-  // Estado deshabilitado
-  buttonDisabled: {
-    opacity: 0.5,
+  outlineText: {
+    color: "#000000",
+  },
+  dangerText: {
+    color: "#FFFFFF",
+  },
+  disabledText: {
+    color: "#999999",
+  },
+  loadingIndicator: {
+    // Centrar el ActivityIndicator correctamente en iOS
+    alignSelf: "center",
   },
 });
 
 export default ButtonMinimal;
+
