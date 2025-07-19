@@ -8,7 +8,7 @@
   "Sign in to your account": "アカウントにログイン",
   "Don't have an account?": "アカウントを作成",
   "Mensaje": "メッセージ",
-  "TRAINING": "トレーニングを記録",
+  "TRAINING": "トレーニング",
   "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.": "🎉 ようこそ、{{userName}}さん！\n\n帯の色 {{userBeltData}}。\n\n🏋️‍♂️ 今月のトレーニング回数：{{newCheckInCount}}回。",
   "No hay mensajes aún": "まだメッセージがありません",
   "Última Puntuación de": "最新スコア:",

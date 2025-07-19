@@ -682,6 +682,9 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
             refreshing={refreshing} 
             onRefresh={handleRefresh}
             tintColor="#000000"
+            colors={["#000000"]} // Android
+      progressViewOffset={60}
+            
           />
         }
         showsVerticalScrollIndicator={false}
@@ -812,6 +815,7 @@ const UserBottomTabs = ({ navigation, route, monthlyCheckInCount, fetchMonthlyCh
         options={{
           title: t("Inicio"),
           headerShown: false,
+          
         }}
       >
         {(props) => (
@@ -932,12 +936,13 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   avatarContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    marginTop:Platform.OS === "ios" ? 30 : 10,
   },
   userName: {
     fontSize: 20,
@@ -988,12 +993,13 @@ const styles = StyleSheet.create({
   },
   navigationSection: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: Platform.OS === "ios" ? 10 : 5,
+    marginTop: Platform.OS === "ios" ? 0 : -30,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
+    paddingVertical: Platform.OS === "ios" ? 12 : 10,
     paddingHorizontal: 16,
     marginVertical: 2,
     borderRadius: 8,
@@ -1015,6 +1021,7 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: "#999999",
+    marginTop: Platform.OS === "ios" ? 12 : -13,
   },
   logoutSection: {
     paddingHorizontal: 20,

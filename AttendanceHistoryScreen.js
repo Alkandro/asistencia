@@ -691,8 +691,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   picker: {
-    height: Platform.OS === "ios" ? 120 : 50,
+    height:  Platform.OS === 'ios' ? 200 : 'auto',
     color: "#333333",
+    transform: [{ scale: 0.95 }], // Reducir tamaño a 85%
+  
   },
   clearButton: {
     alignSelf: "flex-start",

@@ -1135,8 +1135,10 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E0E0E0",
   },
   picker: {
-    height: Platform.OS === "ios" ? 120 : 50,
-    color: "#333333",
+    height: Platform.OS === 'ios' ? 190 : 'auto',
+    width: '100%',
+    backgroundColor: '#33333',
+    transform: [{ scale: 0.95 }], // Reducir tamaño a 85%
   },
   beltPreview: {
     alignItems: "center",

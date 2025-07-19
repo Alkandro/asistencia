@@ -709,19 +709,12 @@ import {
   orderBy, 
   limit,
   addDoc,
-  serverTimestamp 
+  serverTimestamp,
+  onSnapshot
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
 dayjs.extend(localeData);
-
-// Mapeo de banderas por idioma
-const languageFlags = {
-  pt: "🇧🇷",
-  ja: "🇯🇵",
-  es: "🇪🇸",
-  en: "🇺🇸",
-};
 
 // Mapeo de imágenes de cinturones
 const beltImages = {
@@ -748,7 +741,7 @@ const CheckInScreen = ({ navigation, monthlyCheckInCount, fetchMonthlyCheckInCou
   const [userBelt, setUserBelt] = useState("white");
   const [allTimeCheckIns, setAllTimeCheckIns] = useState(0);
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
-  const [messages, setMessages] = useState([]);
+  const [latestMessage, setLatestMessage] = useState(null);
 
   // Función para cargar datos del usuario
   const loadUserData = async () => {
@@ -775,35 +768,36 @@ const CheckInScreen = ({ navigation, monthlyCheckInCount, fetchMonthlyCheckInCou
     }
   };
 
-  // Función para cargar mensajes MULTIIDIOMA CORREGIDA
-  const loadMessages = async () => {
-    try {
-      const messagesRef = collection(db, "messages");
-      const q = query(messagesRef, orderBy("timestamp", "desc"), limit(10));
-      const querySnapshot = await getDocs(q);
+  // Suscripción a mensajes usando la estructura ORIGINAL
+  useEffect(() => {
+    console.log("🔍 Configurando suscripción a mensajes..."); // Debug
+    
+    const messagesRef = collection(db, "messages");
+    // USAR LA ESTRUCTURA ORIGINAL: orderBy "createdAt" y limit 1
+    const q = query(messagesRef, orderBy("createdAt", "desc"), limit(1));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log("📊 Snapshot recibido, docs:", snapshot.size); // Debug
       
-      const messagesList = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        messagesList.push({
-          id: doc.id,
-          ...data,
-        });
-      });
-      
-      console.log("Mensajes cargados:", messagesList); // Debug
-      
-      // FILTRAR MENSAJES POR MÚLTIPLES IDIOMAS (japonés y portugués)
-      const filteredMessages = messagesList.filter(message => {
-        return message.language === 'ja' || message.language === 'pt';
-      });
-      
-      console.log("Mensajes filtrados:", filteredMessages); // Debug
-      setMessages(filteredMessages);
-    } catch (error) {
-      console.error("Error al cargar mensajes:", error);
-    }
-  };
+      if (!snapshot.empty) {
+        const docSnap = snapshot.docs[0];
+        const messageData = docSnap.data();
+        console.log("📄 Mensaje encontrado:", messageData); // Debug
+        setLatestMessage(messageData);
+      } else {
+        console.log("⚠️ No se encontraron mensajes"); // Debug
+        setLatestMessage(null);
+      }
+    }, (error) => {
+      console.error("❌ Error en suscripción a mensajes:", error); // Debug
+      setLatestMessage(null);
+    });
+
+    return () => {
+      console.log("🔄 Limpiando suscripción a mensajes"); // Debug
+      unsubscribe();
+    };
+  }, []);
 
   // Función para calcular entrenamientos del mes SINCRONIZADA
   const calculateMonthlyCheckIns = async () => {
@@ -840,7 +834,6 @@ const CheckInScreen = ({ navigation, monthlyCheckInCount, fetchMonthlyCheckInCou
     setRefreshing(true);
     await Promise.all([
       loadUserData(),
-      loadMessages(),
       calculateMonthlyCheckIns(),
     ]);
     setRefreshing(false);
@@ -1048,27 +1041,49 @@ const CheckInScreen = ({ navigation, monthlyCheckInCount, fetchMonthlyCheckInCou
           </View>
         </View>
 
-        {/* Mensajes multiidioma RESTAURADOS */}
+        {/* Mensajes usando estructura ORIGINAL */}
         <View style={styles.messagesSection}>
           <Text style={styles.messagesTitle}>{t("Mensajes")}</Text>
-          {messages.length > 0 ? (
-            messages.map((message) => (
-              <View key={message.id} style={styles.messageCard}>
-                <View style={styles.messageHeader}>
-                  <Text style={styles.messageFlag}>
-                    {languageFlags[message.language] || "🌐"}
-                  </Text>
-                  <Text style={styles.messageText}>{message.text}</Text>
+          
+          {latestMessage ? (
+            <View style={styles.messageCard}>
+              {/* Mensaje en Portugués */}
+              {latestMessage.text && (
+                <View style={styles.messageContainer}>
+                  <View style={styles.messageHeader}>
+                    <Text style={styles.messageFlag}>🇧🇷</Text>
+                    <Text style={styles.messageText}>{latestMessage.text}</Text>
+                  </View>
                 </View>
-                {message.imageUrl && (
-                  <Image
-                    source={{ uri: message.imageUrl }}
-                    style={styles.messageImage}
-                    resizeMode="cover"
-                  />
-                )}
-              </View>
-            ))
+              )}
+              
+              {/* Mensaje en Japonés */}
+              {latestMessage.additionalField1 && (
+                <View style={styles.messageContainer}>
+                  <View style={styles.messageHeader}>
+                    <Text style={styles.messageFlag}>🇯🇵</Text>
+                    <Text style={styles.messageText}>{latestMessage.additionalField1}</Text>
+                  </View>
+                </View>
+              )}
+              
+              {/* Imagen del mensaje */}
+              {latestMessage.imageUrl && (
+                <Image
+                  source={{ uri: latestMessage.imageUrl }}
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                  onError={(error) => console.log("Error cargando imagen:", error)}
+                />
+              )}
+              
+              {/* Fecha del mensaje */}
+              {latestMessage.createdAt && (
+                <Text style={styles.messageDate}>
+                  {dayjs(latestMessage.createdAt.toDate()).format("DD/MM/YYYY HH:mm")}
+                </Text>
+              )}
+            </View>
           ) : (
             <View style={styles.noMessagesContainer}>
               <Ionicons name="chatbubble-outline" size={48} color="#CCCCCC" />
@@ -1090,7 +1105,7 @@ const CheckInScreen = ({ navigation, monthlyCheckInCount, fetchMonthlyCheckInCou
         ) : (
           <>
             <Ionicons name="fitness" size={24} color="#FFFFFF" />
-            <Text style={styles.floatingButtonText}>{t("ENTRENAR")}</Text>
+            <Text style={styles.floatingButtonText}>{t("TRAINING")}</Text>
           </>
         )}
       </TouchableOpacity>
@@ -1248,7 +1263,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E0E0E0",
     ...Platform.select({
@@ -1262,6 +1276,9 @@ const styles = StyleSheet.create({
         elevation: 1,
       },
     }),
+  },
+  messageContainer: {
+    marginBottom: 12,
   },
   messageHeader: {
     flexDirection: "row",
@@ -1283,6 +1300,13 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     marginTop: 12,
+    marginBottom: 8,
+  },
+  messageDate: {
+    fontSize: 12,
+    color: "#999999",
+    textAlign: "right",
+    fontStyle: "italic",
   },
   noMessagesContainer: {
     alignItems: "center",
@@ -1295,7 +1319,7 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 100 : 80,
+    bottom: Platform.OS === "ios" ? 40 : 20,
     right: 20,
     backgroundColor: "#000000",
     borderRadius: 28,
@@ -1320,9 +1344,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+    
   },
 });
 
 export default CheckInScreen;
-
-

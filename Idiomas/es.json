@@ -8,7 +8,7 @@
   "Sign in to your account": "Entrar",
   "Don't have an account?": "Crear una cuenta",
   "Mensaje": "Mensaje",
-  "TRAINING": "ENTRENAMIENTO DE HOY",
+  "TRAINING": "ENTRENAR",
   "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.": "🎉 Bienvenido, {{userName}}!\n\nCinturón color {{userBeltData}}.\n\n🏋️‍♂️ Este mes entrenaste: {{newCheckInCount}} veces.",
   "No hay mensajes aún": "No hay mensajes aún",
   "Última Puntuación de": "Última Puntuación de",
