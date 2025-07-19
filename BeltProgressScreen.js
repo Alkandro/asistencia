@@ -73,12 +73,13 @@ const BeltProgressScreen = () => {
     setRefreshing(false);
   };
 
-  // Calcular información del progreso
+  // Calcular información del progreso CORREGIDO
   const calculateDanInfo = (beltColor, totalCheckIns) => {
     const color = beltColor.toLowerCase();
     const total = totalCheckIns || 0;
+    // LÓGICA CORRECTA: Blanco = 40, otros = 60
     const groupSize = color === "white" ? 40 : 60;
-    const maxDan = 4;
+    const maxDan = 4; // INCLUIR 4° DAN
 
     const rawGroup = Math.floor(total / groupSize);
     let currentDan = rawGroup + 1;
@@ -101,7 +102,7 @@ const BeltProgressScreen = () => {
       case 3:
         return t("Tercer Dan");
       case 4:
-        return t("Cuarto Dan");
+        return t("Cuarto Dan"); // AGREGAR 4° DAN
       default:
         return "";
     }
@@ -124,30 +125,40 @@ const BeltProgressScreen = () => {
   const progressPercentage = (countInGroup / groupSize) * 100;
   const remainingTrainings = groupSize - countInGroup;
 
-  // Información sobre la lógica de progresión
+  // Información sobre la lógica de progresión CORREGIDA
   const getProgressionInfo = () => {
     if (userBelt.toLowerCase() === "white") {
       return {
         title: t("Cinturón Blanco"),
-        description: t("3 series de 40 entrenamientos"),
+        description: t("4 series de 40 entrenamientos"), // CORREGIDO: 4 series, no 3
         series: [
           { dan: 1, trainings: 40, label: t("Primer Dan") },
           { dan: 2, trainings: 40, label: t("Segundo Dan") },
           { dan: 3, trainings: 40, label: t("Tercer Dan") },
+          { dan: 4, trainings: 40, label: t("Cuarto Dan") }, // AGREGAR 4° DAN
         ],
         nextBelt: t("Cinturón Azul"),
+        totalRequired: 160, // 4 x 40
       };
     } else {
+      const beltNames = {
+        blue: t("Cinturón Violeta"),
+        purple: t("Cinturón Marrón"), 
+        brown: t("Cinturón Negro"),
+        black: t("Máximo Nivel")
+      };
+      
       return {
         title: t("Otros Cinturones"),
-        description: t("4 series de 60 entrenamientos"),
+        description: t("4 series de 60 entrenamientos"), // CORRECTO: 4 series
         series: [
           { dan: 1, trainings: 60, label: t("Primer Dan") },
           { dan: 2, trainings: 60, label: t("Segundo Dan") },
           { dan: 3, trainings: 60, label: t("Tercer Dan") },
-          { dan: 4, trainings: 60, label: t("Cuarto Dan") },
+          { dan: 4, trainings: 60, label: t("Cuarto Dan") }, // INCLUIR 4° DAN
         ],
-        nextBelt: t("Siguiente Cinturón"),
+        nextBelt: beltNames[userBelt.toLowerCase()] || t("Siguiente Cinturón"),
+        totalRequired: 240, // 4 x 60
       };
     }
   };
@@ -227,6 +238,12 @@ const BeltProgressScreen = () => {
               : t("¡Felicidades! Has completado este dan.")
             }
           </Text>
+          <Text style={styles.totalProgressText}>
+            {t("Total: {{current}}/{{total}} entrenamientos", { 
+              current: allTimeCheckIns, 
+              total: progressionInfo.totalRequired 
+            })}
+          </Text>
         </CardMinimal>
 
         {/* Explicación de la lógica de progresión */}
@@ -268,7 +285,10 @@ const BeltProgressScreen = () => {
 
           <View style={styles.nextBeltInfo}>
             <Text style={styles.nextBeltText}>
-              {t("Al completar todas las series: {{nextBelt}}", { nextBelt: progressionInfo.nextBelt })}
+              {userBelt.toLowerCase() === "black" 
+                ? t("¡Has alcanzado el máximo nivel!")
+                : t("Al completar todas las series: {{nextBelt}}", { nextBelt: progressionInfo.nextBelt })
+              }
             </Text>
           </View>
         </CardMinimal>
@@ -290,6 +310,14 @@ const BeltProgressScreen = () => {
               <Text style={styles.statNumber}>{Math.round(progressPercentage)}%</Text>
               <Text style={styles.statLabel}>{t("Progreso Actual")}</Text>
             </View>
+          </View>
+
+          {/* Información adicional sobre el reseteo */}
+          <View style={styles.resetInfo}>
+            <Icon name="refresh-outline" size={20} color="#FF6B35" />
+            <Text style={styles.resetText}>
+              {t("Al completar un cinturón, el contador se reinicia a 0")}
+            </Text>
           </View>
         </CardMinimal>
       </ScrollView>
@@ -403,6 +431,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333333",
     lineHeight: 22,
+    marginBottom: 8,
+  },
+  totalProgressText: {
+    fontSize: 14,
+    color: "#666666",
+    fontStyle: "italic",
   },
   explanationCard: {
     marginHorizontal: 20,
@@ -479,6 +513,7 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 16,
   },
   statItem: {
     flex: 1,
@@ -500,6 +535,19 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: "#E0E0E0",
     marginHorizontal: 20,
+  },
+  resetInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+  },
+  resetText: {
+    fontSize: 12,
+    color: "#666666",
+    marginLeft: 8,
+    fontStyle: "italic",
   },
 });
 
