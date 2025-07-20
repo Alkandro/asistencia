@@ -145,6 +145,19 @@ const RegisterScreen = ({ navigation }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // 🔧 LÓGICA DE ROLES ADMIN RESTAURADA
+      // Lista de correos que tendrán rol 'admin'
+      const adminEmails = [
+        "tashas.natura@hotmail.com",
+        "ale1@a.com",
+      ];
+
+      // Determinar el rol basado en el email
+      const userRole = adminEmails.includes(user.email) ? "admin" : "user";
+
+      console.log(`📧 Email registrado: ${user.email}`);
+      console.log(`👤 Rol asignado: ${userRole}`);
+
       // Guardar datos en Firestore
       await setDoc(doc(db, "users", user.uid), {
         nombre,
@@ -160,9 +173,10 @@ const RegisterScreen = ({ navigation }) => {
         cinturon,
         phone,
         ciudad,
-        role: "user",
+        role: userRole, // ← AQUÍ SE ASIGNA EL ROL
         allTimeCheckIns: 0,
         createdAt: new Date(),
+        imageUri: imageUri || null,
       });
 
       // Guardar imagen en AsyncStorage si existe
@@ -173,14 +187,35 @@ const RegisterScreen = ({ navigation }) => {
       // Verificar cumpleaños
       await checkBirthdayAndUpdateAge(user.uid, fechaNacimiento);
 
+      // Mensaje de éxito diferenciado por rol
+      const successMessage = userRole === "admin" 
+        ? t("Usuario administrador registrado correctamente")
+        : t("Usuario registrado correctamente");
+
       Alert.alert(
         t("Éxito"),
-        t("Usuario registrado correctamente"),
+        successMessage,
         [{ text: "OK", onPress: () => navigation.navigate("Login") }]
       );
     } catch (error) {
       console.error("Error al registrar usuario:", error);
-      Alert.alert(t("Error"), t("No se pudo registrar el usuario"));
+      
+      // Manejo específico para email ya en uso
+      if (error.code === "auth/email-already-in-use") {
+        Alert.alert(
+          t("Error"), 
+          t("Este correo electrónico ya está registrado. ¿Deseas iniciar sesión?"),
+          [
+            { text: t("Cancelar"), style: "cancel" },
+            { 
+              text: t("Iniciar Sesión"), 
+              onPress: () => navigation.navigate("Login") 
+            }
+          ]
+        );
+      } else {
+        Alert.alert(t("Error"), t("No se pudo registrar el usuario"));
+      }
     }
   };
 
@@ -381,6 +416,21 @@ const RegisterScreen = ({ navigation }) => {
             </View>
           </View>
 
+          {/* Información de roles admin (solo para debug) */}
+          {__DEV__ && (
+            <View style={styles.debugSection}>
+              <Text style={styles.debugText}>
+                🔧 Debug: Emails admin configurados:
+              </Text>
+              <Text style={styles.debugText}>
+                • tashas.natura@hotmail.com
+              </Text>
+              <Text style={styles.debugText}>
+                • ale1@a.com
+              </Text>
+            </View>
+          )}
+
           {/* Botón de registro */}
           <View style={styles.buttonSection}>
             <ButtonMinimal
@@ -498,11 +548,26 @@ const styles = StyleSheet.create({
   pickerContainer: {
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
-    marginTop: -8,
+    marginTop: -20,
   },
   picker: {
-    height: Platform.OS === "ios" ? 120 : 50,
-    color: "#333333",
+    height: Platform.OS === 'ios' ? 180 : 'auto',
+    width: '100%',
+    backgroundColor: '#fff',
+    transform: [{ scale: 0.85 }],
+  },
+  debugSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#F0F8FF",
+    marginHorizontal: 20,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  debugText: {
+    fontSize: 12,
+    color: "#666666",
+    fontFamily: "monospace",
   },
   buttonSection: {
     paddingHorizontal: 20,

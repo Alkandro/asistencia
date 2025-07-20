@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   logoSection: {
     alignItems: "center",
-    marginBottom: 40, // Reducido de 60
+    marginBottom: 60, // Reducido de 60
   },
   logoImage: {
     width: 120, // Tamaño del logo
