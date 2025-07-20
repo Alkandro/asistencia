@@ -324,12 +324,14 @@ const styles = StyleSheet.create({
     borderRadius: 75, // Si usas borderRadius con un fondo no transparente
     borderWidth: 1, // Si usas un borde
     borderColor: 'white', // Y el borde es blanco
+    marginBottom: Platform.OS === "ios" ? 10 : 5,
   },
   logoSubtext: {
     fontSize: 16,
     color: "#666666",
     letterSpacing: 1,
     fontWeight: "500",
+    marginBottom: Platform.OS === "ios" ? -10 : -25,
   },
   formSection: {
     width: "100%",
@@ -342,7 +344,7 @@ const styles = StyleSheet.create({
     marginBottom: 30, // Reducido de 40
   },
   inputContainer: {
-    marginBottom: 20, // Reducido de 24
+    marginBottom: Platform.OS === "ios" ? 25 : 3, // Reducido de 24
   },
   passwordToggle: {
     padding: 4,
