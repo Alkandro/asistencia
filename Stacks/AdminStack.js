@@ -1,9 +1,9 @@
 // AdminStack.js
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import UserDetailScreen from "./AdminScreen/UserDetailScreen";
-import UserProfileScreen from "./UserProfileScreen";
-import AdminTabNavigator from "./AdminScreen/AdminTabNavigator";
+import UserDetailScreen from "../AdminScreen/UserDetailScreen";
+import UserProfileScreen from "../LoginScreens/UserProfileScreen";
+import AdminTabNavigator from "../AdminScreen/AdminTabNavigator";
 import { useTranslation } from "react-i18next";
 
 const Stack = createStackNavigator();

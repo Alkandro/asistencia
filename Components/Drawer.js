@@ -21,10 +21,10 @@ import {
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import CheckInScreen from "./CheckInScreen";
-import AttendanceHistoryScreen from "./AttendanceHistoryScreen";
-import UserProfileScreen from "./UserProfileScreen";
-import Information from "./Information";
-import BeltProgressScreen from "./BeltProgressScreen";
+import AttendanceHistoryScreen from "../Attendace/AttendanceHistoryScreen";
+import UserProfileScreen from "../LoginScreens/UserProfileScreen";
+import Information from "../LoginScreens/Information";
+import BeltProgressScreen from "../Styles/BeltProgressScreen";
 import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
@@ -34,7 +34,7 @@ import "dayjs/locale/en";
 import "dayjs/locale/es";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth, db } from "../firebase";
 import { useDrawerStatus } from '@react-navigation/drawer';
 import { useTranslation } from 'react-i18next';
 
@@ -45,11 +45,11 @@ dayjs.extend(localeData);
 
 // Mapeo de imágenes de cinturones
 const beltImages = {
-  white: require("./assets/fotos/whitebelt.png"),
-  blue: require("./assets/fotos/bluebelt.png"),
-  purple: require("./assets/fotos/purplebelt.png"),
-  brown: require("./assets/fotos/brownbelt.png"),
-  black: require("./assets/fotos/blackbelt.png"),
+  white: require("../assets/fotos/whitebelt.png"),
+  blue: require("../assets/fotos/bluebelt.png"),
+  purple: require("../assets/fotos/purplebelt.png"),
+  brown: require("../assets/fotos/brownbelt.png"),
+  black: require("../assets/fotos/blackbelt.png"),
 };
 
 const getBeltImage = (belt) =>
@@ -279,11 +279,11 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
               <Image 
                 source={{ uri: userImageUri }} 
                 style={styles.avatar}
-                defaultSource={require("./assets/fotos/tashiro1.png")}
+                defaultSource={require("../assets/fotos/tashiro1.png")}
               />
             ) : (
               <Image
-                source={require("./assets/fotos/tashiro1.png")}
+                source={require("../assets/fotos/tashiro1.png")}
                 style={styles.avatar}
               />
             )}

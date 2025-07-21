@@ -21,13 +21,13 @@ import {
   deleteDoc,
   getDoc, // AGREGAR para leer datos del usuario
 } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth, db } from "../firebase";
 import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import { SafeAreaView } from "react-native";
 import { useTranslation } from "react-i18next";
-import CardMinimal from "./CardMinimal";
-import ButtonMinimal from "./ButtonMinimal";
+import CardMinimal from "../Styles/CardMinimal";
+import ButtonMinimal from "../Styles/ButtonMinimal";
 import Icon from "react-native-vector-icons/Ionicons";
 
 const AttendanceHistoryScreen = () => {

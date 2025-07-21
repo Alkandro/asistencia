@@ -14,10 +14,10 @@ import {
   Dimensions,
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth } from "../firebase";
 import { useTranslation } from "react-i18next";
-import ButtonMinimal from "./ButtonMinimal";
-import InputMinimal from "./InputMinimal";
+import ButtonMinimal from "../Styles/ButtonMinimal";
+import InputMinimal from "../Styles/InputMinimal";
 import { Ionicons } from '@expo/vector-icons';
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -140,7 +140,7 @@ const LoginScreen = ({ navigation }) => {
           {/* Logo TASHIRO en lugar de texto */}
           <View style={styles.logoSection}>
             <Image
-              source={require("./assets/fotos/tashiro1.png")}
+              source={require("../assets/fotos/tashiro1.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />

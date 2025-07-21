@@ -13,14 +13,14 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
-import { auth, db } from "./firebase";
+import { auth, db } from "../firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { doc, setDoc, updateDoc } from "firebase/firestore";
-import ButtonMinimal from "./ButtonMinimal";
-import InputMinimal from "./InputMinimal";
+import ButtonMinimal from "../Styles/ButtonMinimal";
+import InputMinimal from "../Styles/InputMinimal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTranslation } from "react-i18next";
@@ -248,7 +248,7 @@ const RegisterScreen = ({ navigation }) => {
               ) : (
                 <View style={styles.placeholderImage}>
                   <Image
-                    source={require("./assets/fotos/tashiro1.png")}
+                    source={require("../assets/fotos/tashiro1.png")}
                     style={styles.logoPlaceholder}
                   />
                 </View>

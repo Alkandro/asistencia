@@ -1,6 +1,6 @@
 // Attendance.js
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './firebase'; // Asegúrate de que Firebase esté correctamente configurado
+import { auth, db } from '../firebase'; // Asegúrate de que Firebase esté correctamente configurado
 
 export const recordCheckIn = async (userData) => {
   // Verifica si el usuario está autenticado

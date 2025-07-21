@@ -10,10 +10,10 @@ import { useTranslation } from "react-i18next"; // Importar traducción
 import "./i18n"; // Importar configuración de idiomas
 
 // Importar los nuevos stacks
-import AuthStack from "./AuthStack";
-import AdminStack from "./AdminStack";
-import UserStack from "./UserStack";
-import AppSplashScreen from "./SplashScreen";
+import AuthStack from "./Stacks/AuthStack";
+import AdminStack from "./Stacks/AdminStack";
+import UserStack from "./Stacks/UserStack";
+import AppSplashScreen from "./LoginScreens/SplashScreen";
 
 const Stack = createStackNavigator();
 

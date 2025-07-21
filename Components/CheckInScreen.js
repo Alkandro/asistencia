@@ -37,17 +37,17 @@ import {
   onSnapshot,
   where
 } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth, db } from "../firebase";
 
 dayjs.extend(localeData);
 
 // Mapeo de imágenes de cinturones
 const beltImages = {
-  white: require("./assets/fotos/whitebelt.png"),
-  blue: require("./assets/fotos/bluebelt.png"),
-  purple: require("./assets/fotos/purplebelt.png"),
-  brown: require("./assets/fotos/brownbelt.png"),
-  black: require("./assets/fotos/blackbelt.png"),
+  white: require("../assets/fotos/whitebelt.png"),
+  blue: require("../assets/fotos/bluebelt.png"),
+  purple: require("../assets/fotos/purplebelt.png"),
+  brown: require("../assets/fotos/brownbelt.png"),
+  black: require("../assets/fotos/blackbelt.png"),
 };
 
 const getBeltImage = (belt) =>

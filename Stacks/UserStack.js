@@ -1,7 +1,7 @@
 // UserStack.js
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import AppDrawer from "./Drawer";
+import AppDrawer from "../Components/Drawer";
 
 const Stack = createStackNavigator();
 

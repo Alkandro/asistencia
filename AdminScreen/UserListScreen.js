@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { collection, onSnapshot } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
-import ButtonGradient from "../ButtonGradient";
+import ButtonGradient from "../Styles/ButtonGradient";
 import { db, auth } from "../firebase";
 import { useTranslation } from "react-i18next";
 import Icon from "react-native-vector-icons/Ionicons";

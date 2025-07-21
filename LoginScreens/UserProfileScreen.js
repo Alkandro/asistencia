@@ -12,12 +12,12 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { auth, db } from "./firebase";
+import { auth, db } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { MaterialIcons } from "@expo/vector-icons";
-import ButtonMinimal from "./ButtonMinimal";
-import InputMinimal from "./InputMinimal";
-import CardMinimal from "./CardMinimal";
+import ButtonMinimal from "../Styles/ButtonMinimal";
+import InputMinimal from "../Styles/InputMinimal";
+import CardMinimal from "../Styles/CardMinimal";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -26,11 +26,11 @@ import Icon from "react-native-vector-icons/Ionicons";
 
 // Mapeo de imágenes de cinturones
 const beltImages = {
-  white: require("./assets/fotos/whitebelt.png"),
-  blue: require("./assets/fotos/bluebelt.png"),
-  purple: require("./assets/fotos/purplebelt.png"),
-  brown: require("./assets/fotos/brownbelt.png"),
-  black: require("./assets/fotos/blackbelt.png"),
+  white: require("../assets/fotos/whitebelt.png"),
+  blue: require("../assets/fotos/bluebelt.png"),
+  purple: require("../assets/fotos/purplebelt.png"),
+  brown: require("../assets/fotos/brownbelt.png"),
+  black: require("../assets/fotos/blackbelt.png"),
 };
 
 const getBeltImage = (belt) =>
@@ -169,7 +169,7 @@ const UserProfileScreen = () => {
               <Image source={{ uri: imageUri }} style={styles.avatar} />
             ) : (
               <Image
-                source={require("./assets/fotos/tashiro1.png")}
+                source={require("../assets/fotos/tashiro1.png")}
                 style={styles.avatar}
               />
             )}

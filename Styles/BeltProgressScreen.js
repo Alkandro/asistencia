@@ -9,7 +9,7 @@ import {
   Image,
   Platform,
 } from "react-native";
-import { auth, db } from "./firebase";
+import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -18,11 +18,11 @@ import Icon from "react-native-vector-icons/Ionicons";
 
 // Mapeo de imágenes de cinturones
 const beltImages = {
-  white: require("./assets/fotos/whitebelt.png"),
-  blue: require("./assets/fotos/bluebelt.png"),
-  purple: require("./assets/fotos/purplebelt.png"),
-  brown: require("./assets/fotos/brownbelt.png"),
-  black: require("./assets/fotos/blackbelt.png"),
+  white: require("../assets/fotos/whitebelt.png"),
+  blue: require("../assets/fotos/bluebelt.png"),
+  purple: require("../assets/fotos/purplebelt.png"),
+  brown: require("../assets/fotos/brownbelt.png"),
+  black: require("../assets/fotos/blackbelt.png"),
 };
 
 const getBeltImage = (belt) =>

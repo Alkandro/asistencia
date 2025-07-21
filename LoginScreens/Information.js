@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ImageBackground, Platform, ScrollView } from "react-native";
 import { BlurView } from "expo-blur";
-import backgroundImage from "./assets/fotos/tashiroblack.png";
+import backgroundImage from "../assets/fotos/tashiroblack.png";
 import { useTranslation } from 'react-i18next';
 
 const Information = () => {
