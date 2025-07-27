@@ -39,18 +39,18 @@
 // };
 
 // export default AdminStack;
+
+
+
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import UserDetailScreen from "../AdminScreen/UserDetailScreen";
 import UserProfileScreen from "../LoginScreens/UserProfileScreen";
 import AdminTabNavigator from "../AdminScreen/AdminTabNavigator";
-import { useTranslation } from "react-i18next";
 
 const Stack = createStackNavigator();
 
 const AdminStack = () => {
-  const { t } = useTranslation();
-  
   return (
     <Stack.Navigator 
       initialRouteName="AdminTabs"
