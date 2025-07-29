@@ -1,4 +1,4 @@
-// ShopScreen_COMPLETE.js - Pantalla principal de tienda completa
+// ShopScreen.js - Pantalla principal de tienda completa
 import React, { useState, useEffect } from 'react';
 import {
   View,

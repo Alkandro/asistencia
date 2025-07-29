@@ -30,7 +30,7 @@ import {
   AdminButton,
   AdminHeader,
   AdminLoadingOverlay,
-} from '../AdminComponents';
+} from '../AdminScreen/AdminComponents';
 
 const AdminProductsScreen = () => {
   const { t } = useTranslation();

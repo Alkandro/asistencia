@@ -1,3 +1,4 @@
+// ShopComponents.js - Componentes completos para el sistema de tienda
 import React, { useState } from 'react';
 import { 
   View, 
@@ -993,7 +994,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-// Exports individuales - no usar export default para evitar ciclos
-// Los componentes ya están exportados individualmente arriba
-
