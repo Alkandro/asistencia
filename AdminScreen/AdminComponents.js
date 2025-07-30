@@ -1,6 +1,6 @@
 // AdminComponents.js - Componentes base minimalistas para AdminStack
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Card minimalista para admin
@@ -90,13 +90,13 @@ export const AdminInput = ({
 }) => {
   return (
     <View style={[styles.adminInputContainer, style]}>
-      {label && <Text style={styles.adminInputLabel}>{label}</Text>}
+      {label && <TextInput style={styles.adminInputLabel}>{label}</TextInput>}
       <View style={[
         styles.adminInput, 
         multiline && styles.adminInputMultiline,
         multiline && { height: numberOfLines * 24 + 32 }
       ]}>
-        <Text
+        <TextInput
           style={[
             styles.adminInputText,
             multiline && styles.adminInputTextMultiline

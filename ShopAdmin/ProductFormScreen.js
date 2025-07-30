@@ -11,6 +11,9 @@ import {
   Image,
   TextInput,
   Switch,
+  ActivityIndicator,
+  KeyboardAvoidingView, 
+  Platform
 } from 'react-native';
 import {
   collection,
@@ -526,13 +529,21 @@ const ProductFormScreen = () => {
         title={mode === 'create' ? 'Crear Producto' : 'Editar Producto'}
         subtitle={mode === 'edit' ? product?.name : 'Nuevo producto'}
       />
+      <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  >
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+<ScrollView
+  style={styles.content}
+  showsVerticalScrollIndicator={false}
+  keyboardShouldPersistTaps="handled"
+>
         {renderImageGallery()}
         {renderBasicInfo()}
         {renderVariants()}
       </ScrollView>
-
+      </KeyboardAvoidingView>
       <View style={styles.bottomSection}>
         <AdminButton
           title="Cancelar"

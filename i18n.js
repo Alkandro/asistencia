@@ -134,3 +134,4 @@ export const waitForI18n = () => {
 };
 
 export default i18n;
+
