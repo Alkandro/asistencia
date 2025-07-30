@@ -212,7 +212,7 @@ const ShopScreen = () => {
 
   // Función para ir al detalle del producto
   const handleProductPress = (product) => {
-    navigation.navigate('ProductDetail', { productId: product.id });
+    navigation.navigate('ProductDetail', { product: product });
   };
 
   // Función para ir al carrito
