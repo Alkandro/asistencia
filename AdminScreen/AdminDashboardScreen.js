@@ -296,7 +296,7 @@ const AdminDashboardScreen = () => {
           icon="people-outline"
           variant="secondary"
           style={styles.actionButton}
-          onPress={() => navigation.navigate('Users')}
+          onPress={() => navigation.navigate('UserListScreen')}
         />
         <AdminButton
           title="Enviar Mensaje"

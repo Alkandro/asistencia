@@ -1,377 +1,462 @@
-// ShopScreen.js - Pantalla principal de tienda completa
+// // ShopScreen.js - Diseño híbrido: filtros largos + iconos + stock corregido
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   SafeAreaView,
-  RefreshControl,
-  TouchableOpacity,
-  TextInput,
-  Modal,
-  Alert,
   ScrollView,
+  TouchableOpacity,
+  FlatList,
+  RefreshControl,
+  Alert,
+  ActivityIndicator,
+  ImageBackground,
+  Dimensions,
 } from 'react-native';
 import {
   collection,
-  onSnapshot,
   query,
   where,
-  orderBy,
+  getDocs,
   doc,
   getDoc,
-  setDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
 } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ProductCard,
   ShopHeader,
-  CategoryFilter,
-  ProductsLoading,
   EmptyState,
+  ProductsLoading,
 } from '../ComponentsShop/ShopComponents';
 
+const { width: screenWidth } = Dimensions.get('window');
+
 const ShopScreen = () => {
-  const { t } = useTranslation();
   const navigation = useNavigation();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
+  const [categoryBackgrounds, setCategoryBackgrounds] = useState({});
+  const [categoryTitles, setCategoryTitles] = useState({});
   
   // Estados de filtros
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  
-  // Estados de categorías
-  const [categories, setCategories] = useState([
-    { id: 'gi', name: 'Gi' },
-    { id: 'nogi', name: 'No-Gi' },
-    { id: 'accessories', name: 'Accesorios' },
-    { id: 'equipment', name: 'Equipamiento' },
-    { id: 'supplements', name: 'Suplementos' },
-  ]);
+
+  // Categorías con iconos y anchos variables - INCLUYE SUPLEMENTOS
+  const categories = [
+    { id: null, name: 'Todos', icon: 'grid-outline', width: 110 },
+    { id: 'gi', name: 'Gi', icon: 'shirt-outline', width: 80 },
+    { id: 'no-gi', name: 'No-Gi', icon: 'fitness-outline', width: 95 },
+    { id: 'accessories', name: 'Accesorios', icon: 'bag-outline', width: 130 },
+    { id: 'equipment', name: 'Equipos', icon: 'barbell-outline', width: 100 },
+    { id: 'supplements', name: 'Suplementos', icon: 'nutrition-outline', width: 120 }, // NUEVO
+  ];
 
   // Cargar productos desde Firebase
-  useEffect(() => {
-    const productsRef = collection(db, 'products');
-    const q = query(productsRef, where('active', '==', true), orderBy('createdAt', 'desc'));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+  const loadProducts = async () => {
+    try {
+      console.log('📦 Cargando productos...');
+      const productsRef = collection(db, 'products');
+      const q = query(productsRef, where('active', '==', true));
+      const snapshot = await getDocs(q);
+      
       const productsData = [];
       snapshot.forEach((doc) => {
-        productsData.push({
-          id: doc.id,
-          ...doc.data(),
+        const productData = { id: doc.id, ...doc.data() };
+        console.log('📦 Producto cargado:', {
+          id: productData.id,
+          name: productData.name,
+          category: productData.category,
+          price: productData.price
         });
+        productsData.push(productData);
       });
+
+      console.log('📦 Total productos cargados:', productsData.length);
+      
+      // Log de productos por categoría para debug
+      const productsByCategory = productsData.reduce((acc, product) => {
+        const cat = product.category || 'sin-categoria';
+        acc[cat] = (acc[cat] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('📊 Productos por categoría:', productsByCategory);
+
       setProducts(productsData);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error loading products:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Cargar contador del carrito
-  useEffect(() => {
-    const loadCartCount = async () => {
-      try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) return;
-
-        const cartRef = doc(db, 'cart', userId);
-        const cartSnap = await getDoc(cartRef);
-        
-        if (cartSnap.exists()) {
-          const cartData = cartSnap.data();
-          const totalItems = cartData.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-          setCartItemCount(totalItems);
-        }
-      } catch (error) {
-        console.error('Error loading cart count:', error);
-      }
-    };
-
-    loadCartCount();
-  }, []);
-
-  // Filtrar productos
-  useEffect(() => {
-    let filtered = products;
-
-    // Filtrar por categoría
-    if (selectedCategory) {
-      filtered = filtered.filter(product => product.category === selectedCategory);
-    }
-
-    // Filtrar por búsqueda
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(query) ||
-        product.description?.toLowerCase().includes(query) ||
-        product.category?.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredProducts(filtered);
-  }, [products, selectedCategory, searchQuery]);
-
-  // Función para agregar al carrito
-  const handleAddToCart = async (product) => {
-    try {
-      const userId = auth.currentUser?.uid;
-      if (!userId) {
-        Alert.alert('Error', 'Debes iniciar sesión para agregar productos al carrito');
-        return;
-      }
-
-      // Verificar stock disponible
-      const totalStock = Object.values(product.stock || {}).reduce((sum, qty) => sum + qty, 0);
-      if (totalStock === 0) {
-        Alert.alert('Sin stock', 'Este producto no está disponible');
-        return;
-      }
-
-      const cartRef = doc(db, 'cart', userId);
-      const cartSnap = await getDoc(cartRef);
-
-      const newItem = {
-        productId: product.id,
-        productName: product.name,
-        productImage: product.images?.[0] || null,
-        unitPrice: product.price,
-        quantity: 1,
-        size: Object.keys(product.stock || {})[0] || 'default', // Primera talla disponible
-        color: product.colors?.[0] || 'default',
-        addedAt: new Date(),
-      };
-
-      if (cartSnap.exists()) {
-        const cartData = cartSnap.data();
-        const existingItems = cartData.items || [];
-        
-        // Verificar si el producto ya existe con las mismas variantes
-        const existingItemIndex = existingItems.findIndex(item => 
-          item.productId === product.id && 
-          item.size === newItem.size && 
-          item.color === newItem.color
-        );
-
-        if (existingItemIndex >= 0) {
-          // Actualizar cantidad del item existente
-          existingItems[existingItemIndex].quantity += 1;
-        } else {
-          // Agregar nuevo item
-          existingItems.push(newItem);
-        }
-
-        await updateDoc(cartRef, {
-          items: existingItems,
-          updatedAt: new Date(),
-        });
-      } else {
-        // Crear nuevo carrito
-        await setDoc(cartRef, {
-          userId,
-          items: [newItem],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-
-      // Actualizar contador del carrito
-      setCartItemCount(prev => prev + 1);
-
-      Alert.alert(
-        'Producto agregado',
-        `${product.name} se agregó al carrito`,
-        [
-          { text: 'Continuar comprando', style: 'cancel' },
-          { text: 'Ver carrito', onPress: () => navigation.navigate('Cart') }
-        ]
-      );
-
+      setFilteredProducts(productsData);
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      Alert.alert('Error', 'No se pudo agregar el producto al carrito');
+      console.error('❌ Error loading products:', error);
+      Alert.alert('Error', 'No se pudieron cargar los productos');
     }
   };
 
-  // Función para ir al detalle del producto
-  const handleProductPress = (product) => {
-    navigation.navigate('ProductDetail', { product: product });
+  // Cargar fondos de categorías desde Firebase
+  const loadCategoryBackgrounds = async () => {
+    try {
+      console.log('🎨 Cargando fondos de categorías...');
+      const configRef = doc(db, 'config', 'categoryBackgrounds');
+      const configSnap = await getDoc(configRef);
+      
+      if (configSnap.exists()) {
+        const backgrounds = configSnap.data();
+        console.log('✅ Fondos cargados:', backgrounds);
+        setCategoryBackgrounds(backgrounds);
+      }
+    } catch (error) {
+      console.log('❌ Error cargando fondos:', error);
+    }
   };
 
-  // Función para ir al carrito
-  const handleCartPress = () => {
-    navigation.navigate('Cart');
+  // Cargar títulos personalizados de categorías
+  const loadCategoryTitles = async () => {
+    try {
+      console.log('📝 Cargando títulos de categorías...');
+      const configRef = doc(db, 'config', 'categoryTitles');
+      const configSnap = await getDoc(configRef);
+      
+      if (configSnap.exists()) {
+        const titles = configSnap.data();
+        console.log('✅ Títulos cargados:', titles);
+        setCategoryTitles(titles);
+      }
+    } catch (error) {
+      console.log('❌ Error cargando títulos:', error);
+    }
   };
 
-  // Función para mostrar búsqueda
-  const handleSearchPress = () => {
-    setShowSearchModal(true);
+  // Función para obtener stock de un producto
+  const getProductStock = (product) => {
+    if (!product) return 0;
+    
+    if (!product.stock) {
+      return 10; // Stock por defecto
+    }
+    
+    if (typeof product.stock === 'number') {
+      return product.stock;
+    }
+    
+    if (typeof product.stock === 'object') {
+      const totalStock = Object.values(product.stock).reduce((total, stock) => {
+        const stockValue = typeof stock === 'number' ? stock : 0;
+        return total + stockValue;
+      }, 0);
+      return totalStock;
+    }
+    
+    return 0;
   };
 
-  // Función de refresh
-  const handleRefresh = async () => {
+  // Filtrar productos por categoría - CORREGIDO PARA NO-GI
+  const filterProducts = (categoryId) => {
+    console.log('🔍 Filtrando por categoría:', categoryId);
+    setSelectedCategory(categoryId);
+    
+    if (!categoryId || categoryId === null) {
+      console.log('📋 Mostrando todos los productos:', products.length);
+      setFilteredProducts(products);
+    } else {
+      // CORRECCIÓN: Normalizar categorías para comparación
+      const filtered = products.filter(product => {
+        const productCategory = product.category;
+        
+        // Normalizar "no-gi" vs "No-Gi" vs "NO-GI"
+        const normalizedProductCategory = productCategory?.toLowerCase().replace(/[-\s]/g, '');
+        const normalizedFilterCategory = categoryId?.toLowerCase().replace(/[-\s]/g, '');
+        
+        const matches = normalizedProductCategory === normalizedFilterCategory;
+        
+        console.log(`🔍 Producto "${product.name}": categoria="${productCategory}" (normalizada: "${normalizedProductCategory}"), buscando="${categoryId}" (normalizada: "${normalizedFilterCategory}"), coincide=${matches}`);
+        return matches;
+      });
+      
+      console.log(`📋 Productos encontrados en "${categoryId}":`, filtered.length);
+      setFilteredProducts(filtered);
+    }
+  };
+
+  // Navegar a detalle de producto
+  const navigateToProduct = (product) => {
+    console.log('🔗 Navegando a producto:', {
+      id: product.id,
+      name: product.name,
+      category: product.category
+    });
+    
+    navigation.navigate('ProductDetail', { 
+      productId: product.id,
+      product: product
+    });
+  };
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        loadProducts(),
+        loadCategoryBackgrounds(),
+        loadCategoryTitles()
+      ]);
+      setLoading(false);
+    };
+    
+    loadData();
+  }, []);
+
+  // Refresh
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Los datos se actualizan automáticamente por el listener
-    setTimeout(() => setRefreshing(false), 1000);
+    await Promise.all([
+      loadProducts(),
+      loadCategoryBackgrounds(),
+      loadCategoryTitles()
+    ]);
+    setRefreshing(false);
   };
 
-  // Renderizar producto
-  const renderProduct = ({ item }) => (
-    <ProductCard
-      product={item}
-      onPress={() => handleProductPress(item)}
-      showAddToCart={true}
-      onAddToCart={handleAddToCart}
-      style={styles.productCard}
-    />
-  );
+  // Renderizar filtro de categoría con ancho variable
+  const renderCategoryFilter = ({ item: category }) => {
+    const isSelected = selectedCategory === category.id;
+    const backgroundImage = categoryBackgrounds[category.id];
+    const customTitle = categoryTitles[category.id] || category.name;
 
-  // Renderizar contenido principal
-  const renderContent = () => {
-    if (loading) {
-      return <ProductsLoading count={6} />;
-    }
+    // Contar productos en esta categoría
+    const categoryCount = category.id === null 
+      ? products.length 
+      : products.filter(p => {
+          const productCategory = p.category?.toLowerCase().replace(/[-\s]/g, '');
+          const filterCategory = category.id?.toLowerCase().replace(/[-\s]/g, '');
+          return productCategory === filterCategory;
+        }).length;
 
-    if (filteredProducts.length === 0) {
-      if (searchQuery.trim()) {
-        return (
-          <EmptyState
-            icon="search-outline"
-            title="Sin resultados"
-            subtitle={`No encontramos productos para "${searchQuery}"`}
-            actionText="Limpiar búsqueda"
-            onActionPress={() => setSearchQuery('')}
-          />
-        );
-      }
-
-      if (selectedCategory) {
-        return (
-          <EmptyState
-            icon="cube-outline"
-            title="Sin productos"
-            subtitle="No hay productos en esta categoría"
-            actionText="Ver todos"
-            onActionPress={() => setSelectedCategory(null)}
-          />
-        );
-      }
-
+    // Si hay imagen de fondo (solo para categorías no estáticas)
+    if (backgroundImage && category.id !== null) {
       return (
-        <EmptyState
-          icon="storefront-outline"
-          title="Tienda vacía"
-          subtitle="Aún no hay productos disponibles"
-        />
+        <TouchableOpacity
+          style={[
+            styles.categoryFilterVariable,
+            { width: category.width },
+            isSelected && styles.categoryFilterSelected
+          ]}
+          onPress={() => filterProducts(category.id)}
+        >
+          <ImageBackground
+            source={{ uri: backgroundImage }}
+            style={styles.categoryFilterBackground}
+            imageStyle={styles.categoryFilterBackgroundImage}
+          >
+            <View style={styles.categoryFilterOverlay}>
+              <Ionicons 
+                name={category.icon} 
+                size={20} 
+                color="#fff" 
+                style={styles.categoryIcon}
+              />
+              <Text style={styles.categoryFilterTextWithBackground}>
+                {customTitle}
+              </Text>
+              {categoryCount > 0 && (
+                <Text style={styles.categoryCountWithBackground}>
+                  ({categoryCount})
+                </Text>
+              )}
+            </View>
+          </ImageBackground>
+        </TouchableOpacity>
       );
     }
 
+    // Sin imagen de fondo (diseño normal)
     return (
-      <FlatList
-        data={filteredProducts}
-        renderItem={renderProduct}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.productsList}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#3B82F6"
+      <TouchableOpacity
+        style={[
+          styles.categoryFilterVariable,
+          { width: category.width },
+          isSelected ? styles.categoryFilterSelected : styles.categoryFilterDefault
+        ]}
+        onPress={() => filterProducts(category.id)}
+      >
+        <View style={styles.categoryFilterContent}>
+          <Ionicons 
+            name={category.icon} 
+            size={20} 
+            color={isSelected ? '#fff' : '#374151'} 
+            style={styles.categoryIcon}
           />
-        }
-      />
+          <Text style={[
+            styles.categoryFilterText,
+            isSelected && styles.categoryFilterTextSelected
+          ]}>
+            {customTitle}
+          </Text>
+          {categoryCount > 0 && (
+            <Text style={[
+              styles.categoryCount,
+              isSelected && styles.categoryCountSelected
+            ]}>
+              ({categoryCount})
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <ShopHeader
-        title="Tienda TASHIRO"
-        subtitle={`${filteredProducts.length} productos disponibles`}
-        cartItemCount={cartItemCount}
-        onCartPress={handleCartPress}
-        onSearchPress={handleSearchPress}
-      />
-
-      {/* Filtro de categorías */}
-      <CategoryFilter
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
-      />
-
-      {/* Contenido principal */}
-      <View style={styles.content}>
-        {renderContent()}
-      </View>
-
-      {/* Modal de búsqueda */}
-      <Modal
-        visible={showSearchModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowSearchModal(false)}
-      >
-        <SafeAreaView style={styles.searchModal}>
-          <View style={styles.searchHeader}>
-            <TouchableOpacity
-              style={styles.searchCloseButton}
-              onPress={() => setShowSearchModal(false)}
-            >
-              <Ionicons name="close" size={24} color="#6B7280" />
-            </TouchableOpacity>
-            <Text style={styles.searchTitle}>Buscar productos</Text>
-            <View style={styles.searchPlaceholder} />
-          </View>
-
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Buscar por nombre, categoría..."
-              autoFocus={true}
-              returnKeyType="search"
-              onSubmitEditing={() => setShowSearchModal(false)}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                style={styles.searchClearButton}
-                onPress={() => setSearchQuery('')}
+  // Renderizar producto en grid 2x2
+  const renderProduct = ({ item, index }) => {
+    const stock = getProductStock(item);
+    
+    return (
+      <View style={styles.productContainer}>
+        <TouchableOpacity
+          style={styles.productCard}
+          onPress={() => navigateToProduct(item)}
+        >
+          {/* Imagen del producto */}
+          <View style={styles.productImageContainer}>
+            {item.images && item.images.length > 0 ? (
+              <ImageBackground
+                source={{ uri: item.images[0] }}
+                style={styles.productImage}
+                imageStyle={styles.productImageStyle}
               >
-                <Ionicons name="close-circle" size={20} color="#6B7280" />
-              </TouchableOpacity>
+                {/* Badge de stock */}
+                <View style={[
+                  styles.stockBadge,
+                  stock === 0 ? styles.stockBadgeOut :
+                  stock < 5 ? styles.stockBadgeLow : styles.stockBadgeAvailable
+                ]}>
+                  <Text style={styles.stockBadgeText}>
+                    {stock === 0 ? 'Agotado' : stock < 5 ? 'Pocas unidades' : 'Disponible'}
+                  </Text>
+                </View>
+              </ImageBackground>
+            ) : (
+              <View style={[styles.productImage, styles.placeholderImage]}>
+                <Ionicons name="image-outline" size={32} color="#D1D5DB" />
+              </View>
             )}
           </View>
 
-          <View style={styles.searchResults}>
-            <Text style={styles.searchResultsText}>
-              {searchQuery.trim() ? `${filteredProducts.length} resultados` : 'Escribe para buscar'}
+          {/* Información del producto */}
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} numberOfLines={2}>
+              {item.name}
             </Text>
+            <Text style={styles.productCategory}>
+              {item.category?.toUpperCase() || 'PRODUCTO'}
+            </Text>
+            <Text style={styles.productPrice}>
+              ${parseFloat(item.price || 0).toFixed(2)}
+            </Text>
+            
+            {/* Variantes disponibles */}
+            {(item.sizes || item.colors) && (
+              <View style={styles.variantsInfo}>
+                {item.sizes && (
+                  <Text style={styles.variantsText}>
+                    Tallas: {item.sizes.join(', ')}
+                  </Text>
+                )}
+                {item.colors && (
+                  <Text style={styles.variantsText}>
+                    Colores: {item.colors.join(', ')}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
-        </SafeAreaView>
-      </Modal>
+
+          {/* Botón agregar */}
+          <TouchableOpacity 
+            style={[
+              styles.addButton,
+              stock === 0 && styles.addButtonDisabled
+            ]}
+            disabled={stock === 0}
+            onPress={() => navigateToProduct(item)}
+          >
+            <Ionicons 
+              name="add" 
+              size={20} 
+              color={stock === 0 ? '#9CA3AF' : '#fff'} 
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ShopHeader 
+          title="Tienda TASHIRO"
+          cartItemCount={cartItemCount}
+          onCartPress={() => navigation.navigate('Cart')}
+        />
+        <ProductsLoading />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ShopHeader 
+        title="Tienda TASHIRO"
+        subtitle={`${filteredProducts.length} productos disponibles`}
+        cartItemCount={cartItemCount}
+        onCartPress={() => navigation.navigate('Cart')}
+      />
+
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Filtros de categoría con anchos variables */}
+        <View style={styles.filtersContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtersScrollContent}
+          >
+            {categories.map((category) => (
+              <View key={category.id || 'all'} style={styles.categoryFilterWrapper}>
+                {renderCategoryFilter({ item: category })}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Lista de productos en grid 2x2 */}
+        {filteredProducts.length > 0 ? (
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderProduct}
+            numColumns={2}
+            keyExtractor={(item) => item.id}
+            columnWrapperStyle={styles.productRow}
+            contentContainerStyle={styles.productsContainer}
+            scrollEnabled={false}
+          />
+        ) : (
+          <EmptyState
+            icon="storefront-outline"
+            title={selectedCategory ? "No hay productos en esta categoría" : "No hay productos"}
+            subtitle={selectedCategory ? `No se encontraron productos en "${selectedCategory}"` : "No se encontraron productos"}
+            buttonText="Ver todos"
+            onButtonPress={() => filterProducts(null)}
+          />
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -384,74 +469,211 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  productsList: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  productCard: {
-    marginHorizontal: 4,
-    marginBottom: 16,
-  },
-
-  // Search Modal
-  searchModal: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  searchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+  
+  // FILTROS CON ANCHO VARIABLE
+  filtersContainer: {
     paddingVertical: 16,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  searchCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  filtersScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  categoryFilterWrapper: {
+    // Wrapper para mantener espaciado
+  },
+  categoryFilterVariable: {
+    height: 200,
+    borderRadius: 5,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  categoryFilterDefault: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  categoryFilterSelected: {
+    backgroundColor: '#1F2937',
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+  },
+  categoryFilterContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+  },
+  categoryFilterBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  categoryFilterBackgroundImage: {
+    borderRadius: 10,
+  },
+  categoryFilterOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+  },
+  categoryIcon: {
+    marginBottom: 8,
+  },
+  categoryFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
+  },
+  categoryFilterTextSelected: {
+    color: '#fff',
+  },
+  categoryFilterTextWithBackground: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  categoryCount: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  categoryCountSelected: {
+    color: '#D1D5DB',
+  },
+  categoryCountWithBackground: {
+    fontSize: 10,
+    color: '#fff',
+    marginTop: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+
+  // PRODUCTOS EN GRID 2x2
+  productsContainer: {
+    padding: 16,
+  },
+  productRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  productContainer: {
+    width: (screenWidth - 48) / 2,
+  },
+  productCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  productImageContainer: {
+    position: 'relative',
+  },
+  productImage: {
+    width: '100%',
+    height: 120,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    padding: 8,
+  },
+  productImageStyle: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  placeholderImage: {
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  searchPlaceholder: {
-    width: 40,
-  },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F3F4F6',
+  stockBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
+    alignSelf: 'flex-start',
   },
-  searchIcon: {
-    marginRight: 12,
+  stockBadgeAvailable: {
+    backgroundColor: '#10B981',
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#111827',
+  stockBadgeLow: {
+    backgroundColor: '#F59E0B',
   },
-  searchClearButton: {
-    marginLeft: 8,
+  stockBadgeOut: {
+    backgroundColor: '#EF4444',
   },
-  searchResults: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  stockBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
   },
-  searchResultsText: {
+  productInfo: {
+    padding: 12,
+  },
+  productName: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  productCategory: {
+    fontSize: 10,
+    fontWeight: '500',
     color: '#6B7280',
+    marginBottom: 8,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  variantsInfo: {
+    marginTop: 4,
+  },
+  variantsText: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  addButtonDisabled: {
+    backgroundColor: '#E5E7EB',
   },
 });
 
 export default ShopScreen;
+

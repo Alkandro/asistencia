@@ -813,6 +813,7 @@ const styles = StyleSheet.create({
   },
   categoryButtonTextActive: {
     color: '#fff',
+   
   },
 
   // Products Grid

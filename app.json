@@ -15,7 +15,7 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Esta aplicación necesita acceder a la cámara para tomar fotos.",
-        "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceder a la galería para seleccionar fotos.",
+        "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceder a la galería para seleccionar fotos y configurar fondos de categorías.",
         "NSPhotoLibraryAddUsageDescription": "Explica para qué guardas en la galería",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
@@ -40,7 +40,13 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La app necesita acceso a tus fotos para configurar fondos de categorías en la tienda."
+        }
+      ]
     ],
     "extra": {
       "eas": {
