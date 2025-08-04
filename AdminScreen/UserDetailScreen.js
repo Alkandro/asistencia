@@ -184,6 +184,7 @@ const UserDetailScreen = () => {
       };
     }
   };
+  
 
   const getMonthsForYear = (year) => {
     const months = [];
@@ -237,6 +238,19 @@ const UserDetailScreen = () => {
   const availableYears = getAvailableYears();
   const monthsData = getMonthsForYear(selectedYear);
 
+// ✅ AGREGAR AL INICIO DE TU COMPONENTE
+const formatBirthDate = (userData) => {
+  if (userData?.fechaNacimiento) {
+    const birthDate = new Date(userData.fechaNacimiento);
+    return birthDate.toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  }
+  return "";
+};
+
   return (
     <SafeAreaView style={styles.container}>
       <AdminHeader
@@ -273,6 +287,10 @@ const UserDetailScreen = () => {
           <AdminDivider />
 
           <View style={styles.infoGrid}>
+          <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Nombre</Text>
+              <Text style={styles.infoValue}>{user.nombre || "No registrado"}</Text>
+            </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Apellido</Text>
               <Text style={styles.infoValue}>{user.apellido || "No registrado"}</Text>
@@ -287,27 +305,35 @@ const UserDetailScreen = () => {
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Ciudad</Text>
-              <Text style={styles.infoValue}>{user.city || "No registrado"}</Text>
+              <Text style={styles.infoValue}>{user.ciudad || "No registrado"}</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Estado</Text>
-              <Text style={styles.infoValue}>{user.state || "No registrado"}</Text>
+              <Text style={styles.infoValue}>{user.provincia || "No registrado"}</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Edad</Text>
-              <Text style={styles.infoValue}>{user.age || "No registrado"}</Text>
+              <Text style={styles.infoValue}>{user.edad || "No registrado"}</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Género</Text>
-              <Text style={styles.infoValue}>{user.gender || "No registrado"}</Text>
+              <Text style={styles.infoValue}>{user.genero || "No registrado"}</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Peso</Text>
-              <Text style={styles.infoValue}>{user.weight ? `${user.weight} kg` : "No registrado"}</Text>
+              <Text style={styles.infoValue}>{user.peso ? `${user.peso} kg` : "No registrado"}</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Altura</Text>
-              <Text style={styles.infoValue}>{user.height ? `${user.height} cm` : "No registrado"}</Text>
+              <Text style={styles.infoValue}>{user.altura ? `${user.altura} cm` : "No registrado"}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>NickName</Text>
+              <Text style={styles.infoValue}>{user.username || "No registrado"}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Fecha de Nacimiento</Text>
+              <Text style={styles.infoValue}>{formatBirthDate(user) || "No registrado"}</Text>
             </View>
           </View>
         </AdminCard>
@@ -561,7 +587,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   monthName: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#6B7280",
     marginBottom: 4,
   },

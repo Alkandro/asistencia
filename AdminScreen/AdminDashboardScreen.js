@@ -1,5 +1,6 @@
-// AdminDashboardScreen.js - Panel de control admin con estadísticas
-import React, { useState, useEffect } from 'react';
+// AdminDashboardScreen.js - Panel de control admin compatible con react-native-tab-view
+
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -21,7 +22,6 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   AdminCard,
@@ -33,12 +33,14 @@ import {
 
 const { width } = Dimensions.get('window');
 
-const AdminDashboardScreen = () => {
+// ✅ CONTEXTO PARA COMUNICACIÓN CON TABVIEW
+const TabNavigationContext = React.createContext();
+
+const AdminDashboardScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
-  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Estados para estadísticas
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
@@ -56,41 +58,41 @@ const AdminDashboardScreen = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Suscribirse a usuarios
       const usersRef = collection(db, 'users');
       const usersQuery = query(usersRef, where('role', '!=', 'admin'));
-      
+
       const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
         const users = [];
         let totalTrainingsCount = 0;
         let monthlyTrainingsCount = 0;
         const beltCount = {};
-        
+
         const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-        
+
         snapshot.forEach((doc) => {
           const userData = doc.data();
           users.push({ id: doc.id, ...userData });
-          
+
           // Contar entrenamientos totales
           totalTrainingsCount += userData.allTimeCheckIns || 0;
-          
+
           // Contar entrenamientos del mes actual
           const monthlyData = userData.monthlyCheckInCount || {};
           monthlyTrainingsCount += monthlyData[currentMonth] || 0;
-          
+
           // Distribución de cinturones
           const belt = userData.cinturon || 'white';
           beltCount[belt] = (beltCount[belt] || 0) + 1;
         });
-        
+
         setTotalUsers(users.length);
         setActiveUsers(users.filter(u => (u.allTimeCheckIns || 0) > 0).length);
         setTotalTrainings(totalTrainingsCount);
         setMonthlyTrainings(monthlyTrainingsCount);
         setBeltDistribution(beltCount);
-        
+
         // Top usuarios por entrenamientos
         const sortedUsers = users
           .sort((a, b) => (b.allTimeCheckIns || 0) - (a.allTimeCheckIns || 0))
@@ -106,9 +108,9 @@ const AdminDashboardScreen = () => {
 
       // Obtener actividad reciente
       await fetchRecentActivity();
-      
+
       setLoading(false);
-      
+
       // Cleanup function
       return () => {
         unsubscribeUsers();
@@ -128,10 +130,10 @@ const AdminDashboardScreen = () => {
         orderBy('timestamp', 'desc'),
         limit(10)
       );
-      
+
       const attendanceSnapshot = await getDocs(attendanceQuery);
       const activities = [];
-      
+
       for (const doc of attendanceSnapshot.docs) {
         const data = doc.data();
         activities.push({
@@ -142,7 +144,7 @@ const AdminDashboardScreen = () => {
           timestamp: data.timestamp,
         });
       }
-      
+
       setRecentActivity(activities);
     } catch (error) {
       console.error('Error al obtener actividad reciente:', error);
@@ -153,6 +155,60 @@ const AdminDashboardScreen = () => {
     setRefreshing(true);
     fetchDashboardData().finally(() => setRefreshing(false));
   }, []);
+
+  // ✅ FUNCIÓN DE NAVEGACIÓN CORREGIDA PARA TABVIEW
+  const navigateToTab = (tabKey) => {
+    try {
+      console.log('🧭 Navegando a pestaña:', tabKey);
+      
+      // Buscar el contexto del TabView padre
+      const parentNavigation = navigation?.getParent?.();
+      
+      if (parentNavigation) {
+        // Si tenemos acceso al navegador padre
+        console.log('✅ Usando navegador padre');
+        parentNavigation.navigate(tabKey);
+        return;
+      }
+
+      // Método alternativo: usar el contexto global si está disponible
+      if (global.tabNavigationRef) {
+        console.log('✅ Usando referencia global');
+        global.tabNavigationRef.setIndex(getTabIndex(tabKey));
+        return;
+      }
+
+      // Método alternativo: emitir evento personalizado
+      console.log('✅ Emitiendo evento de navegación');
+      if (global.tabNavigationEmitter) {
+        global.tabNavigationEmitter.emit('navigateToTab', tabKey);
+        return;
+      }
+
+      console.log('⚠️ No se pudo navegar - usando fallback');
+      // Fallback: mostrar mensaje al usuario
+      alert(`Navegar a ${tabKey}. Por favor, toca la pestaña correspondiente.`);
+      
+    } catch (error) {
+      console.error('❌ Error de navegación:', error);
+      alert(`Error al navegar. Por favor, toca la pestaña ${tabKey} manualmente.`);
+    }
+  };
+
+  // ✅ FUNCIÓN AUXILIAR PARA OBTENER ÍNDICE DE PESTAÑA
+  const getTabIndex = (tabKey) => {
+    const tabMap = {
+      'dashboard': 0,
+      'users': 1,
+      'products': 2,
+      'gestionar': 3,
+      'orders': 4,
+      'messages': 5,
+      'settings': 6,
+      'backgrounds': 7,
+    };
+    return tabMap[tabKey] || 0;
+  };
 
   const getBeltColor = (belt) => {
     const colors = {
@@ -172,12 +228,12 @@ const AdminDashboardScreen = () => {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'Fecha no disponible';
-    
+
     try {
       const date = timestamp.toDate();
       const now = new Date();
       const diffInHours = (now - date) / (1000 * 60 * 60);
-      
+
       if (diffInHours < 1) {
         return 'Hace unos minutos';
       } else if (diffInHours < 24) {
@@ -287,6 +343,7 @@ const AdminDashboardScreen = () => {
     </AdminCard>
   );
 
+  // ✅ ACCIONES RÁPIDAS CORREGIDAS PARA TABVIEW
   const renderQuickActions = () => (
     <AdminCard style={styles.actionsCard}>
       <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
@@ -296,14 +353,50 @@ const AdminDashboardScreen = () => {
           icon="people-outline"
           variant="secondary"
           style={styles.actionButton}
-          onPress={() => navigation.navigate('UserListScreen')}
+          onPress={() => navigateToTab('users')}
         />
         <AdminButton
           title="Enviar Mensaje"
           icon="send-outline"
           variant="primary"
           style={styles.actionButton}
-          onPress={() => navigation.navigate('Messages')}
+          onPress={() => navigateToTab('messages')}
+        />
+      </View>
+      
+      {/* ✅ FILA ADICIONAL DE ACCIONES */}
+      <View style={[styles.actionButtons, { marginTop: 12 }]}>
+        <AdminButton
+          title="Productos"
+          icon="cube-outline"
+          variant="outline"
+          style={styles.actionButton}
+          onPress={() => navigateToTab('products')}
+        />
+        <AdminButton
+          title="Pedidos"
+          icon="receipt-outline"
+          variant="outline"
+          style={styles.actionButton}
+          onPress={() => navigateToTab('orders')}
+        />
+      </View>
+
+      {/* ✅ TERCERA FILA DE ACCIONES */}
+      <View style={[styles.actionButtons, { marginTop: 12 }]}>
+        <AdminButton
+          title="Gestionar"
+          icon="add-circle-outline"
+          variant="outline"
+          style={styles.actionButton}
+          onPress={() => navigateToTab('gestionar')}
+        />
+        <AdminButton
+          title="Fondos"
+          icon="image-outline"
+          variant="outline"
+          style={styles.actionButton}
+          onPress={() => navigateToTab('backgrounds')}
         />
       </View>
     </AdminCard>
@@ -337,7 +430,7 @@ const AdminDashboardScreen = () => {
           {renderStatCard('Usuarios', totalUsers, 'people-outline', '#3B82F6')}
           {renderStatCard('Activos', activeUsers, 'checkmark-circle-outline', '#10B981')}
         </View>
-        
+
         <View style={styles.statsRow}>
           {renderStatCard('Entrenamientos', totalTrainings, 'fitness-outline', '#F59E0B', 'Total')}
           {renderStatCard('Este Mes', monthlyTrainings, 'calendar-outline', '#8B5CF6')}
@@ -547,7 +640,8 @@ const styles = StyleSheet.create({
 
   // Acciones rápidas
   actionsCard: {
-    marginBottom: 20,
+    marginBottom: 10,
+    height:150,
   },
   actionButtons: {
     flexDirection: 'row',
