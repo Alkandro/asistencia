@@ -1,4 +1,4 @@
-// // ShopScreen.js - Diseño híbrido: filtros largos + iconos + stock corregido
+// // // ShopScreen.js - Diseño híbrido: filtros largos + iconos + stock corregido
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -47,17 +47,17 @@ const ShopScreen = () => {
   // Estados de filtros
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  // Categorías con iconos y anchos variables - INCLUYE SUPLEMENTOS
+  // ✅ CATEGORÍAS CON ICONOS Y ANCHOS VARIABLES - INCLUYE SUPLEMENTOS
   const categories = [
     { id: null, name: 'Todos', icon: 'grid-outline', width: 110 },
     { id: 'gi', name: 'Gi', icon: 'shirt-outline', width: 80 },
     { id: 'no-gi', name: 'No-Gi', icon: 'fitness-outline', width: 95 },
     { id: 'accessories', name: 'Accesorios', icon: 'bag-outline', width: 130 },
     { id: 'equipment', name: 'Equipos', icon: 'barbell-outline', width: 100 },
-    { id: 'supplements', name: 'Suplementos', icon: 'nutrition-outline', width: 120 }, // NUEVO
+    { id: 'supplements', name: 'Suplementos', icon: 'nutrition-outline', width: 120 },
   ];
 
-  // Cargar productos desde Firebase
+  // ✅ CARGAR PRODUCTOS CON VERIFICACIÓN DE DESTACADOS
   const loadProducts = async () => {
     try {
       console.log('📦 Cargando productos...');
@@ -72,6 +72,7 @@ const ShopScreen = () => {
           id: productData.id,
           name: productData.name,
           category: productData.category,
+          featured: productData.featured, // ✅ VERIFICAR CAMPO DESTACADO
           price: productData.price
         });
         productsData.push(productData);
@@ -79,16 +80,26 @@ const ShopScreen = () => {
 
       console.log('📦 Total productos cargados:', productsData.length);
       
+      // ✅ SEPARAR PRODUCTOS DESTACADOS
+      const featuredProducts = productsData.filter(product => product.featured === true);
+      const regularProducts = productsData.filter(product => product.featured !== true);
+      
+      console.log('⭐ Productos destacados:', featuredProducts.length);
+      console.log('📋 Productos regulares:', regularProducts.length);
+      
+      // ✅ ORDENAR: DESTACADOS PRIMERO, LUEGO REGULARES
+      const sortedProducts = [...featuredProducts, ...regularProducts];
+      
       // Log de productos por categoría para debug
-      const productsByCategory = productsData.reduce((acc, product) => {
+      const productsByCategory = sortedProducts.reduce((acc, product) => {
         const cat = product.category || 'sin-categoria';
         acc[cat] = (acc[cat] || 0) + 1;
         return acc;
       }, {});
       console.log('📊 Productos por categoría:', productsByCategory);
 
-      setProducts(productsData);
-      setFilteredProducts(productsData);
+      setProducts(sortedProducts);
+      setFilteredProducts(sortedProducts);
     } catch (error) {
       console.error('❌ Error loading products:', error);
       Alert.alert('Error', 'No se pudieron cargar los productos');
@@ -129,7 +140,7 @@ const ShopScreen = () => {
     }
   };
 
-  // Función para obtener stock de un producto
+  // ✅ FUNCIÓN PARA OBTENER STOCK DE UN PRODUCTO
   const getProductStock = (product) => {
     if (!product) return 0;
     
@@ -152,31 +163,52 @@ const ShopScreen = () => {
     return 0;
   };
 
-  // Filtrar productos por categoría - CORREGIDO PARA NO-GI
+  // ✅ FILTRAR PRODUCTOS CON NORMALIZACIÓN MEJORADA Y DESTACADOS PRIMERO
   const filterProducts = (categoryId) => {
     console.log('🔍 Filtrando por categoría:', categoryId);
     setSelectedCategory(categoryId);
     
     if (!categoryId || categoryId === null) {
-      console.log('📋 Mostrando todos los productos:', products.length);
-      setFilteredProducts(products);
+      // Mostrar todos los productos (destacados primero)
+      const featuredProducts = products.filter(product => product.featured === true);
+      const regularProducts = products.filter(product => product.featured !== true);
+      const allProducts = [...featuredProducts, ...regularProducts];
+      
+      console.log('📋 Mostrando todos los productos:', allProducts.length);
+      setFilteredProducts(allProducts);
     } else {
-      // CORRECCIÓN: Normalizar categorías para comparación
+      // ✅ FUNCIÓN DE NORMALIZACIÓN MEJORADA
+      const normalizeCategory = (category) => {
+        if (!category) return '';
+        return category.toLowerCase()
+          .replace(/[-\s]/g, '') // Remover guiones y espacios
+          .replace(/[áàäâ]/g, 'a')
+          .replace(/[éèëê]/g, 'e')
+          .replace(/[íìïî]/g, 'i')
+          .replace(/[óòöô]/g, 'o')
+          .replace(/[úùüû]/g, 'u')
+          .replace(/ñ/g, 'n');
+      };
+
+      const normalizedCategoryId = normalizeCategory(categoryId);
+      
       const filtered = products.filter(product => {
-        const productCategory = product.category;
+        const normalizedProductCategory = normalizeCategory(product.category);
+        const matches = normalizedProductCategory === normalizedCategoryId;
         
-        // Normalizar "no-gi" vs "No-Gi" vs "NO-GI"
-        const normalizedProductCategory = productCategory?.toLowerCase().replace(/[-\s]/g, '');
-        const normalizedFilterCategory = categoryId?.toLowerCase().replace(/[-\s]/g, '');
-        
-        const matches = normalizedProductCategory === normalizedFilterCategory;
-        
-        console.log(`🔍 Producto "${product.name}": categoria="${productCategory}" (normalizada: "${normalizedProductCategory}"), buscando="${categoryId}" (normalizada: "${normalizedFilterCategory}"), coincide=${matches}`);
+        console.log(`🔍 Producto "${product.name}": categoria="${product.category}" (normalizada: "${normalizedProductCategory}"), buscando="${categoryId}" (normalizada: "${normalizedCategoryId}"), coincide=${matches}`);
         return matches;
       });
+
+      // ✅ ORDENAR FILTRADOS: DESTACADOS PRIMERO
+      const featuredFiltered = filtered.filter(product => product.featured === true);
+      const regularFiltered = filtered.filter(product => product.featured !== true);
+      const sortedFiltered = [...featuredFiltered, ...regularFiltered];
+
+      console.log(`📋 Productos encontrados en "${categoryId}":`, sortedFiltered.length);
+      console.log('⭐ Destacados en categoría:', featuredFiltered.length);
       
-      console.log(`📋 Productos encontrados en "${categoryId}":`, filtered.length);
-      setFilteredProducts(filtered);
+      setFilteredProducts(sortedFiltered);
     }
   };
 
@@ -220,22 +252,33 @@ const ShopScreen = () => {
     setRefreshing(false);
   };
 
-  // Renderizar filtro de categoría con ancho variable
+  // ✅ RENDERIZAR FILTRO DE CATEGORÍA CON ANCHO VARIABLE (DISEÑO EXACTO)
   const renderCategoryFilter = ({ item: category }) => {
     const isSelected = selectedCategory === category.id;
     const backgroundImage = categoryBackgrounds[category.id];
     const customTitle = categoryTitles[category.id] || category.name;
 
-    // Contar productos en esta categoría
+    // ✅ CONTAR PRODUCTOS EN ESTA CATEGORÍA CON NORMALIZACIÓN
     const categoryCount = category.id === null 
       ? products.length 
       : products.filter(p => {
-          const productCategory = p.category?.toLowerCase().replace(/[-\s]/g, '');
-          const filterCategory = category.id?.toLowerCase().replace(/[-\s]/g, '');
+          const normalizeCategory = (cat) => {
+            if (!cat) return '';
+            return cat.toLowerCase()
+              .replace(/[-\s]/g, '')
+              .replace(/[áàäâ]/g, 'a')
+              .replace(/[éèëê]/g, 'e')
+              .replace(/[íìïî]/g, 'i')
+              .replace(/[óòöô]/g, 'o')
+              .replace(/[úùüû]/g, 'u')
+              .replace(/ñ/g, 'n');
+          };
+          const productCategory = normalizeCategory(p.category);
+          const filterCategory = normalizeCategory(category.id);
           return productCategory === filterCategory;
         }).length;
 
-    // Si hay imagen de fondo (solo para categorías no estáticas)
+    // ✅ SI HAY IMAGEN DE FONDO (SOLO PARA CATEGORÍAS NO ESTÁTICAS)
     if (backgroundImage && category.id !== null) {
       return (
         <TouchableOpacity
@@ -272,7 +315,7 @@ const ShopScreen = () => {
       );
     }
 
-    // Sin imagen de fondo (diseño normal)
+    // ✅ SIN IMAGEN DE FONDO (DISEÑO NORMAL)
     return (
       <TouchableOpacity
         style={[
@@ -308,7 +351,7 @@ const ShopScreen = () => {
     );
   };
 
-  // Renderizar producto en grid 2x2
+  // ✅ RENDERIZAR PRODUCTO EN GRID 2x2 CON BADGE DE DESTACADO
   const renderProduct = ({ item, index }) => {
     const stock = getProductStock(item);
     
@@ -318,7 +361,7 @@ const ShopScreen = () => {
           style={styles.productCard}
           onPress={() => navigateToProduct(item)}
         >
-          {/* Imagen del producto */}
+          {/* ✅ IMAGEN DEL PRODUCTO */}
           <View style={styles.productImageContainer}>
             {item.images && item.images.length > 0 ? (
               <ImageBackground
@@ -326,7 +369,15 @@ const ShopScreen = () => {
                 style={styles.productImage}
                 imageStyle={styles.productImageStyle}
               >
-                {/* Badge de stock */}
+                {/* ✅ BADGE DE DESTACADO */}
+                {item.featured && (
+                  <View style={styles.featuredBadge}>
+                    <Ionicons name="star" size={10} color="#fff" />
+                    <Text style={styles.featuredBadgeText}>Destacado</Text>
+                  </View>
+                )}
+                
+                {/* ✅ BADGE DE STOCK */}
                 <View style={[
                   styles.stockBadge,
                   stock === 0 ? styles.stockBadgeOut :
@@ -340,11 +391,19 @@ const ShopScreen = () => {
             ) : (
               <View style={[styles.productImage, styles.placeholderImage]}>
                 <Ionicons name="image-outline" size={32} color="#D1D5DB" />
+                
+                {/* ✅ BADGE DE DESTACADO PARA PLACEHOLDER */}
+                {item.featured && (
+                  <View style={styles.featuredBadge}>
+                    <Ionicons name="star" size={10} color="#fff" />
+                    <Text style={styles.featuredBadgeText}>Destacado</Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
 
-          {/* Información del producto */}
+          {/* ✅ INFORMACIÓN DEL PRODUCTO */}
           <View style={styles.productInfo}>
             <Text style={styles.productName} numberOfLines={2}>
               {item.name}
@@ -356,7 +415,7 @@ const ShopScreen = () => {
               ${parseFloat(item.price || 0).toFixed(2)}
             </Text>
             
-            {/* Variantes disponibles */}
+            {/* ✅ VARIANTES DISPONIBLES */}
             {(item.sizes || item.colors) && (
               <View style={styles.variantsInfo}>
                 {item.sizes && (
@@ -373,7 +432,7 @@ const ShopScreen = () => {
             )}
           </View>
 
-          {/* Botón agregar */}
+          {/* ✅ BOTÓN AGREGAR */}
           <TouchableOpacity 
             style={[
               styles.addButton,
@@ -421,7 +480,7 @@ const ShopScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Filtros de categoría con anchos variables */}
+        {/* ✅ FILTROS DE CATEGORÍA CON ANCHOS VARIABLES */}
         <View style={styles.filtersContainer}>
           <ScrollView 
             horizontal 
@@ -436,7 +495,7 @@ const ShopScreen = () => {
           </ScrollView>
         </View>
 
-        {/* Lista de productos en grid 2x2 */}
+        {/* ✅ LISTA DE PRODUCTOS EN GRID 2x2 */}
         {filteredProducts.length > 0 ? (
           <FlatList
             data={filteredProducts}
@@ -461,6 +520,7 @@ const ShopScreen = () => {
   );
 };
 
+// ✅ ESTILOS EXACTOS DEL SEGUNDO COMPONENTE
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -470,7 +530,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // FILTROS CON ANCHO VARIABLE
+  // ✅ FILTROS CON ANCHO VARIABLE (DISEÑO EXACTO)
   filtersContainer: {
     paddingVertical: 16,
     backgroundColor: '#fff',
@@ -485,8 +545,8 @@ const styles = StyleSheet.create({
     // Wrapper para mantener espaciado
   },
   categoryFilterVariable: {
-    height: 200,
-    borderRadius: 5,
+    height: 200, // ✅ ALTURA EXACTA
+    borderRadius: 5, // ✅ BORDER RADIUS EXACTO
     overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
@@ -495,12 +555,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   categoryFilterDefault: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F3F4F6', // ✅ COLOR EXACTO
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   categoryFilterSelected: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#1F2937', // ✅ COLOR EXACTO
     borderWidth: 2,
     borderColor: '#3B82F6',
   },
@@ -517,55 +577,50 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   categoryFilterBackgroundImage: {
-    borderRadius: 10,
+    borderRadius: 10, // ✅ BORDER RADIUS EXACTO
   },
   categoryFilterOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // ✅ OVERLAY EXACTO
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
     paddingVertical: 16,
   },
   categoryIcon: {
-    marginBottom: 8,
+    marginBottom: 8, // ✅ ESPACIADO EXACTO
   },
   categoryFilterText: {
-    fontSize: 14,
+    fontSize: 12, // ✅ TAMAÑO EXACTO
     fontWeight: '600',
     color: '#374151',
     textAlign: 'center',
+    marginBottom: 4,
   },
   categoryFilterTextSelected: {
-    color: '#fff',
+    color: '#fff', // ✅ COLOR EXACTO
   },
   categoryFilterTextWithBackground: {
-    fontSize: 14,
+    fontSize: 12, // ✅ TAMAÑO EXACTO
     fontWeight: '600',
     color: '#fff',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    marginBottom: 4,
   },
   categoryCount: {
-    fontSize: 10,
-    color: '#6B7280',
-    marginTop: 2,
+    fontSize: 10, // ✅ TAMAÑO EXACTO
+    color: '#9CA3AF',
   },
   categoryCountSelected: {
-    color: '#D1D5DB',
+    color: '#E5E7EB', // ✅ COLOR EXACTO
   },
   categoryCountWithBackground: {
-    fontSize: 10,
+    fontSize: 10, // ✅ TAMAÑO EXACTO
     color: '#fff',
-    marginTop: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    opacity: 0.9,
   },
 
-  // PRODUCTOS EN GRID 2x2
+  // ✅ PRODUCTOS EN GRID 2x2 (DISEÑO EXACTO)
   productsContainer: {
     padding: 16,
   },
@@ -574,94 +629,123 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   productContainer: {
-    width: (screenWidth - 48) / 2,
+    flex: 1,
+    marginHorizontal: 4,
   },
   productCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 12, // ✅ BORDER RADIUS EXACTO
     overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    height: 330,
   },
   productImageContainer: {
     position: 'relative',
   },
   productImage: {
     width: '100%',
-    height: 120,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    padding: 8,
+    height: 120, // ✅ ALTURA EXACTA
+    backgroundColor: '#F3F4F6',
   },
   productImageStyle: {
-    borderTopLeftRadius: 12,
+    borderTopLeftRadius: 12, // ✅ BORDER RADIUS EXACTO
     borderTopRightRadius: 12,
   },
   placeholderImage: {
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stockBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  
+  // ✅ BADGE DE DESTACADO (POSICIÓN EXACTA)
+  featuredBadge: {
+    position: 'absolute',
+    top: 8, // ✅ POSICIÓN EXACTA
+    left: 8,
+    backgroundColor: '#F59E0B', // ✅ COLOR EXACTO
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: 12,
-    alignSelf: 'flex-start',
+    zIndex: 10,
+    gap: 3,
   },
-  stockBadgeAvailable: {
-    backgroundColor: '#10B981',
-  },
-  stockBadgeLow: {
-    backgroundColor: '#F59E0B',
-  },
-  stockBadgeOut: {
-    backgroundColor: '#EF4444',
-  },
-  stockBadgeText: {
-    fontSize: 10,
+  featuredBadgeText: {
+    fontSize: 9, // ✅ TAMAÑO EXACTO
     fontWeight: '600',
     color: '#fff',
   },
+  
+  // ✅ BADGE DE STOCK (POSICIÓN EXACTA)
+  stockBadge: {
+    position: 'absolute',
+    bottom: 8, // ✅ POSICIÓN EXACTA
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  stockBadgeAvailable: {
+    backgroundColor: '#10B981', // ✅ COLOR EXACTO
+  },
+  stockBadgeLow: {
+    backgroundColor: '#F59E0B', // ✅ COLOR EXACTO
+  },
+  stockBadgeOut: {
+    backgroundColor: '#EF4444', // ✅ COLOR EXACTO
+  },
+  stockBadgeText: {
+    fontSize: 9, // ✅ TAMAÑO EXACTO
+    fontWeight: '600',
+    color: '#fff',
+  },
+  
+  // ✅ INFORMACIÓN DEL PRODUCTO (ESPACIADO EXACTO)
   productInfo: {
-    padding: 12,
+    padding: 12, // ✅ PADDING EXACTO
   },
   productName: {
-    fontSize: 14,
+    fontSize: 14, // ✅ TAMAÑO EXACTO
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#111827',
     marginBottom: 4,
+    lineHeight: 18,
   },
   productCategory: {
-    fontSize: 10,
-    fontWeight: '500',
+    fontSize: 10, // ✅ TAMAÑO EXACTO
     color: '#6B7280',
+    fontWeight: '500',
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: 16, // ✅ TAMAÑO EXACTO
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#111827',
     marginBottom: 8,
   },
   variantsInfo: {
     marginTop: 4,
   },
   variantsText: {
-    fontSize: 10,
-    color: '#6B7280',
+    fontSize: 10, // ✅ TAMAÑO EXACTO
+    color: '#9CA3AF',
     marginBottom: 2,
   },
+  
+  // ✅ BOTÓN AGREGAR (POSICIÓN EXACTA)
   addButton: {
     position: 'absolute',
-    bottom: 12,
+    bottom: 12, // ✅ POSICIÓN EXACTA
     right: 12,
-    width: 32,
+    width: 32, // ✅ TAMAÑO EXACTO
     height: 32,
-    borderRadius: 16,
     backgroundColor: '#3B82F6',
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
@@ -671,9 +755,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   addButtonDisabled: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#D1D5DB', // ✅ COLOR EXACTO
   },
 });
 
 export default ShopScreen;
-

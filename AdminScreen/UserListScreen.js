@@ -72,28 +72,6 @@ const UserListScreen = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      t("Cerrar Sesión"),
-      t("¿Estás seguro de que quieres cerrar sesión?"),
-      [
-        { text: t("Cancelar"), style: "cancel" },
-        {
-          text: t("Cerrar Sesión"),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await auth.signOut();
-            } catch (error) {
-              console.error("Error al cerrar sesión:", error);
-              Alert.alert("Error", "No se pudo cerrar la sesión");
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleUserPress = async (user) => {
     // Resetear badge de entrenamientos nuevos
     if (user.newTrainings > 0) {
@@ -263,17 +241,7 @@ const UserListScreen = () => {
         ListEmptyComponent={!loading ? renderEmptyState : null}
       />
 
-      {/* Botón de cerrar sesión */}
-      <View style={styles.bottomActions}>
-        <AdminButton
-          title="Cerrar Sesión"
-          onPress={handleSignOut}
-          variant="danger"
-          icon="log-out-outline"
-          style={styles.signOutButton}
-        />
-      </View>
-
+   
       <AdminLoadingOverlay visible={loading} text="Cargando usuarios..." />
     </SafeAreaView>
   );

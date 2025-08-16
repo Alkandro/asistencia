@@ -1,476 +1,706 @@
+
+// CheckoutScreen_WITH_SAVED_DATA.js - Checkout integrado con direcciones y métodos de pago guardados
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
-import {
-  collection,
-  addDoc,
-  doc,
-  deleteDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  CartItem,
-  PriceSummary,
-} from '../ComponentsShop/ShopComponents';
-import {
-  AdminCard,
-  AdminButton,
-  AdminHeader,
-  AdminDivider,
-  AdminLoadingOverlay,
-} from '../AdminScreen/AdminComponents';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AddressForm from '../ComponentsShop/AddressForm';
+import PaymentForm from '../ComponentsShop/PaymentForm';
 
 const CheckoutScreen = () => {
-  const { t } = useTranslation();
-  const route = useRoute();
   const navigation = useNavigation();
-  const { cartItems } = route.params;
+  const route = useRoute();
+  const { cartItems = [] } = route.params || {};
 
-  const [loading, setLoading] = useState(false);
-  const [processingPayment, setProcessingPayment] = useState(false);
+  // ✅ ESTADOS PRINCIPALES
+  const [loading, setLoading] = useState(true);
+  const [step, setStep] = useState(1); // 1: Dirección, 2: Pago, 3: Confirmación
+  const [processing, setProcessing] = useState(false);
 
-  // Estados del formulario de dirección
-  const [shippingAddress, setShippingAddress] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'Estados Unidos',
+  // ✅ ESTADOS DE DIRECCIONES
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressFormLoading, setAddressFormLoading] = useState(false);
+
+  // ✅ ESTADOS DE MÉTODOS DE PAGO
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentFormLoading, setPaymentFormLoading] = useState(false);
+
+  // ✅ ESTADOS DE CÁLCULOS
+  const [totals, setTotals] = useState({
+    subtotal: 0,
+    tax: 0,
+    shipping: 0,
+    total: 0
   });
 
-  // Estados de validación
-  const [errors, setErrors] = useState({});
-
+  // ✅ CARGAR DATOS INICIALES
   useEffect(() => {
-    // Pre-llenar email del usuario autenticado
-    if (auth.currentUser?.email) {
-      setShippingAddress(prev => ({
-        ...prev,
-        email: auth.currentUser.email,
-      }));
-    }
+    loadInitialData();
   }, []);
 
-  // Cálculos de precios
-  const subtotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
-  const tax = subtotal * 0.1; // 10% de impuestos
-  const shipping = subtotal > 100 ? 0 : 10; // Envío gratis para compras > $100
-  const total = subtotal + tax + shipping;
-
-  const updateShippingAddress = (field, value) => {
-    setShippingAddress(prev => ({ ...prev, [field]: value }));
-    // Limpiar error del campo cuando el usuario empiece a escribir
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!shippingAddress.name.trim()) {
-      newErrors.name = 'El nombre es obligatorio';
-    }
-    if (!shippingAddress.email.trim()) {
-      newErrors.email = 'El email es obligatorio';
-    } else if (!/\S+@\S+\.\S+/.test(shippingAddress.email)) {
-      newErrors.email = 'El email no es válido';
-    }
-    if (!shippingAddress.phone.trim()) {
-      newErrors.phone = 'El teléfono es obligatorio';
-    }
-    if (!shippingAddress.street.trim()) {
-      newErrors.street = 'La dirección es obligatoria';
-    }
-    if (!shippingAddress.city.trim()) {
-      newErrors.city = 'La ciudad es obligatoria';
-    }
-    if (!shippingAddress.state.trim()) {
-      newErrors.state = 'El estado es obligatorio';
-    }
-    if (!shippingAddress.zipCode.trim()) {
-      newErrors.zipCode = 'El código postal es obligatorio';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const createStripePaymentIntent = async (orderData) => {
+  // ✅ CARGAR DIRECCIONES, MÉTODOS DE PAGO Y CALCULAR TOTALES
+  const loadInitialData = async () => {
     try {
-      // En una implementación real, esto sería una llamada a tu backend
-      // que crearía el PaymentIntent en Stripe
-      const response = await fetch('https://your-backend.com/api/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await auth.currentUser?.getIdToken()}`,
-        },
-        body: JSON.stringify({
-          amount: Math.round(total * 100), // Stripe usa centavos
-          currency: 'usd',
-          orderData,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al crear PaymentIntent');
+      setLoading(true);
+      
+      // Cargar direcciones guardadas
+      const addressesData = await AsyncStorage.getItem('savedAddresses');
+      if (addressesData) {
+        const addresses = JSON.parse(addressesData);
+        if (Array.isArray(addresses)) {
+          setSavedAddresses(addresses);
+          
+          // Seleccionar dirección por defecto automáticamente
+          const defaultAddress = addresses.find(addr => addr.isDefault);
+          if (defaultAddress) {
+            setSelectedAddress(defaultAddress);
+          }
+        }
       }
 
-      const { clientSecret, paymentIntentId } = await response.json();
-      return { clientSecret, paymentIntentId };
+      // Cargar métodos de pago guardados
+      const paymentData = await AsyncStorage.getItem('savedCards');
+      if (paymentData) {
+        const paymentMethods = JSON.parse(paymentData);
+        if (Array.isArray(paymentMethods)) {
+          setSavedPaymentMethods(paymentMethods);
+        }
+      }
+
+      // Calcular totales
+      calculateTotals();
+      
     } catch (error) {
-      console.error('Error al crear PaymentIntent:', error);
-      throw error;
+      console.error('Error loading checkout data:', error);
+      Alert.alert('Error', 'No se pudieron cargar los datos del checkout');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const processStripePayment = async (clientSecret) => {
+  // ✅ CALCULAR TOTALES CON VALIDACIONES ROBUSTAS
+  const calculateTotals = () => {
     try {
-      // En una implementación real, aquí usarías Stripe Elements
-      // para procesar el pago de manera segura
+      // Validar que cartItems existe y es válido
+      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        setTotals({ subtotal: 0, tax: 0, shipping: 0, total: 0 });
+        return;
+      }
+
+      let subtotal = 0;
       
-      // Simulación de procesamiento de pago
+      cartItems.forEach((item, index) => {
+        let itemPrice = 0;
+        
+        // ✅ EXTRAER PRECIO CON MÚLTIPLES FALLBACKS
+        if (item.totalPrice !== undefined && item.totalPrice !== null) {
+          itemPrice = parseFloat(item.totalPrice) || 0;
+        } else if (item.price !== undefined && item.price !== null) {
+          const price = parseFloat(item.price) || 0;
+          const quantity = parseInt(item.quantity) || 1;
+          itemPrice = price * quantity;
+        }
+        
+        // ✅ VALIDAR QUE EL PRECIO ES UN NÚMERO VÁLIDO
+        if (isNaN(itemPrice) || !isFinite(itemPrice)) {
+          console.warn(`⚠️ Precio inválido para item ${index}:`, item);
+          itemPrice = 0;
+        }
+        
+        console.log(`💰 Item ${index}: ${item.name || 'Sin nombre'} = $${itemPrice}`);
+        subtotal += itemPrice;
+      });
+
+      // ✅ VALIDAR SUBTOTAL
+      if (isNaN(subtotal) || !isFinite(subtotal)) {
+        console.error('❌ Subtotal inválido:', subtotal);
+        subtotal = 0;
+      }
+
+      // ✅ CALCULAR IMPUESTOS (10%)
+      const tax = subtotal * 0.10;
+      
+      // ✅ CALCULAR ENVÍO (gratis si >$100, sino $10)
+      const shipping = subtotal >= 100 ? 0 : 10;
+      
+      // ✅ CALCULAR TOTAL
+      const total = subtotal + tax + shipping;
+
+      const calculatedTotals = {
+        subtotal: Math.round(subtotal * 100) / 100,
+        tax: Math.round(tax * 100) / 100,
+        shipping: Math.round(shipping * 100) / 100,
+        total: Math.round(total * 100) / 100
+      };
+
+      console.log('📊 Totales calculados:', calculatedTotals);
+      setTotals(calculatedTotals);
+      
+    } catch (error) {
+      console.error('❌ Error calculando totales:', error);
+      setTotals({ subtotal: 0, tax: 0, shipping: 0, total: 0 });
+    }
+  };
+
+  // ✅ MANEJAR NUEVA DIRECCIÓN
+  const handleNewAddress = async (addressData) => {
+    try {
+      setAddressFormLoading(true);
+      
+      const newAddress = {
+        id: `addr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        ...addressData,
+        createdAt: new Date().toISOString(),
+        lastUsed: new Date().toISOString(),
+      };
+
+      let updatedAddresses = [...savedAddresses];
+      
+      // Si es por defecto, quitar el flag de las demás
+      if (newAddress.isDefault) {
+        updatedAddresses.forEach(addr => addr.isDefault = false);
+      }
+
+      updatedAddresses.unshift(newAddress);
+      updatedAddresses = updatedAddresses.slice(0, 10); // Mantener solo 10
+
+      // Guardar en AsyncStorage
+      await AsyncStorage.setItem('savedAddresses', JSON.stringify(updatedAddresses));
+      setSavedAddresses(updatedAddresses);
+      
+      // Seleccionar la nueva dirección automáticamente
+      setSelectedAddress(newAddress);
+      setShowAddressForm(false);
+      
+      Alert.alert('Éxito', 'Dirección guardada y seleccionada');
+    } catch (error) {
+      console.error('Error saving new address:', error);
+      Alert.alert('Error', 'No se pudo guardar la dirección');
+    } finally {
+      setAddressFormLoading(false);
+    }
+  };
+
+  // ✅ MANEJAR NUEVO MÉTODO DE PAGO
+  const handleNewPaymentMethod = async (paymentData) => {
+    try {
+      setPaymentFormLoading(true);
+      
+      // Crear metadatos seguros (sin datos sensibles)
+      const paymentMetadata = {
+        id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        lastFourDigits: paymentData.cardNumber.slice(-4),
+        cardType: detectCardType(paymentData.cardNumber),
+        expiryMonth: paymentData.expiryDate.split('/')[0],
+        expiryYear: paymentData.expiryDate.split('/')[1],
+        cardholderName: paymentData.cardholderName,
+        createdAt: new Date().toISOString(),
+        lastUsed: new Date().toISOString(),
+      };
+
+      let updatedMethods = [...savedPaymentMethods];
+      updatedMethods.unshift(paymentMetadata);
+      updatedMethods = updatedMethods.slice(0, 5); // Mantener solo 5
+
+      // Guardar en AsyncStorage
+      await AsyncStorage.setItem('savedCards', JSON.stringify(updatedMethods));
+      setSavedPaymentMethods(updatedMethods);
+      
+      // Seleccionar el nuevo método automáticamente
+      setSelectedPaymentMethod(paymentMetadata);
+      setShowPaymentForm(false);
+      
+      Alert.alert('Éxito', 'Método de pago guardado y seleccionado');
+    } catch (error) {
+      console.error('Error saving new payment method:', error);
+      Alert.alert('Error', 'No se pudo guardar el método de pago');
+    } finally {
+      setPaymentFormLoading(false);
+    }
+  };
+
+  // ✅ DETECTAR TIPO DE TARJETA
+  const detectCardType = (number) => {
+    const cleaned = number.replace(/\s/g, '');
+    
+    if (/^4/.test(cleaned)) return 'visa';
+    if (/^5[1-5]/.test(cleaned)) return 'mastercard';
+    if (/^3[47]/.test(cleaned)) return 'amex';
+    if (/^6/.test(cleaned)) return 'discover';
+    
+    return 'unknown';
+  };
+
+  // ✅ ACTUALIZAR ÚLTIMA VEZ USADA
+  const updateLastUsed = async (type, id) => {
+    try {
+      if (type === 'address') {
+        const updatedAddresses = savedAddresses.map(addr => ({
+          ...addr,
+          lastUsed: addr.id === id ? new Date().toISOString() : addr.lastUsed
+        }));
+        await AsyncStorage.setItem('savedAddresses', JSON.stringify(updatedAddresses));
+        setSavedAddresses(updatedAddresses);
+      } else if (type === 'payment') {
+        const updatedMethods = savedPaymentMethods.map(method => ({
+          ...method,
+          lastUsed: method.id === id ? new Date().toISOString() : method.lastUsed
+        }));
+        await AsyncStorage.setItem('savedCards', JSON.stringify(updatedMethods));
+        setSavedPaymentMethods(updatedMethods);
+      }
+    } catch (error) {
+      console.error('Error updating last used:', error);
+    }
+  };
+
+  // ✅ AVANZAR AL SIGUIENTE PASO
+  const nextStep = () => {
+    if (step === 1) {
+      if (!selectedAddress) {
+        Alert.alert('Dirección Requerida', 'Por favor selecciona una dirección de envío');
+        return;
+      }
+      updateLastUsed('address', selectedAddress.id);
+      setStep(2);
+    } else if (step === 2) {
+      if (!selectedPaymentMethod) {
+        Alert.alert('Método de Pago Requerido', 'Por favor selecciona un método de pago');
+        return;
+      }
+      updateLastUsed('payment', selectedPaymentMethod.id);
+      setStep(3);
+    }
+  };
+
+  // ✅ RETROCEDER AL PASO ANTERIOR
+  const previousStep = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  // ✅ PROCESAR PEDIDO
+  const processOrder = async () => {
+    try {
+      setProcessing(true);
+      
+      // Simular procesamiento del pedido
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Simular éxito del pago (en producción esto vendría de Stripe)
-      return {
-        success: true,
-        paymentMethod: {
-          id: 'pm_' + Math.random().toString(36).substring(7),
-          card: {
-            brand: 'visa',
-            last4: '4242',
-          },
-        },
-      };
-    } catch (error) {
-      console.error('Error al procesar pago:', error);
-      throw error;
-    }
-  };
-
-  const handlePlaceOrder = async () => {
-    if (!validateForm()) {
-      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
-      return;
-    }
-
-    try {
-      setProcessingPayment(true);
-
-      // 1. Crear orden en Firebase
-      const orderData = {
-        userId: auth.currentUser?.uid,
-        userEmail: auth.currentUser?.email,
-        userName: shippingAddress.name,
-        items: cartItems,
-        subtotal,
-        tax,
-        shipping,
-        total,
-        currency: 'USD',
-        status: 'pending',
-        paymentStatus: 'pending',
-        shippingAddress,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
-
-      const orderRef = await addDoc(collection(db, 'orders'), orderData);
-      const orderId = orderRef.id;
-
-      // 2. Crear PaymentIntent en Stripe
-      const { clientSecret, paymentIntentId } = await createStripePaymentIntent({
-        ...orderData,
-        orderId,
-      });
-
-      // 3. Procesar pago con Stripe
-      const paymentResult = await processStripePayment(clientSecret);
-
-      if (paymentResult.success) {
-        // 4. Actualizar orden con información de pago
-        await updateDoc(orderRef, {
-          paymentStatus: 'paid',
-          status: 'processing',
-          stripePaymentIntentId: paymentIntentId,
-          paymentMethod: paymentResult.paymentMethod,
-          paidAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-
-        // 5. Limpiar carrito
-        const userId = auth.currentUser?.uid;
-        if (userId) {
-          const cartRef = doc(db, 'cart', userId);
-          await deleteDoc(cartRef);
-        }
-
-        // 6. Crear notificación para admin
-        await addDoc(collection(db, 'notifications'), {
-          type: 'order',
-          title: 'Nuevo Pedido Recibido',
-          message: `${shippingAddress.name} ha realizado un pedido por $${total.toFixed(2)}`,
-          data: {
-            orderId,
-            userId: auth.currentUser?.uid,
-            amount: total,
-          },
-          isRead: false,
-          createdAt: serverTimestamp(),
-          targetAudience: 'admin',
-        });
-
-        // 7. Navegar a pantalla de confirmación
-        navigation.replace('OrderConfirmation', {
-          orderId,
-          orderData: {
-            ...orderData,
-            id: orderId,
-            paymentMethod: paymentResult.paymentMethod,
-          },
-        });
-      } else {
-        throw new Error('El pago no fue exitoso');
-      }
-    } catch (error) {
-      console.error('Error al procesar pedido:', error);
+      // Limpiar carrito (esto debería hacerse en el contexto del carrito)
+      // await AsyncStorage.removeItem('cartItems');
+      
       Alert.alert(
-        'Error en el pago',
-        'No se pudo procesar tu pedido. Por favor intenta nuevamente.'
+        'Pedido Confirmado',
+        'Tu pedido ha sido procesado exitosamente. Recibirás un email de confirmación.',
+        [
+          {
+            text: 'Ver Pedidos',
+            onPress: () => navigation.navigate('OrderHistory')
+          }
+        ]
       );
+      
+    } catch (error) {
+      console.error('Error processing order:', error);
+      Alert.alert('Error', 'No se pudo procesar el pedido. Inténtalo de nuevo.');
     } finally {
-      setProcessingPayment(false);
+      setProcessing(false);
     }
   };
 
-  const renderOrderSummary = () => (
-    <AdminCard style={styles.section}>
-      <Text style={styles.sectionTitle}>Resumen del Pedido</Text>
+  // ✅ RENDERIZAR PASO DE DIRECCIÓN
+  const renderAddressStep = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Dirección de Envío</Text>
       
-      {cartItems.map((item, index) => (
-        <View key={`${item.productId}-${item.size}-${item.color}-${index}`}>
-          <CartItem
-            item={item}
-            onUpdateQuantity={() => {}} // Solo lectura en checkout
-            onRemove={() => {}} // Solo lectura en checkout
-            style={styles.readOnlyCartItem}
-          />
-          {index < cartItems.length - 1 && <AdminDivider />}
+      {savedAddresses.length > 0 ? (
+        <>
+          {/* ✅ DIRECCIONES GUARDADAS */}
+          <ScrollView style={styles.savedItemsContainer} showsVerticalScrollIndicator={false}>
+            {savedAddresses.map((address) => (
+              <TouchableOpacity
+                key={address.id}
+                style={[
+                  styles.savedItemCard,
+                  selectedAddress?.id === address.id && styles.selectedItemCard
+                ]}
+                onPress={() => setSelectedAddress(address)}
+              >
+                <View style={styles.savedItemHeader}>
+                  <View style={styles.savedItemLeft}>
+                    <Ionicons 
+                      name={selectedAddress?.id === address.id ? "radio-button-on" : "radio-button-off"} 
+                      size={20} 
+                      color={selectedAddress?.id === address.id ? "#3B82F6" : "#9CA3AF"} 
+                    />
+                    <Text style={styles.savedItemName}>
+                      {address.firstName} {address.lastName}
+                    </Text>
+                    {address.isDefault && (
+                      <View style={styles.defaultBadge}>
+                        <Text style={styles.defaultBadgeText}>Por defecto</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                
+                <View style={styles.savedItemInfo}>
+                  <Text style={styles.savedItemAddress}>
+                    {address.address1}
+                    {address.address2 && `, ${address.address2}`}
+                  </Text>
+                  <Text style={styles.savedItemCity}>
+                    {address.city}, {address.state} {address.postalCode}
+                  </Text>
+                  <Text style={styles.savedItemCountry}>{address.country}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          {/* ✅ BOTÓN AGREGAR NUEVA DIRECCIÓN */}
+          <TouchableOpacity
+            style={styles.addNewButton}
+            onPress={() => setShowAddressForm(true)}
+          >
+            <Ionicons name="add" size={20} color="#3B82F6" />
+            <Text style={styles.addNewButtonText}>Agregar Nueva Dirección</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        // ✅ ESTADO VACÍO
+        <View style={styles.emptyState}>
+          <Ionicons name="location-outline" size={48} color="#D1D5DB" />
+          <Text style={styles.emptyStateTitle}>No tienes direcciones guardadas</Text>
+          <Text style={styles.emptyStateSubtitle}>
+            Agrega una dirección para continuar con tu pedido
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={() => setShowAddressForm(true)}
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+            <Text style={styles.emptyStateButtonText}>Agregar Dirección</Text>
+          </TouchableOpacity>
         </View>
-      ))}
-
-      <AdminDivider />
-      
-      <PriceSummary
-        subtotal={subtotal}
-        tax={tax}
-        shipping={shipping}
-        total={total}
-      />
-    </AdminCard>
+      )}
+    </View>
   );
 
-  const renderShippingForm = () => (
-    <AdminCard style={styles.section}>
-      <Text style={styles.sectionTitle}>Información de Envío</Text>
+  // ✅ RENDERIZAR PASO DE PAGO
+  const renderPaymentStep = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Método de Pago</Text>
       
-      <View style={styles.formRow}>
-        <View style={styles.formField}>
-          <Text style={styles.fieldLabel}>Nombre Completo *</Text>
-          <TextInput
-            style={[styles.textInput, errors.name && styles.textInputError]}
-            value={shippingAddress.name}
-            onChangeText={(value) => updateShippingAddress('name', value)}
-            placeholder="Tu nombre completo"
-          />
-          {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+      {savedPaymentMethods.length > 0 ? (
+        <>
+          {/* ✅ MÉTODOS DE PAGO GUARDADOS */}
+          <ScrollView style={styles.savedItemsContainer} showsVerticalScrollIndicator={false}>
+            {savedPaymentMethods.map((method) => (
+              <TouchableOpacity
+                key={method.id}
+                style={[
+                  styles.savedItemCard,
+                  selectedPaymentMethod?.id === method.id && styles.selectedItemCard
+                ]}
+                onPress={() => setSelectedPaymentMethod(method)}
+              >
+                <View style={styles.savedItemHeader}>
+                  <View style={styles.savedItemLeft}>
+                    <Ionicons 
+                      name={selectedPaymentMethod?.id === method.id ? "radio-button-on" : "radio-button-off"} 
+                      size={20} 
+                      color={selectedPaymentMethod?.id === method.id ? "#3B82F6" : "#9CA3AF"} 
+                    />
+                    <View style={styles.cardIcon}>
+                      <Ionicons name="card" size={20} color="#6B7280" />
+                    </View>
+                    <Text style={styles.savedItemName}>
+                      •••• •••• •••• {method.lastFourDigits}
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.savedItemInfo}>
+                  <Text style={styles.savedItemAddress}>{method.cardholderName}</Text>
+                  <Text style={styles.savedItemCity}>
+                    {method.cardType.charAt(0).toUpperCase() + method.cardType.slice(1)} • 
+                    Vence {method.expiryMonth}/{method.expiryYear}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          {/* ✅ BOTÓN AGREGAR NUEVO MÉTODO */}
+          <TouchableOpacity
+            style={styles.addNewButton}
+            onPress={() => setShowPaymentForm(true)}
+          >
+            <Ionicons name="add" size={20} color="#3B82F6" />
+            <Text style={styles.addNewButtonText}>Agregar Nuevo Método</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        // ✅ ESTADO VACÍO
+        <View style={styles.emptyState}>
+          <Ionicons name="card-outline" size={48} color="#D1D5DB" />
+          <Text style={styles.emptyStateTitle}>No tienes métodos de pago guardados</Text>
+          <Text style={styles.emptyStateSubtitle}>
+            Agrega un método de pago para continuar con tu pedido
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={() => setShowPaymentForm(true)}
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+            <Text style={styles.emptyStateButtonText}>Agregar Método de Pago</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      <View style={styles.formRow}>
-        <View style={[styles.formField, { flex: 2 }]}>
-          <Text style={styles.fieldLabel}>Email *</Text>
-          <TextInput
-            style={[styles.textInput, errors.email && styles.textInputError]}
-            value={shippingAddress.email}
-            onChangeText={(value) => updateShippingAddress('email', value)}
-            placeholder="tu@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-        </View>
-        
-        <View style={[styles.formField, { flex: 1, marginLeft: 12 }]}>
-          <Text style={styles.fieldLabel}>Teléfono *</Text>
-          <TextInput
-            style={[styles.textInput, errors.phone && styles.textInputError]}
-            value={shippingAddress.phone}
-            onChangeText={(value) => updateShippingAddress('phone', value)}
-            placeholder="123-456-7890"
-            keyboardType="phone-pad"
-          />
-          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-        </View>
-      </View>
-
-      <View style={styles.formRow}>
-        <View style={styles.formField}>
-          <Text style={styles.fieldLabel}>Dirección *</Text>
-          <TextInput
-            style={[styles.textInput, errors.street && styles.textInputError]}
-            value={shippingAddress.street}
-            onChangeText={(value) => updateShippingAddress('street', value)}
-            placeholder="Calle, número, apartamento"
-          />
-          {errors.street && <Text style={styles.errorText}>{errors.street}</Text>}
-        </View>
-      </View>
-
-      <View style={styles.formRow}>
-        <View style={[styles.formField, { flex: 2 }]}>
-          <Text style={styles.fieldLabel}>Ciudad *</Text>
-          <TextInput
-            style={[styles.textInput, errors.city && styles.textInputError]}
-            value={shippingAddress.city}
-            onChangeText={(value) => updateShippingAddress('city', value)}
-            placeholder="Ciudad"
-          />
-          {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
-        </View>
-        
-        <View style={[styles.formField, { flex: 1, marginLeft: 12 }]}>
-          <Text style={styles.fieldLabel}>Estado *</Text>
-          <TextInput
-            style={[styles.textInput, errors.state && styles.textInputError]}
-            value={shippingAddress.state}
-            onChangeText={(value) => updateShippingAddress('state', value)}
-            placeholder="Estado"
-          />
-          {errors.state && <Text style={styles.errorText}>{errors.state}</Text>}
-        </View>
-      </View>
-
-      <View style={styles.formRow}>
-        <View style={[styles.formField, { flex: 1 }]}>
-          <Text style={styles.fieldLabel}>Código Postal *</Text>
-          <TextInput
-            style={[styles.textInput, errors.zipCode && styles.textInputError]}
-            value={shippingAddress.zipCode}
-            onChangeText={(value) => updateShippingAddress('zipCode', value)}
-            placeholder="12345"
-            keyboardType="numeric"
-          />
-          {errors.zipCode && <Text style={styles.errorText}>{errors.zipCode}</Text>}
-        </View>
-        
-        <View style={[styles.formField, { flex: 2, marginLeft: 12 }]}>
-          <Text style={styles.fieldLabel}>País</Text>
-          <TextInput
-            style={styles.textInput}
-            value={shippingAddress.country}
-            onChangeText={(value) => updateShippingAddress('country', value)}
-            placeholder="País"
-          />
-        </View>
-      </View>
-    </AdminCard>
+      )}
+    </View>
   );
 
-  const renderPaymentInfo = () => (
-    <AdminCard style={styles.section}>
-      <Text style={styles.sectionTitle}>Información de Pago</Text>
+  // ✅ RENDERIZAR PASO DE CONFIRMACIÓN
+  const renderConfirmationStep = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Confirmar Pedido</Text>
       
-      <View style={styles.paymentInfo}>
-        <View style={styles.paymentMethod}>
-          <Ionicons name="card-outline" size={24} color="#3B82F6" />
-          <Text style={styles.paymentMethodText}>Tarjeta de Crédito/Débito</Text>
+      {/* ✅ RESUMEN DE DIRECCIÓN */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryHeader}>
+          <Ionicons name="location" size={20} color="#3B82F6" />
+          <Text style={styles.summaryTitle}>Dirección de Envío</Text>
         </View>
-        
-        <Text style={styles.paymentNote}>
-          El pago se procesará de forma segura a través de Stripe. 
-          Tu información de tarjeta está protegida con encriptación de nivel bancario.
+        <Text style={styles.summaryText}>
+          {selectedAddress?.firstName} {selectedAddress?.lastName}
         </Text>
-        
-        <View style={styles.securityBadges}>
-          <View style={styles.securityBadge}>
-            <Ionicons name="shield-checkmark" size={16} color="#10B981" />
-            <Text style={styles.securityBadgeText}>SSL Seguro</Text>
-          </View>
-          <View style={styles.securityBadge}>
-            <Ionicons name="lock-closed" size={16} color="#10B981" />
-            <Text style={styles.securityBadgeText}>Encriptado</Text>
-          </View>
-        </View>
+        <Text style={styles.summaryText}>{selectedAddress?.address1}</Text>
+        {selectedAddress?.address2 && (
+          <Text style={styles.summaryText}>{selectedAddress.address2}</Text>
+        )}
+        <Text style={styles.summaryText}>
+          {selectedAddress?.city}, {selectedAddress?.state} {selectedAddress?.postalCode}
+        </Text>
       </View>
-    </AdminCard>
+
+      {/* ✅ RESUMEN DE PAGO */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryHeader}>
+          <Ionicons name="card" size={20} color="#10B981" />
+          <Text style={styles.summaryTitle}>Método de Pago</Text>
+        </View>
+        <Text style={styles.summaryText}>
+          •••• •••• •••• {selectedPaymentMethod?.lastFourDigits}
+        </Text>
+        <Text style={styles.summaryText}>
+          {selectedPaymentMethod?.cardholderName}
+        </Text>
+      </View>
+
+      {/* ✅ RESUMEN DE PRODUCTOS */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryHeader}>
+          <Ionicons name="bag" size={20} color="#F59E0B" />
+          <Text style={styles.summaryTitle}>Productos ({cartItems.length})</Text>
+        </View>
+        {cartItems.map((item, index) => (
+          <View key={index} style={styles.productSummaryItem}>
+            <Text style={styles.productSummaryName}>{item.name}</Text>
+            <Text style={styles.productSummaryPrice}>
+              ${parseFloat(item.price || 0).toFixed(2)} x {item.quantity}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={styles.loadingText}>Cargando checkout...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <AdminHeader
-        title="Finalizar Compra"
-        subtitle={`${cartItems.length} producto${cartItems.length !== 1 ? 's' : ''}`}
-      />
+      {/* ✅ HEADER */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#111827" />
+        </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>Finalizar Compra</Text>
+        
+        <View style={{ width: 24 }} />
+      </View>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {renderOrderSummary()}
-          {renderShippingForm()}
-          {renderPaymentInfo()}
-        </ScrollView>
+      {/* ✅ INDICADOR DE PASOS */}
+      <View style={styles.stepsIndicator}>
+        {[1, 2, 3].map((stepNumber) => (
+          <View key={stepNumber} style={styles.stepIndicatorContainer}>
+            <View style={[
+              styles.stepIndicator,
+              step >= stepNumber && styles.stepIndicatorActive
+            ]}>
+              <Text style={[
+                styles.stepIndicatorText,
+                step >= stepNumber && styles.stepIndicatorTextActive
+              ]}>
+                {stepNumber}
+              </Text>
+            </View>
+            <Text style={styles.stepIndicatorLabel}>
+              {stepNumber === 1 ? 'Dirección' : stepNumber === 2 ? 'Pago' : 'Confirmar'}
+            </Text>
+          </View>
+        ))}
+      </View>
 
-        <View style={styles.bottomSection}>
-          <View style={styles.totalSection}>
-            <Text style={styles.totalLabel}>Total a Pagar</Text>
-            <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
-          </View>
-          
-          <View style={styles.checkoutButtons}>
-            <AdminButton
-              title="Cancelar"
-              variant="secondary"
-              onPress={() => navigation.goBack()}
-              style={styles.cancelButton}
-              disabled={processingPayment}
-            />
-            <AdminButton
-              title={processingPayment ? "Procesando..." : "Pagar Ahora"}
-              onPress={handlePlaceOrder}
-              loading={processingPayment}
-              style={styles.payButton}
-              icon="card-outline"
-            />
-          </View>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* ✅ RENDERIZAR PASO ACTUAL */}
+        {step === 1 && renderAddressStep()}
+        {step === 2 && renderPaymentStep()}
+        {step === 3 && renderConfirmationStep()}
+      </ScrollView>
+
+      {/* ✅ RESUMEN DE TOTALES */}
+      <View style={styles.totalsContainer}>
+        <View style={styles.totalsRow}>
+          <Text style={styles.totalsLabel}>Subtotal</Text>
+          <Text style={styles.totalsValue}>${totals.subtotal.toFixed(2)}</Text>
         </View>
-      </KeyboardAvoidingView>
+        
+        <View style={styles.totalsRow}>
+          <Text style={styles.totalsLabel}>Impuestos</Text>
+          <Text style={styles.totalsValue}>${totals.tax.toFixed(2)}</Text>
+        </View>
+        
+        <View style={styles.totalsRow}>
+          <Text style={styles.totalsLabel}>Envío</Text>
+          <Text style={styles.totalsValue}>
+            {totals.shipping === 0 ? 'Gratis' : `$${totals.shipping.toFixed(2)}`}
+          </Text>
+        </View>
+        
+        <View style={[styles.totalsRow, styles.totalRow]}>
+          <Text style={styles.totalLabel}>Total a Pagar</Text>
+          <Text style={styles.totalValue}>${totals.total.toFixed(2)}</Text>
+        </View>
+      </View>
 
-      <AdminLoadingOverlay 
-        visible={processingPayment} 
-        text="Procesando tu pago de forma segura..." 
-      />
+      {/* ✅ BOTONES DE ACCIÓN */}
+      <View style={styles.actionButtons}>
+        {step > 1 && (
+          <TouchableOpacity
+            style={styles.backStepButton}
+            onPress={previousStep}
+          >
+            <Text style={styles.backStepButtonText}>Atrás</Text>
+          </TouchableOpacity>
+        )}
+        
+        <TouchableOpacity
+          style={[styles.nextButton, step === 1 && styles.nextButtonFull]}
+          onPress={step === 3 ? processOrder : nextStep}
+          disabled={processing}
+        >
+          {processing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.nextButtonText}>
+                {step === 3 ? 'Confirmar Pedido' : 'Continuar'}
+              </Text>
+              {step < 3 && <Ionicons name="arrow-forward" size={20} color="#fff" />}
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* ✅ MODAL DE FORMULARIO DE DIRECCIÓN */}
+      <Modal
+        visible={showAddressForm}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddressForm(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowAddressForm(false)}
+            >
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+            
+            <Text style={styles.modalTitle}>Nueva Dirección</Text>
+            
+            <View style={{ width: 24 }} />
+          </View>
+
+          <AddressForm
+            onSubmit={handleNewAddress}
+            loading={addressFormLoading}
+            showSaveOption={true}
+            style={styles.form}
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {/* ✅ MODAL DE FORMULARIO DE PAGO */}
+      <Modal
+        visible={showPaymentForm}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPaymentForm(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowPaymentForm(false)}
+            >
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+            
+            <Text style={styles.modalTitle}>Nuevo Método de Pago</Text>
+            
+            <View style={{ width: 24 }} />
+          </View>
+
+          <PaymentForm
+            onSubmit={handleNewPaymentMethod}
+            loading={paymentFormLoading}
+            style={styles.form}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -480,130 +710,366 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  keyboardView: {
-    flex: 1,
+  
+  // ✅ HEADER
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  content: {
-    flex: 1,
-    padding: 16,
+  backButton: {
+    padding: 8,
   },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 16,
   },
 
-  // Cart items (read-only)
-  readOnlyCartItem: {
-    backgroundColor: '#F9FAFB',
-  },
-
-  // Form styles
-  formRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  formField: {
+  // ✅ LOADING
+  loadingContainer: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  loadingText: {
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#111827',
-  },
-  textInputError: {
-    borderColor: '#EF4444',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
+    color: '#6B7280',
   },
 
-  // Payment info
-  paymentInfo: {
-    alignItems: 'center',
-  },
-  paymentMethod: {
+  // ✅ STEPS INDICATOR
+  stepsIndicator: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingVertical: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    gap: 40,
   },
-  paymentMethodText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginLeft: 8,
+  stepIndicatorContainer: {
+    alignItems: 'center',
+    gap: 8,
   },
-  paymentNote: {
+  stepIndicator: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepIndicatorActive: {
+    backgroundColor: '#3B82F6',
+  },
+  stepIndicatorText: {
     fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
+    fontWeight: '600',
+    color: '#9CA3AF',
   },
-  securityBadges: {
-    flexDirection: 'row',
-    gap: 16,
+  stepIndicatorTextActive: {
+    color: '#fff',
   },
-  securityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  securityBadgeText: {
+  stepIndicatorLabel: {
     fontSize: 12,
-    color: '#10B981',
+    color: '#6B7280',
     fontWeight: '500',
   },
 
-  // Bottom section
-  bottomSection: {
+  // ✅ SCROLL CONTAINER
+  scrollContainer: {
+    flex: 1,
+  },
+
+  // ✅ STEP CONTAINER
+  stepContainer: {
+    padding: 16,
+  },
+  stepTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+
+  // ✅ SAVED ITEMS
+  savedItemsContainer: {
+    maxHeight: 300,
+    marginBottom: 16,
+  },
+  savedItemCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  selectedItemCard: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+  },
+  savedItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  savedItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  savedItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  defaultBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  defaultBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  savedItemInfo: {
+    marginLeft: 32,
+  },
+  savedItemAddress: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  savedItemCity: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  savedItemCountry: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  cardIcon: {
+    width: 32,
+    height: 20,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ✅ ADD NEW BUTTON
+  addNewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  addNewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+
+  // ✅ EMPTY STATE
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyStateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  emptyStateButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // ✅ SUMMARY CARDS
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  summaryText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  productSummaryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  productSummaryName: {
+    fontSize: 14,
+    color: '#111827',
+    flex: 1,
+  },
+  productSummaryPrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+
+  // ✅ TOTALS
+  totalsContainer: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  totalsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  totalsLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  totalsValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+
+  // ✅ ACTION BUTTONS
+  actionButtons: {
+    flexDirection: 'row',
     padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+    gap: 12,
   },
-  totalSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  backStepButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 16,
   },
-  totalLabel: {
-    fontSize: 18,
+  backStepButtonText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#6B7280',
   },
-  totalValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  checkoutButtons: {
+  nextButton: {
+    flex: 2,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 16,
+    borderRadius: 8,
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  cancelButton: {
+  nextButtonFull: {
     flex: 1,
   },
-  payButton: {
-    flex: 2,
+  nextButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+
+  // ✅ MODAL
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  form: {
+    flex: 1,
+    margin: 16,
   },
 });
 

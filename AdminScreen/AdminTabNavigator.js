@@ -1,268 +1,11 @@
-// // AdminTabNavigator.js - AdminTabNavigator profesional con react-native-tab-view
-// import React, { useState } from 'react';
-// import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity } from 'react-native';
-// import { Ionicons } from '@expo/vector-icons';
-// import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
-// import { SafeAreaView } from 'react-native-safe-area-context';
-
-// // Pantallas
-// import AdminDashboardScreen from './AdminDashboardScreen';
-// import UserListScreen from './UserListScreen';
-// import AdminMessagesScreen from './AdminMessagesScreen';
-// import AdminSettingsScreen from './AdminSettingsScreen';
-// import AdminProductsScreen from './AdminProductsScreen';
-// import AdminOrdersScreen from './AdminOrdersScreen';
-// import AdminProductManagementScreen from '../ShopAdmin/AdminProductManagementScreen';
-// import AdminCategoryBackgroundsScreen from './AdminCategoryBackgroundsScreen';
-
-// const routes = [
-//   { key: 'dashboard', title: 'Panel', icon: 'analytics-outline', iconFocused: 'analytics' },
-//   { key: 'users', title: 'Usuarios', icon: 'people-outline', iconFocused: 'people' },
-//   { key: 'products', title: 'Productos', icon: 'cube-outline', iconFocused: 'cube' },
-//   { key: 'gestionar', title: 'Gestionar', icon: 'add-circle-outline', iconFocused: 'add-circle' },
-//   { key: 'orders', title: 'Pedidos', icon: 'receipt-outline', iconFocused: 'receipt' },
-//   { key: 'messages', title: 'Mensajes', icon: 'chatbubbles-outline', iconFocused: 'chatbubbles' },
-//   { key: 'settings', title: 'Config', icon: 'settings-outline', iconFocused: 'settings' },
-//   { key: 'backgrounds', title: 'Fondos' },
-// ];
-
-// const renderScene = SceneMap({
-//   dashboard: AdminDashboardScreen,
-//   users: UserListScreen,
-//   products: AdminProductsScreen,
-//   gestionar: AdminProductManagementScreen,
-//   orders: AdminOrdersScreen,
-//   messages: AdminMessagesScreen,
-//   backgrounds: AdminCategoryBackgroundsScreen,
-//   settings: AdminSettingsScreen,
-  
-// });
-
-// const AdminTabNavigator = () => {
-//   const layout = useWindowDimensions();
-//   const [index, setIndex] = useState(0);
-
-//   const renderTabBar = props => (
-//     <TabBar
-//       {...props}
-//       scrollEnabled
-//       indicatorStyle={styles.indicator}
-//       style={styles.tabBar}
-//       renderIcon={({ route, focused, color }) => (
-//         <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
-//           <Ionicons 
-//             name={focused ? route.iconFocused : route.icon} 
-//             size={focused ? 20 : 18} 
-//             color={color} 
-//           />
-//         </View>
-//       )}
-//       renderLabel={({ route, focused, color }) => (
-//         <Text style={[
-//           styles.tabLabel, 
-//           { color },
-//           focused && styles.tabLabelFocused
-//         ]}>
-//           {route.title}
-//         </Text>
-//       )}
-//       activeColor="#3B82F6"
-//       inactiveColor="#6B7280"
-//       tabStyle={styles.tabStyle}
-//       iconStyle={styles.iconStyle}
-//       labelStyle={styles.labelStyle}
-//       pressColor="rgba(59, 130, 246, 0.1)"
-//       pressOpacity={0.8}
-//     />
-//   );
-
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       {/* Header Mejorado */}
-//       <View style={styles.header}>
-//         <View style={styles.headerContent}>
-//           <Text style={styles.headerTitle}>Panel de Administración</Text>
-//           <Text style={styles.headerSubtitle}>TASHIRO JIU-JITSU</Text>
-//         </View>
-        
-//         <View style={styles.headerActions}>
-//           {/* Badge de notificaciones */}
-//           <TouchableOpacity style={styles.notificationButton}>
-//             <Ionicons name="notifications-outline" size={22} color="#6B7280" />
-//             <View style={styles.notificationBadge}>
-//               <Text style={styles.notificationBadgeText}>3</Text>
-//             </View>
-//           </TouchableOpacity>
-          
-//           {/* Icono de admin */}
-//           <View style={styles.headerIcon}>
-//             <Ionicons name="shield-checkmark" size={24} color="#3B82F6" />
-//           </View>
-//         </View>
-//       </View>
-
-//       {/* TabView Mejorado */}
-//       <TabView
-//         navigationState={{ index, routes }}
-//         renderScene={renderScene}
-//         onIndexChange={setIndex}
-//         initialLayout={{ width: layout.width }}
-//         renderTabBar={renderTabBar}
-//         lazy={true}
-//         lazyPreloadDistance={1}
-//         swipeEnabled={false} // Deshabilitamos swipe para mejor control
-//         animationEnabled={true}
-//       />
-//     </SafeAreaView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#F9FAFB',
-//   },
-
-//   // Header Mejorado
-//   header: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     justifyContent: 'space-between',
-//     paddingHorizontal: 20,
-//     paddingVertical: 16,
-//     backgroundColor: '#fff',
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#E5E7EB',
-//     elevation: 4,
-//     shadowColor: '#000',
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.08,
-//     shadowRadius: 4,
-//   },
-//   headerContent: {
-//     flex: 1,
-//   },
-//   headerTitle: {
-//     fontSize: 22,
-//     fontWeight: '800',
-//     color: '#111827',
-//     marginBottom: 2,
-//     letterSpacing: -0.5,
-//   },
-//   headerSubtitle: {
-//     fontSize: 11,
-//     color: '#6B7280',
-//     fontWeight: '600',
-//     letterSpacing: 1.2,
-//     textTransform: 'uppercase',
-//   },
-//   headerActions: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     gap: 12,
-//   },
-//   notificationButton: {
-//     position: 'relative',
-//     padding: 8,
-//     borderRadius: 20,
-//     backgroundColor: '#F3F4F6',
-//   },
-//   notificationBadge: {
-//     position: 'absolute',
-//     top: 4,
-//     right: 4,
-//     backgroundColor: '#EF4444',
-//     borderRadius: 8,
-//     minWidth: 16,
-//     height: 16,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   notificationBadgeText: {
-//     fontSize: 10,
-//     fontWeight: '700',
-//     color: '#fff',
-//   },
-//   headerIcon: {
-//     width: 44,
-//     height: 44,
-//     borderRadius: 22,
-//     backgroundColor: '#EFF6FF',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     borderWidth: 2,
-//     borderColor: '#DBEAFE',
-//   },
-
-//   // TabBar Mejorado
-//   tabBar: {
-//     backgroundColor: '#fff',
-//     elevation: 6,
-//     shadowColor: '#000',
-//     shadowOffset: { width: 0, height: 3 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 6,
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#E5E7EB',
-//     paddingTop: 4,
-//   },
-//   indicator: {
-//     backgroundColor: '#3B82F6',
-//     height: 4,
-//     borderRadius: 2,
-//     marginBottom: -1,
-//   },
-//   tabStyle: {
-//     width: 'auto',
-//     minWidth: 85,
-//     paddingHorizontal: 12,
-//     paddingVertical: 8,
-//   },
-//   iconStyle: {
-//     marginBottom: 4,
-//   },
-//   labelStyle: {
-//     margin: 0,
-//   },
-
-//   // Tab Icons y Labels Mejorados
-//   tabIconContainer: {
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     width: 32,
-//     height: 32,
-//     borderRadius: 16,
-//     backgroundColor: 'transparent',
-//     marginBottom: 2,
-//     transition: 'all 0.2s ease',
-//   },
-//   tabIconFocused: {
-//     backgroundColor: '#EFF6FF',
-//     transform: [{ scale: 1.05 }],
-//   },
-//   tabLabel: {
-//     fontSize: 11,
-//     fontWeight: '600',
-//     textTransform: 'none',
-//     textAlign: 'center',
-//     marginTop: 2,
-//     letterSpacing: 0.2,
-//   },
-//   tabLabelFocused: {
-//     fontWeight: '700',
-//     fontSize: 12,
-//   },
-// });
-
-// export default AdminTabNavigator;
-
-
 // AdminTabNavigator.js - AdminTabNavigator con sistema de navegación integrado
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity,Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { auth } from '../firebase';
+import { useTranslation } from 'react-i18next'; // Importación añadida
 
 // Pantallas
 import AdminDashboardScreen from './AdminDashboardScreen';
@@ -342,6 +85,8 @@ const AdminTabNavigator = () => {
   const layout = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const tabViewRef = useRef(null);
+  
+  const { t } = useTranslation();
 
   // ✅ CONFIGURAR NAVEGACIÓN GLOBAL PARA DASHBOARD
   useEffect(() => {
@@ -388,6 +133,9 @@ const AdminTabNavigator = () => {
     
     const iconSize = focused ? 20 : 18;
     
+
+
+   
     return (
       <View style={[
         styles.tabIconContainer, 
@@ -438,6 +186,28 @@ const AdminTabNavigator = () => {
     setIndex(newIndex);
   };
 
+  const handleSignOut = async () => {
+    Alert.alert(
+      t("Cerrar Sesión"),
+      t("¿Estás seguro de que quieres cerrar sesión?"),
+      [
+        { text: t("Cancelar"), style: "cancel" },
+        {
+          text: t("Cerrar Sesión"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await auth.signOut();
+            } catch (error) {
+              console.error("Error al cerrar sesión:", error);
+              Alert.alert("Error", "No se pudo cerrar la sesión");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* ✅ HEADER MEJORADO SIN useTranslation */}
@@ -458,7 +228,9 @@ const AdminTabNavigator = () => {
           
           {/* Icono de admin */}
           <View style={styles.headerIcon}>
-            <Ionicons name="shield-checkmark" size={24} color="#3B82F6" />
+            <TouchableOpacity onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={24} color="#3B82F6" />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -552,11 +324,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#EFF6FF',
+   
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#DBEAFE',
+
+    
   },
 
   // ✅ TABBAR MEJORADO

@@ -26,12 +26,16 @@ import UserProfileScreen from "../LoginScreens/UserProfileScreen";
 import Information from "../LoginScreens/Information";
 import BeltProgressScreen from "../Styles/BeltProgressScreen";
 
-// ✅ NUEVOS IMPORTS PARA TIENDA
+// ✅ IMPORTS PARA TIENDA
 import ShopScreen from "../ShopUsers/ShopScreen";
 import ProductDetailScreen from "../ShopUsers/ProductDetailScreen";
 import CartScreen from "../ShopUsers/CartScreen";
 import CheckoutScreen from "../ShopUsers/CheckoutScreen";
 import OrderConfirmationScreen from "../ShopUsers/OrderConfirmationScreen";
+
+// 🆕 NUEVOS IMPORTS PARA GESTIÓN DE PAGOS Y DIRECCIONES
+import AddressManagementScreen from "../ComponentsShop/AddressManagementScreen";
+import PaymentManagementScreen from "../ComponentsShop/PaymentManagementScreen";
 
 import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
@@ -76,8 +80,11 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
   const [monthlyCheckIns, setMonthlyCheckIns] = useState(0);
   const [loading, setLoading] = useState(true);
   
-  // ✅ NUEVO ESTADO PARA CARRITO
+  // ✅ ESTADOS PARA CARRITO Y NUEVAS FUNCIONALIDADES
   const [cartItemCount, setCartItemCount] = useState(0);
+  // 🆕 NUEVOS ESTADOS PARA CONTADORES
+  const [addressCount, setAddressCount] = useState(0);
+  const [paymentCount, setPaymentCount] = useState(0);
 
   const drawerStatus = useDrawerStatus();
 
@@ -100,6 +107,33 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
     } catch (error) {
       console.error('Error loading cart count:', error);
       setCartItemCount(0);
+    }
+  };
+
+  // 🆕 FUNCIÓN PARA CARGAR CONTADORES DE DIRECCIONES Y MÉTODOS DE PAGO
+  const loadPaymentAddressCounts = async () => {
+    try {
+      // Contar direcciones guardadas
+      const savedAddresses = await AsyncStorage.getItem('savedAddresses');
+      if (savedAddresses) {
+        const addresses = JSON.parse(savedAddresses);
+        setAddressCount(Array.isArray(addresses) ? addresses.length : 0);
+      } else {
+        setAddressCount(0);
+      }
+
+      // Contar métodos de pago guardados
+      const savedCards = await AsyncStorage.getItem('savedCards');
+      if (savedCards) {
+        const cards = JSON.parse(savedCards);
+        setPaymentCount(Array.isArray(cards) ? cards.length : 0);
+      } else {
+        setPaymentCount(0);
+      }
+    } catch (error) {
+      console.error('Error loading payment/address counts:', error);
+      setAddressCount(0);
+      setPaymentCount(0);
     }
   };
 
@@ -131,8 +165,10 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       const monthCount = monthlyCheckInCount[currentMonthKey] || 0;
       setMonthlyCheckIns(monthCount);
 
-      // ✅ CARGAR CONTADOR DEL CARRITO
+      // ✅ CARGAR TODOS LOS CONTADORES
       await loadCartCount();
+      // 🆕 CARGAR CONTADORES DE DIRECCIONES Y PAGOS
+      await loadPaymentAddressCounts();
     } catch (error) {
       console.error("Error al cargar datos del usuario:", error);
     } finally {
@@ -225,7 +261,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
     return beltColorMap[belt] || "#333333";
   };
 
-  // ✅ OPCIONES DEL MENÚ CON TIENDA AGREGADA
+  // ✅ OPCIONES DEL MENÚ ACTUALIZADAS CON NUEVAS FUNCIONALIDADES
   const menuItems = [
     {
       id: 'home',
@@ -251,7 +287,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       icon: "trophy-outline",
       onPress: () => navigation.navigate("BeltProgress"),
     },
-    // ✅ NUEVA OPCIÓN - TIENDA
+    // ✅ SECCIÓN DE TIENDA
     {
       id: 'shop',
       title: t("Tienda"),
@@ -259,13 +295,40 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       badge: cartItemCount > 0 ? cartItemCount : null,
       onPress: () => navigation.navigate("Shop"),
     },
-    // ✅ NUEVA OPCIÓN - CARRITO (ACCESO DIRECTO)
     {
       id: 'cart',
       title: t("Mi Carrito"),
       icon: "bag-outline",
       badge: cartItemCount > 0 ? cartItemCount : null,
       onPress: () => navigation.navigate("Cart"),
+    },
+    // 🆕 NUEVA SECCIÓN - GESTIÓN DE COMPRAS
+    {
+      id: 'section_divider_1',
+      type: 'divider',
+      title: t("Gestión de Compras"),
+    },
+    {
+      id: 'addresses',
+      title: t("Direcciones de Envío"),
+      icon: "location-outline",
+      badge: addressCount > 0 ? addressCount : null,
+      badgeColor: "#3B82F6",
+      onPress: () => navigation.navigate("AddressManagement"),
+    },
+    {
+      id: 'payments',
+      title: t("Métodos de Pago"),
+      icon: "card-outline",
+      badge: paymentCount > 0 ? paymentCount : null,
+      badgeColor: "#10B981",
+      onPress: () => navigation.navigate("PaymentManagement"),
+    },
+    // ✅ SECCIÓN ORIGINAL
+    {
+      id: 'section_divider_2',
+      type: 'divider',
+      title: t("Configuración"),
     },
     {
       id: 'messages',
@@ -347,7 +410,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
           </View>
         </View>
 
-        {/* ✅ SECCIÓN DE TIENDA (NUEVA) */}
+        {/* ✅ SECCIÓN DE TIENDA (EXISTENTE) */}
         {cartItemCount > 0 && (
           <View style={styles.shopSection}>
             <View style={styles.shopHeader}>
@@ -371,27 +434,78 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
           </View>
         )}
 
-        {/* Navegación principal */}
-        <View style={styles.navigationSection}>
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              onPress={item.onPress}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuItemLeft}>
-                <Ionicons name={item.icon} size={20} color="#333333" style={styles.menuIcon} />
-                <Text style={styles.menuText}>{item.title}</Text>
-              </View>
-              {/* ✅ BADGE PARA CONTADOR DE CARRITO */}
-              {item.badge && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.badge}</Text>
+        {/* 🆕 NUEVA SECCIÓN - INFORMACIÓN DE GESTIÓN DE COMPRAS */}
+        {(addressCount > 0 || paymentCount > 0) && (
+          <View style={styles.managementSection}>
+            <View style={styles.managementHeader}>
+              <Ionicons name="shield-checkmark" size={18} color="#10B981" />
+              <Text style={styles.managementTitle}>{t("Datos Guardados")}</Text>
+            </View>
+            <View style={styles.managementStats}>
+              {addressCount > 0 && (
+                <View style={styles.statItem}>
+                  <Ionicons name="location" size={14} color="#3B82F6" />
+                  <Text style={styles.statText}>
+                    {t("{{count}} dirección{{plural}}", { 
+                      count: addressCount, 
+                      plural: addressCount !== 1 ? 'es' : '' 
+                    })}
+                  </Text>
                 </View>
               )}
-            </TouchableOpacity>
-          ))}
+              {paymentCount > 0 && (
+                <View style={styles.statItem}>
+                  <Ionicons name="card" size={14} color="#10B981" />
+                  <Text style={styles.statText}>
+                    {t("{{count}} método{{plural}} de pago", { 
+                      count: paymentCount, 
+                      plural: paymentCount !== 1 ? 's' : '' 
+                    })}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.managementSubtitle}>
+              {t("Guardados de forma segura en tu dispositivo")}
+            </Text>
+          </View>
+        )}
+
+        {/* Navegación principal */}
+        <View style={styles.navigationSection}>
+          {menuItems.map((item) => {
+            // 🆕 RENDERIZAR DIVISORES DE SECCIÓN
+            if (item.type === 'divider') {
+              return (
+                <View key={item.id} style={styles.sectionDivider}>
+                  <Text style={styles.sectionDividerText}>{item.title}</Text>
+                </View>
+              );
+            }
+
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.menuItem}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuItemLeft}>
+                  <Ionicons name={item.icon} size={20} color="#333333" style={styles.menuIcon} />
+                  <Text style={styles.menuText}>{item.title}</Text>
+                </View>
+                {/* ✅ BADGE MEJORADO CON COLORES PERSONALIZADOS */}
+                {item.badge && (
+                  <View style={[
+                    styles.badge, 
+                    { backgroundColor: item.badgeColor || "#3B82F6" }
+                  ]}>
+                    <Text style={styles.badgeText}>{item.badge}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Información de la app */}
@@ -520,6 +634,7 @@ const AppDrawer = ({ monthlyCheckInCount, fetchMonthlyCheckInCount }) => (
       headerTitleStyle: {
         fontWeight: '600',
         color: "#000000",
+        
       },
     }}
   >
@@ -534,60 +649,49 @@ const AppDrawer = ({ monthlyCheckInCount, fetchMonthlyCheckInCount }) => (
     <Drawer.Screen
       name="Information"
       component={Information}
-      options={{ 
-        title: "Información",
-        headerTitleAlign: "center",
-      }}
+      options={{ title: "Información" }}
     />
     <Drawer.Screen
       name="BeltProgress"
       component={BeltProgressScreen}
-      options={{ 
-        title: "Progreso del Cinturón",
-        headerTitleAlign: "center",
-      }}
+      options={{ title: "Progreso del Cinturón" }}
     />
-    
-    {/* ✅ NUEVAS PANTALLAS DE TIENDA */}
+    {/* ✅ PANTALLAS DE TIENDA EXISTENTES */}
     <Drawer.Screen
       name="Shop"
       component={ShopScreen}
-      options={{ 
-        title: "Tienda TASHIRO",
-        headerTitleAlign: "center",
-      }}
+      options={{ title: "Tienda TASHIRO" }}
     />
     <Drawer.Screen
       name="ProductDetail"
       component={ProductDetailScreen}
-      options={{ 
-        title: "Producto",
-        headerTitleAlign: "center",
-      }}
+      options={{ title: "Detalle del Producto" }}
     />
     <Drawer.Screen
       name="Cart"
       component={CartScreen}
-      options={{ 
-        title: "Mi Carrito",
-        headerTitleAlign: "center",
-      }}
+      options={{ title: "Mi Carrito" }}
     />
     <Drawer.Screen
       name="Checkout"
       component={CheckoutScreen}
-      options={{ 
-        title: "Finalizar Compra",
-        headerTitleAlign: "center",
-      }}
+      options={{ title: "Finalizar Compra" }}
     />
     <Drawer.Screen
       name="OrderConfirmation"
       component={OrderConfirmationScreen}
-      options={{ 
-        title: "Confirmación",
-        headerTitleAlign: "center",
-      }}
+      options={{ title: "Pedido Confirmado" }}
+    />
+    {/* 🆕 NUEVAS PANTALLAS - GESTIÓN DE DIRECCIONES Y PAGOS */}
+    <Drawer.Screen
+      name="AddressManagement"
+      component={AddressManagementScreen}
+      options={{ title: "Direcciones de Envío" }}
+    />
+    <Drawer.Screen
+      name="PaymentManagement"
+      component={PaymentManagementScreen}
+      options={{ title: "Métodos de Pago" }}
     />
   </Drawer.Navigator>
 );
@@ -601,10 +705,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
+    gap: 12,
   },
   loadingText: {
-    marginTop: 16,
     fontSize: 16,
     color: "#666666",
   },
@@ -616,130 +719,179 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: "center",
+    paddingVertical: 30,
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 20 : 40,
-    paddingBottom: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
   avatarContainer: {
-    marginBottom: 16,
+    marginBottom: 15,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "#E0E0E0",
   },
   userName: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#000000",
-    marginBottom: 4,
+    marginBottom: 5,
   },
   userHandle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#666666",
-    marginBottom: 20,
+    marginBottom: 15,
   },
   beltProgressSection: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
+    alignItems: "center",
     width: "100%",
   },
   beltProgressHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
+    gap: 12,
   },
   beltImage: {
-    width: 50,
-    height: 20,
+    width: 40,
+    height: 25,
     resizeMode: "contain",
-    marginRight: 12,
   },
   beltProgressInfo: {
-    flex: 1,
+    alignItems: "center",
   },
   progressText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000000",
+    fontSize: 12,
+    color: "#666666",
     marginBottom: 2,
   },
   beltText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   monthlyText: {
     fontSize: 12,
-    color: "#666666",
+    color: "#888888",
     textAlign: "center",
   },
-
-  // ✅ NUEVOS ESTILOS PARA SECCIÓN DE TIENDA
   shopSection: {
-    marginHorizontal: 20,
-    marginBottom: 20,
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 16,
+    marginVertical: 12,
     padding: 16,
-    backgroundColor: "#EFF6FF",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#DBEAFE",
+    borderColor: "#E2E8F0",
   },
   shopHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
+    gap: 8,
   },
   shopTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#1E40AF",
-    marginLeft: 8,
+    color: "#1E293B",
   },
   shopSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
+    fontSize: 12,
+    color: "#64748B",
     marginBottom: 12,
   },
   quickCartButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#EFF6FF",
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#3B82F6",
+    gap: 6,
   },
   quickCartText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
     color: "#3B82F6",
-    marginRight: 8,
   },
-
+  // 🆕 ESTILOS PARA NUEVA SECCIÓN DE GESTIÓN
+  managementSection: {
+    backgroundColor: "#F0FDF4",
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  managementHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
+  },
+  managementTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#065F46",
+  },
+  managementStats: {
+    gap: 4,
+    marginBottom: 8,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statText: {
+    fontSize: 12,
+    color: "#065F46",
+    fontWeight: "500",
+  },
+  managementSubtitle: {
+    fontSize: 10,
+    color: "#047857",
+    fontStyle: "italic",
+  },
   navigationSection: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  // 🆕 ESTILOS PARA DIVISORES DE SECCIÓN
+  sectionDivider: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+    marginBottom: 8,
+  },
+  sectionDividerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // ✅ CAMBIO PARA ACOMODAR BADGE
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginVertical: 2,
-    borderRadius: 8,
+    justifyContent: "space-between",
+    paddingVertical: 15,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
   },
-  menuItemLeft: { // ✅ NUEVO CONTENEDOR PARA ICONO Y TEXTO
+  menuItemLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
   menuIcon: {
-    marginRight: 16,
+    marginRight: 15,
     width: 20,
   },
   menuText: {
@@ -747,43 +899,38 @@ const styles = StyleSheet.create({
     color: "#333333",
     fontWeight: "500",
   },
-
-  // ✅ NUEVOS ESTILOS PARA BADGE
   badge: {
-    backgroundColor: "#EF4444",
+    backgroundColor: "#3B82F6",
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: "center",
   },
   badgeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "600",
+    color: "#FFFFFF",
   },
-
   appInfoSection: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
     alignItems: "center",
+    paddingVertical: 20,
   },
   versionText: {
     fontSize: 12,
     color: "#999999",
   },
   logoutSection: {
-    paddingHorizontal: 20,
-    paddingVertical: Platform.OS === "ios" ? 30 : 20,
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
+    borderTopColor: "#F0F0F0",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   logoutIcon: {
     marginRight: 8,
@@ -794,17 +941,15 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   drawerStyle: {
-    width: 280,
     backgroundColor: "#FFFFFF",
+    width: 280,
   },
   headerStyle: {
     backgroundColor: "#FFFFFF",
     elevation: 1,
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
 });
 

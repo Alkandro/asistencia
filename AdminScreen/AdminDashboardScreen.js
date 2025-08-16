@@ -1,5 +1,4 @@
 // AdminDashboardScreen.js - Panel de control admin compatible con react-native-tab-view
-
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,

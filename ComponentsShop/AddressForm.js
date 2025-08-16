@@ -1,4 +1,3 @@
-// AddressForm.js - Componente de formulario de dirección individual
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -38,35 +37,85 @@ const AddressForm = ({
   const [errors, setErrors] = useState({});
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showSavedAddresses, setShowSavedAddresses] = useState(false);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
 
-  // Cargar datos iniciales
+  // ✅ CARGAR DATOS INICIALES Y DIRECCIONES GUARDADAS
   useEffect(() => {
-    if (initialData) {
-      setFormData({ ...formData, ...initialData });
-    }
-    loadSavedAddresses();
+    initializeForm();
   }, [initialData]);
 
-  // Cargar direcciones guardadas
+  const initializeForm = async () => {
+    setLoadingAddresses(true);
+    
+    try {
+      // Cargar direcciones guardadas
+      await loadSavedAddresses();
+      
+      // Si hay datos iniciales, usarlos
+      if (initialData) {
+        setFormData({ ...formData, ...initialData });
+      } else {
+        // Si no hay datos iniciales, intentar cargar la dirección por defecto
+        await loadDefaultAddress();
+      }
+    } catch (error) {
+      console.error('Error initializing form:', error);
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
+  // ✅ CARGAR DIRECCIONES GUARDADAS CON MANEJO DE ERRORES
   const loadSavedAddresses = async () => {
     try {
       const addresses = await AsyncStorage.getItem('savedAddresses');
       if (addresses) {
-        setSavedAddresses(JSON.parse(addresses));
+        const parsedAddresses = JSON.parse(addresses);
+        // Validar que es un array
+        if (Array.isArray(parsedAddresses)) {
+          setSavedAddresses(parsedAddresses);
+          console.log('📍 Direcciones cargadas:', parsedAddresses.length);
+        }
       }
     } catch (error) {
       console.error('Error loading saved addresses:', error);
+      setSavedAddresses([]);
     }
   };
 
-  // Guardar dirección
+  // ✅ CARGAR DIRECCIÓN POR DEFECTO
+  const loadDefaultAddress = async () => {
+    try {
+      const addresses = await AsyncStorage.getItem('savedAddresses');
+      if (addresses) {
+        const parsedAddresses = JSON.parse(addresses);
+        const defaultAddress = parsedAddresses.find(addr => addr.isDefault);
+        
+        if (defaultAddress) {
+          console.log('📍 Cargando dirección por defecto');
+          setFormData({ 
+            ...formData, 
+            ...defaultAddress,
+            saveAddress: false, // No volver a guardar una dirección ya guardada
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading default address:', error);
+    }
+  };
+
+  // ✅ GUARDAR DIRECCIÓN CON VALIDACIÓN Y LÍMITES
   const saveAddress = async (addressData) => {
     try {
       const addresses = [...savedAddresses];
+      
+      // Crear nueva dirección con ID único
       const newAddress = {
-        id: Date.now().toString(),
+        id: `addr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...addressData,
         createdAt: new Date().toISOString(),
+        lastUsed: new Date().toISOString(),
       };
 
       // Si es dirección por defecto, quitar el flag de las demás
@@ -74,36 +123,77 @@ const AddressForm = ({
         addresses.forEach(addr => addr.isDefault = false);
       }
 
-      addresses.unshift(newAddress);
+      // Verificar si ya existe una dirección similar
+      const existingIndex = addresses.findIndex(addr => 
+        addr.address1.toLowerCase() === newAddress.address1.toLowerCase() &&
+        addr.city.toLowerCase() === newAddress.city.toLowerCase() &&
+        addr.postalCode === newAddress.postalCode
+      );
+
+      if (existingIndex !== -1) {
+        // Actualizar dirección existente
+        addresses[existingIndex] = { ...addresses[existingIndex], ...newAddress };
+        console.log('📍 Dirección actualizada');
+      } else {
+        // Agregar nueva dirección al inicio
+        addresses.unshift(newAddress);
+        console.log('📍 Nueva dirección guardada');
+      }
       
-      // Mantener solo las últimas 5 direcciones
-      const limitedAddresses = addresses.slice(0, 5);
+      // Mantener solo las últimas 10 direcciones
+      const limitedAddresses = addresses.slice(0, 10);
       
       await AsyncStorage.setItem('savedAddresses', JSON.stringify(limitedAddresses));
       setSavedAddresses(limitedAddresses);
+      
+      return true;
     } catch (error) {
       console.error('Error saving address:', error);
+      Alert.alert('Error', 'No se pudo guardar la dirección');
+      return false;
     }
   };
 
-  // Validar formulario
+  // ✅ ELIMINAR DIRECCIÓN
+  const deleteAddress = async (addressId) => {
+    try {
+      const updatedAddresses = savedAddresses.filter(addr => addr.id !== addressId);
+      await AsyncStorage.setItem('savedAddresses', JSON.stringify(updatedAddresses));
+      setSavedAddresses(updatedAddresses);
+      console.log('📍 Dirección eliminada');
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      Alert.alert('Error', 'No se pudo eliminar la dirección');
+    }
+  };
+
+  // ✅ VALIDACIÓN MEJORADA DEL FORMULARIO
   const validateForm = () => {
     const newErrors = {};
 
+    // Validaciones obligatorias
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'El nombre es requerido';
+    } else if (formData.firstName.trim().length < 2) {
+      newErrors.firstName = 'El nombre debe tener al menos 2 caracteres';
     }
 
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'El apellido es requerido';
+    } else if (formData.lastName.trim().length < 2) {
+      newErrors.lastName = 'El apellido debe tener al menos 2 caracteres';
     }
 
     if (!formData.address1.trim()) {
       newErrors.address1 = 'La dirección es requerida';
+    } else if (formData.address1.trim().length < 5) {
+      newErrors.address1 = 'La dirección debe ser más específica';
     }
 
     if (!formData.city.trim()) {
       newErrors.city = 'La ciudad es requerida';
+    } else if (formData.city.trim().length < 2) {
+      newErrors.city = 'Nombre de ciudad inválido';
     }
 
     if (!formData.state.trim()) {
@@ -112,6 +202,8 @@ const AddressForm = ({
 
     if (!formData.postalCode.trim()) {
       newErrors.postalCode = 'El código postal es requerido';
+    } else if (!/^[0-9]{4,8}$/.test(formData.postalCode.trim())) {
+      newErrors.postalCode = 'Código postal inválido (4-8 dígitos)';
     }
 
     if (!formData.phone.trim()) {
@@ -124,7 +216,7 @@ const AddressForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Manejar envío del formulario
+  // ✅ MANEJAR ENVÍO DEL FORMULARIO
   const handleSubmit = async () => {
     if (!validateForm()) {
       Alert.alert('Error', 'Por favor corrige los errores en el formulario');
@@ -132,7 +224,6 @@ const AddressForm = ({
     }
 
     const addressData = {
-      ...formData,
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
       company: formData.company.trim(),
@@ -141,18 +232,48 @@ const AddressForm = ({
       city: formData.city.trim(),
       state: formData.state.trim(),
       postalCode: formData.postalCode.trim(),
+      country: formData.country.trim(),
       phone: formData.phone.trim(),
+      isDefault: formData.isDefault,
     };
 
     // Guardar dirección si se solicitó
     if (showSaveOption && formData.saveAddress) {
-      await saveAddress(addressData);
+      const saved = await saveAddress(addressData);
+      if (saved) {
+        Alert.alert(
+          'Éxito', 
+          formData.isDefault 
+            ? 'Dirección guardada como predeterminada' 
+            : 'Dirección guardada correctamente'
+        );
+      }
+    }
+
+    // Actualizar última vez usada si es una dirección existente
+    if (formData.id) {
+      await updateLastUsed(formData.id);
     }
 
     onSubmit && onSubmit(addressData);
   };
 
-  // Seleccionar dirección guardada
+  // ✅ ACTUALIZAR ÚLTIMA VEZ USADA
+  const updateLastUsed = async (addressId) => {
+    try {
+      const updatedAddresses = savedAddresses.map(addr => 
+        addr.id === addressId 
+          ? { ...addr, lastUsed: new Date().toISOString() }
+          : addr
+      );
+      await AsyncStorage.setItem('savedAddresses', JSON.stringify(updatedAddresses));
+      setSavedAddresses(updatedAddresses);
+    } catch (error) {
+      console.error('Error updating last used:', error);
+    }
+  };
+
+  // ✅ SELECCIONAR DIRECCIÓN GUARDADA
   const selectSavedAddress = (address) => {
     setFormData({
       ...formData,
@@ -161,6 +282,9 @@ const AddressForm = ({
     });
     setShowSavedAddresses(false);
     setErrors({});
+    
+    // Actualizar última vez usada
+    updateLastUsed(address.id);
   };
 
   // Actualizar campo del formulario
@@ -173,7 +297,7 @@ const AddressForm = ({
     }
   };
 
-  // Renderizar campo de entrada
+  // ✅ RENDERIZAR CAMPO DE ENTRADA CON VALIDACIÓN VISUAL
   const renderInput = (field, label, options = {}) => (
     <View style={styles.inputGroup}>
       <Text style={styles.label}>
@@ -183,7 +307,8 @@ const AddressForm = ({
       <TextInput
         style={[
           styles.input,
-          errors[field] && styles.inputError
+          errors[field] && styles.inputError,
+          formData[field] && !errors[field] && styles.inputValid,
         ]}
         value={formData[field]}
         onChangeText={(value) => updateField(field, value)}
@@ -193,10 +318,73 @@ const AddressForm = ({
         editable={!loading}
         multiline={options.multiline}
         numberOfLines={options.numberOfLines}
+        maxLength={options.maxLength}
       />
       {errors[field] && (
-        <Text style={styles.errorText}>{errors[field]}</Text>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={14} color="#EF4444" />
+          <Text style={styles.errorText}>{errors[field]}</Text>
+        </View>
       )}
+    </View>
+  );
+
+  // ✅ RENDERIZAR DIRECCIONES GUARDADAS CON OPCIONES
+  const renderSavedAddresses = () => (
+    <View style={styles.savedAddressesContainer}>
+      <Text style={styles.savedAddressesTitle}>Direcciones Guardadas</Text>
+      
+      {savedAddresses.map((address) => (
+        <View key={address.id} style={styles.savedAddressItem}>
+          <TouchableOpacity
+            style={styles.savedAddressContent}
+            onPress={() => selectSavedAddress(address)}
+          >
+            <View style={styles.savedAddressInfo}>
+              <Text style={styles.savedAddressName}>
+                {address.firstName} {address.lastName}
+              </Text>
+              <Text style={styles.savedAddressDetails}>
+                {address.address1}
+              </Text>
+              <Text style={styles.savedAddressDetails}>
+                {address.city}, {address.state} {address.postalCode}
+              </Text>
+              <Text style={styles.savedAddressPhone}>
+                {address.phone}
+              </Text>
+              
+              <View style={styles.savedAddressBadges}>
+                {address.isDefault && (
+                  <View style={styles.defaultBadge}>
+                    <Text style={styles.defaultBadgeText}>Por defecto</Text>
+                  </View>
+                )}
+                <Text style={styles.lastUsedText}>
+                  Usado: {new Date(address.lastUsed || address.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.deleteAddressButton}
+            onPress={() => {
+              Alert.alert(
+                'Eliminar Dirección',
+                '¿Estás seguro de que quieres eliminar esta dirección?',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Eliminar', style: 'destructive', onPress: () => deleteAddress(address.id) },
+                ]
+              );
+            }}
+          >
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      ))}
     </View>
   );
 
@@ -209,83 +397,67 @@ const AddressForm = ({
           <TouchableOpacity
             style={styles.savedAddressesButton}
             onPress={() => setShowSavedAddresses(!showSavedAddresses)}
+            disabled={loadingAddresses}
           >
-            <Ionicons 
-              name={showSavedAddresses ? "chevron-up" : "chevron-down"} 
-              size={16} 
-              color="#3B82F6" 
-            />
-            <Text style={styles.savedAddressesText}>
-              Direcciones guardadas ({savedAddresses.length})
-            </Text>
+            {loadingAddresses ? (
+              <ActivityIndicator size="small" color="#3B82F6" />
+            ) : (
+              <>
+                <Ionicons 
+                  name={showSavedAddresses ? "chevron-up" : "chevron-down"} 
+                  size={16} 
+                  color="#3B82F6" 
+                />
+                <Text style={styles.savedAddressesText}>
+                  Direcciones ({savedAddresses.length})
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         )}
       </View>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Direcciones guardadas */}
-        {showSavedAddresses && savedAddresses.length > 0 && (
-          <View style={styles.savedAddressesContainer}>
-            {savedAddresses.map((address) => (
-              <TouchableOpacity
-                key={address.id}
-                style={styles.savedAddressItem}
-                onPress={() => selectSavedAddress(address)}
-              >
-                <View style={styles.savedAddressInfo}>
-                  <Text style={styles.savedAddressName}>
-                    {address.firstName} {address.lastName}
-                  </Text>
-                  <Text style={styles.savedAddressDetails}>
-                    {address.address1}
-                  </Text>
-                  <Text style={styles.savedAddressDetails}>
-                    {address.city}, {address.state} {address.postalCode}
-                  </Text>
-                  {address.isDefault && (
-                    <View style={styles.defaultBadge}>
-                      <Text style={styles.defaultBadgeText}>Por defecto</Text>
-                    </View>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {/* ✅ DIRECCIONES GUARDADAS */}
+        {showSavedAddresses && savedAddresses.length > 0 && renderSavedAddresses()}
 
-        {/* Formulario */}
+        {/* ✅ FORMULARIO MEJORADO */}
         <View style={styles.formContainer}>
           {/* Nombre y apellido */}
           <View style={styles.inputRow}>
             <View style={styles.inputHalf}>
-              {renderInput('firstName', 'Nombre', { required: true })}
+              {renderInput('firstName', 'Nombre', { required: true, maxLength: 50 })}
             </View>
             <View style={styles.inputHalf}>
-              {renderInput('lastName', 'Apellido', { required: true })}
+              {renderInput('lastName', 'Apellido', { required: true, maxLength: 50 })}
             </View>
           </View>
 
           {/* Empresa (opcional) */}
-          {renderInput('company', 'Empresa', { placeholder: 'Opcional' })}
+          {renderInput('company', 'Empresa', { 
+            placeholder: 'Opcional',
+            maxLength: 100,
+          })}
 
           {/* Dirección */}
           {renderInput('address1', 'Dirección', { 
             required: true,
-            placeholder: 'Calle y número'
+            placeholder: 'Calle y número',
+            maxLength: 200,
           })}
 
           {renderInput('address2', 'Dirección 2', { 
-            placeholder: 'Apartamento, piso, etc. (opcional)'
+            placeholder: 'Apartamento, piso, etc. (opcional)',
+            maxLength: 100,
           })}
 
           {/* Ciudad y provincia */}
           <View style={styles.inputRow}>
             <View style={styles.inputHalf}>
-              {renderInput('city', 'Ciudad', { required: true })}
+              {renderInput('city', 'Ciudad', { required: true, maxLength: 50 })}
             </View>
             <View style={styles.inputHalf}>
-              {renderInput('state', 'Provincia', { required: true })}
+              {renderInput('state', 'Provincia', { required: true, maxLength: 50 })}
             </View>
           </View>
 
@@ -294,11 +466,12 @@ const AddressForm = ({
             <View style={styles.inputHalf}>
               {renderInput('postalCode', 'Código Postal', { 
                 required: true,
-                keyboardType: 'numeric'
+                keyboardType: 'numeric',
+                maxLength: 8,
               })}
             </View>
             <View style={styles.inputHalf}>
-              {renderInput('country', 'País', { required: true })}
+              {renderInput('country', 'País', { required: true, maxLength: 50 })}
             </View>
           </View>
 
@@ -306,10 +479,11 @@ const AddressForm = ({
           {renderInput('phone', 'Teléfono', { 
             required: true,
             keyboardType: 'phone-pad',
-            placeholder: '+54 11 1234-5678'
+            placeholder: '+54 11 1234-5678',
+            maxLength: 20,
           })}
 
-          {/* Opciones */}
+          {/* ✅ OPCIONES MEJORADAS */}
           {showSaveOption && (
             <View style={styles.optionsContainer}>
               <TouchableOpacity
@@ -352,7 +526,7 @@ const AddressForm = ({
         </View>
       </ScrollView>
 
-      {/* Botón de envío */}
+      {/* ✅ BOTÓN DE ENVÍO MEJORADO */}
       <TouchableOpacity
         style={[styles.submitButton, loading && styles.submitButtonDisabled]}
         onPress={handleSubmit}
@@ -381,7 +555,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    maxHeight: 600,
+    maxHeight: 700,
   },
   header: {
     flexDirection: 'row',
@@ -408,21 +582,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Saved Addresses
+  // ✅ DIRECCIONES GUARDADAS MEJORADAS
   savedAddressesContainer: {
     marginBottom: 20,
     borderRadius: 8,
     backgroundColor: '#F9FAFB',
     padding: 12,
   },
+  savedAddressesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
   savedAddressItem: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  savedAddressContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    marginBottom: 8,
   },
   savedAddressInfo: {
     flex: 1,
@@ -438,21 +623,39 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 2,
   },
+  savedAddressPhone: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 6,
+  },
+  savedAddressBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   defaultBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: '#10B981',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    marginTop: 4,
   },
   defaultBadgeText: {
     fontSize: 10,
     color: '#fff',
     fontWeight: '600',
   },
+  lastUsedText: {
+    fontSize: 10,
+    color: '#9CA3AF',
+  },
+  deleteAddressButton: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+  },
   
-  // Form
+  // ✅ FORMULARIO MEJORADO
   formContainer: {
     flex: 1,
   },
@@ -487,14 +690,23 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  inputValid: {
+    borderColor: '#10B981',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
   },
   errorText: {
     fontSize: 12,
     color: '#EF4444',
-    marginTop: 4,
   },
   
-  // Options
+  // ✅ OPCIONES
   optionsContainer: {
     marginTop: 16,
     paddingTop: 16,
@@ -526,7 +738,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Submit Button
+  // ✅ BOTÓN DE ENVÍO
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -548,4 +760,3 @@ const styles = StyleSheet.create({
 });
 
 export default AddressForm;
-

@@ -51,15 +51,7 @@ const AdminCategoryBackgroundsScreen = () => {
 
   // Categorías disponibles - INCLUYE SUPLEMENTOS
   const categories = [
-    // { 
-    //   id: null,
-    //   key: 'all',
-    //   name: 'Todos', 
-    //   description: 'Categoría principal que muestra todos los productos (ESTÁTICO)',
-    //   defaultColor: '#1F2937',
-    //   width: 110,
-    //   isStatic: true
-    // },
+  
     { 
       id: 'gi', 
       name: 'Gi', 

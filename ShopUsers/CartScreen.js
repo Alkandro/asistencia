@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   footerTotalValue: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: '700',
     color: '#111827',
   },

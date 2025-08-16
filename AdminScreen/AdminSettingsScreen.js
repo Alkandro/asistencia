@@ -36,19 +36,19 @@ const AdminSettingsScreen = () => {
 
   const handleSignOut = async () => {
     Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que quieres cerrar sesión como administrador?',
+      t("Cerrar Sesión"),
+      t("¿Estás seguro de que quieres cerrar sesión?"),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t("Cancelar"), style: "cancel" },
         {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
+          text: t("Cerrar Sesión"),
+          style: "destructive",
           onPress: async () => {
             try {
               await auth.signOut();
             } catch (error) {
-              console.error('Error al cerrar sesión:', error);
-              Alert.alert('Error', 'No se pudo cerrar la sesión');
+              console.error("Error al cerrar sesión:", error);
+              Alert.alert("Error", "No se pudo cerrar la sesión");
             }
           },
         },

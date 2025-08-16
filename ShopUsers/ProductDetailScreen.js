@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   footerPrice: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: '700',
     color: '#111827',
   },
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   addToCartButtonText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
     color: '#fff',
   },
