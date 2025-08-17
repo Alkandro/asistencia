@@ -32,6 +32,8 @@ import ProductDetailScreen from "../ShopUsers/ProductDetailScreen";
 import CartScreen from "../ShopUsers/CartScreen";
 import CheckoutScreen from "../ShopUsers/CheckoutScreen";
 import OrderConfirmationScreen from "../ShopUsers/OrderConfirmationScreen";
+// 🆕 IMPORT PARA HISTORIAL DE PEDIDOS
+import OrderHistoryScreen from "../ShopUsers/OrderHistoryScreen";
 
 // 🆕 NUEVOS IMPORTS PARA GESTIÓN DE PAGOS Y DIRECCIONES
 import AddressManagementScreen from "../ComponentsShop/AddressManagementScreen";
@@ -45,7 +47,7 @@ import "dayjs/locale/ja";
 import "dayjs/locale/en";
 import "dayjs/locale/es";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useDrawerStatus } from '@react-navigation/drawer';
 import { useTranslation } from 'react-i18next';
@@ -85,6 +87,8 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
   // 🆕 NUEVOS ESTADOS PARA CONTADORES
   const [addressCount, setAddressCount] = useState(0);
   const [paymentCount, setPaymentCount] = useState(0);
+  // 🆕 ESTADO PARA PEDIDOS
+  const [orderCount, setOrderCount] = useState(0);
 
   const drawerStatus = useDrawerStatus();
 
@@ -94,19 +98,42 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       const userId = auth.currentUser?.uid;
       if (!userId) return;
 
-      const cartRef = doc(db, 'cart', userId);
-      const cartSnap = await getDoc(cartRef);
+      const cartRef = collection(db, 'cart');
+      const q = query(cartRef, where('userId', '==', userId));
       
-      if (cartSnap.exists()) {
-        const cartData = cartSnap.data();
-        const totalItems = cartData.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        let totalItems = 0;
+        snapshot.forEach((doc) => {
+          const item = doc.data();
+          totalItems += parseInt(item.quantity) || 0;
+        });
         setCartItemCount(totalItems);
-      } else {
-        setCartItemCount(0);
-      }
+      });
+
+      return unsubscribe;
     } catch (error) {
       console.error('Error loading cart count:', error);
       setCartItemCount(0);
+    }
+  };
+
+  // 🆕 FUNCIÓN PARA CARGAR CONTADOR DE PEDIDOS
+  const loadOrderCount = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) return;
+
+      const ordersRef = collection(db, 'orders');
+      const q = query(ordersRef, where('userId', '==', userId));
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setOrderCount(snapshot.size);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error loading order count:', error);
+      setOrderCount(0);
     }
   };
 
@@ -167,6 +194,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
 
       // ✅ CARGAR TODOS LOS CONTADORES
       await loadCartCount();
+      await loadOrderCount();
       // 🆕 CARGAR CONTADORES DE DIRECCIONES Y PAGOS
       await loadPaymentAddressCounts();
     } catch (error) {
@@ -292,15 +320,22 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
       id: 'shop',
       title: t("Tienda"),
       icon: "storefront-outline",
-      badge: cartItemCount > 0 ? cartItemCount : null,
-      onPress: () => navigation.navigate("Shop"),
+      onPress: () => navigation.navigate("UserTabs", { screen: "Shop" }),
     },
     {
       id: 'cart',
       title: t("Mi Carrito"),
       icon: "bag-outline",
       badge: cartItemCount > 0 ? cartItemCount : null,
-      onPress: () => navigation.navigate("Cart"),
+      onPress: () => navigation.navigate("UserTabs", { screen: "Cart" }),
+    },
+    {
+      id: 'orders',
+      title: t("Mis Pedidos"),
+      icon: "receipt-outline",
+      badge: orderCount > 0 ? orderCount : null,
+      badgeColor: "#10B981",
+      onPress: () => navigation.navigate("UserTabs", { screen: "Orders" }),
     },
     // 🆕 NUEVA SECCIÓN - GESTIÓN DE COMPRAS
     {
@@ -425,7 +460,7 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
             </Text>
             <TouchableOpacity
               style={styles.quickCartButton}
-              onPress={() => navigation.navigate("Cart")}
+              onPress={() => navigation.navigate("UserTabs", { screen: "Cart" })}
               activeOpacity={0.7}
             >
               <Text style={styles.quickCartText}>{t("Ver Carrito")}</Text>
@@ -529,8 +564,51 @@ const CustomDrawerContent = ({ monthlyCheckInCount, onRefresh, ...props }) => {
   );
 };
 
+// 🆕 TAB NAVIGATOR ACTUALIZADO CON MI CARRITO Y PEDIDOS
 const UserBottomTabs = ({ navigation, route }) => {
   const { t } = useTranslation();
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [orderCount, setOrderCount] = useState(0);
+
+  // ✅ CARGAR CONTADORES EN TIEMPO REAL
+  useEffect(() => {
+    const loadCounts = async () => {
+      try {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+
+        // Contador del carrito
+        const cartRef = collection(db, 'cart');
+        const cartQuery = query(cartRef, where('userId', '==', userId));
+        
+        const cartUnsubscribe = onSnapshot(cartQuery, (snapshot) => {
+          let totalItems = 0;
+          snapshot.forEach((doc) => {
+            const item = doc.data();
+            totalItems += parseInt(item.quantity) || 0;
+          });
+          setCartItemCount(totalItems);
+        });
+
+        // Contador de pedidos
+        const ordersRef = collection(db, 'orders');
+        const ordersQuery = query(ordersRef, where('userId', '==', userId));
+        
+        const ordersUnsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+          setOrderCount(snapshot.size);
+        });
+
+        return () => {
+          cartUnsubscribe();
+          ordersUnsubscribe();
+        };
+      } catch (error) {
+        console.error('Error loading counts:', error);
+      }
+    };
+
+    loadCounts();
+  }, []);
 
   // Cambiar dinámicamente el título de la pantalla activa
   useLayoutEffect(() => {
@@ -544,7 +622,11 @@ const UserBottomTabs = ({ navigation, route }) => {
       title = "Perfil";
     } else if (route.name === "Shop") {
       title = "Shop";
-    } 
+    } else if (route.name === "Cart") {
+      title = "Mi Carrito";
+    } else if (route.name === "Orders") {
+      title = "Mis Pedidos";
+    }
 
     navigation.setOptions({
       title: title,
@@ -559,6 +641,8 @@ const UserBottomTabs = ({ navigation, route }) => {
           if (route.name === "Registrarse") iconName = "checkmark-circle-outline";
           else if (route.name === "Historial") iconName = "time-outline";
           else if (route.name === "Shop") iconName = "storefront-outline";
+          else if (route.name === "Cart") iconName = "bag-outline";
+          else if (route.name === "Orders") iconName = "receipt-outline";
           else if (route.name === "Profile") iconName = "person-outline";
           
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -574,8 +658,17 @@ const UserBottomTabs = ({ navigation, route }) => {
           paddingTop: 5,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '500',
+        },
+        // 🆕 BADGES EN LAS PESTAÑAS
+        tabBarBadge: route.name === "Cart" && cartItemCount > 0 ? cartItemCount : 
+                    route.name === "Orders" && orderCount > 0 ? orderCount : undefined,
+        tabBarBadgeStyle: {
+          backgroundColor: route.name === "Cart" ? "#3B82F6" : "#10B981",
+          color: "#FFFFFF",
+          fontSize: 10,
+          fontWeight: "600",
         },
       })}
     >
@@ -588,14 +681,8 @@ const UserBottomTabs = ({ navigation, route }) => {
         }}
       />
       
-      <Tab.Screen
-        name="Historial"
-        component={AttendanceHistoryScreen}
-        options={{
-          title: t("Historial"),
-          headerShown: false,
-        }}
-      />
+      
+      
       <Tab.Screen
         name="Shop"
         component={ShopScreen}
@@ -604,6 +691,35 @@ const UserBottomTabs = ({ navigation, route }) => {
           headerShown: false,
         }}
       />
+      
+      {/* 🆕 NUEVA PESTAÑA - MI CARRITO */}
+      <Tab.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{
+          title: t("Carrito"),
+          headerShown: false,
+        }}
+      />
+      
+      {/* 🆕 NUEVA PESTAÑA - MIS PEDIDOS */}
+      <Tab.Screen
+        name="Orders"
+        component={OrderHistoryScreen}
+        options={{
+          title: t("Pedidos"),
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Historial"
+        component={AttendanceHistoryScreen}
+        options={{
+          title: t("Historial"),
+          headerShown: false,
+        }}
+      />
+      
       <Tab.Screen
         name="Profile"
         component={UserProfileScreen}
@@ -681,6 +797,12 @@ const AppDrawer = ({ monthlyCheckInCount, fetchMonthlyCheckInCount }) => (
       name="OrderConfirmation"
       component={OrderConfirmationScreen}
       options={{ title: "Pedido Confirmado" }}
+    />
+    {/* 🆕 NUEVA PANTALLA - HISTORIAL DE PEDIDOS */}
+    <Drawer.Screen
+      name="OrderHistory"
+      component={OrderHistoryScreen}
+      options={{ title: "Historial de Pedidos" }}
     />
     {/* 🆕 NUEVAS PANTALLAS - GESTIÓN DE DIRECCIONES Y PAGOS */}
     <Drawer.Screen
@@ -817,7 +939,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#3B82F6",
   },
-  // 🆕 ESTILOS PARA NUEVA SECCIÓN DE GESTIÓN
   managementSection: {
     backgroundColor: "#F0FDF4",
     marginHorizontal: 16,
@@ -839,29 +960,30 @@ const styles = StyleSheet.create({
     color: "#065F46",
   },
   managementStats: {
-    gap: 4,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
     marginBottom: 8,
   },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   statText: {
-    fontSize: 12,
-    color: "#065F46",
+    fontSize: 11,
+    color: "#047857",
     fontWeight: "500",
   },
   managementSubtitle: {
     fontSize: 10,
-    color: "#047857",
+    color: "#059669",
     fontStyle: "italic",
   },
   navigationSection: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingVertical: 8,
   },
-  // 🆕 ESTILOS PARA DIVISORES DE SECCIÓN
   sectionDivider: {
     paddingVertical: 12,
     paddingHorizontal: 4,
@@ -872,7 +994,7 @@ const styles = StyleSheet.create({
   sectionDividerText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#9CA3AF",
+    color: "#888888",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -880,10 +1002,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 15,
+    paddingVertical: 12,
     paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
   },
   menuItemLeft: {
     flexDirection: "row",
@@ -891,7 +1011,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIcon: {
-    marginRight: 15,
+    marginRight: 16,
     width: 20,
   },
   menuText: {
@@ -902,15 +1022,16 @@ const styles = StyleSheet.create({
   badge: {
     backgroundColor: "#3B82F6",
     borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
     minWidth: 20,
+    height: 20,
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
   },
   badgeText: {
+    color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "600",
-    color: "#FFFFFF",
   },
   appInfoSection: {
     alignItems: "center",
@@ -918,22 +1039,22 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: "#999999",
+    color: "#AAAAAA",
   },
   logoutSection: {
     borderTopWidth: 1,
     borderTopColor: "#F0F0F0",
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 16,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    gap: 8,
   },
   logoutIcon: {
-    marginRight: 8,
+    marginRight: 4,
   },
   logoutText: {
     fontSize: 16,
@@ -942,14 +1063,14 @@ const styles = StyleSheet.create({
   },
   drawerStyle: {
     backgroundColor: "#FFFFFF",
-    width: 280,
+    width: 300,
   },
   headerStyle: {
     backgroundColor: "#FFFFFF",
-    elevation: 1,
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
+    elevation: 0,
+    shadowOpacity: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
 });
 

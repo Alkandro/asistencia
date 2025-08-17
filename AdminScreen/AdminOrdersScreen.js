@@ -1,488 +1,953 @@
-// AdminOrdersScreen.js - Pantalla de pedidos admin con info de usuario y pago
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   SafeAreaView,
-  RefreshControl,
+  ScrollView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
   Modal,
-  ScrollView,
+  TextInput,
+  RefreshControl,
 } from 'react-native';
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  doc,
-  updateDoc,
-  getDoc,
+import { Ionicons } from '@expo/vector-icons';
+import { 
+  collection, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  doc, 
+  updateDoc, 
+  deleteDoc,
+  addDoc,
+  where,
+  limit,
+  startAfter,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import {
-  AdminCard,
-  AdminButton,
-  AdminHeader,
-} from './AdminComponents';
+import { useTranslation } from 'react-i18next';
 
 const AdminOrdersScreen = () => {
-  const navigation = useNavigation();
-  const [orders, setOrders] = useState([]);
+  const { t } = useTranslation();
+  
+  // ✅ ESTADOS PRINCIPALES
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  
+  // ✅ ESTADOS DE FILTROS
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // ✅ ESTADOS DE MODAL
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showOrderDetail, setShowOrderDetail] = useState(false);
-  const [userDetails, setUserDetails] = useState({});
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  // 🆕 ESTADO PARA MODAL DE ELIMINACIÓN
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
+  // ✅ ESTADOS DE EDICIÓN
+  const [newStatus, setNewStatus] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [updating, setUpdating] = useState(false);
+  // 🆕 ESTADO PARA RAZÓN DE ELIMINACIÓN
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
-  // Estados de pedidos
-  const orderStatuses = [
-    { id: 'all', name: 'Todos', color: '#6B7280' },
-    { id: 'pending', name: 'Pendientes', color: '#F59E0B' },
-    { id: 'processing', name: 'Procesando', color: '#3B82F6' },
-    { id: 'shipped', name: 'Enviados', color: '#8B5CF6' },
-    { id: 'delivered', name: 'Entregados', color: '#10B981' },
-    { id: 'cancelled', name: 'Cancelados', color: '#EF4444' },
+  // ✅ ESTADÍSTICAS
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    processing: 0,
+    shipped: 0,
+    delivered: 0,
+    cancelled: 0,
+    totalRevenue: 0
+  });
+
+  // 🆕 ESTADOS DE PAGINACIÓN
+  const [lastVisible, setLastVisible] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // ✅ OPCIONES DE ESTADO
+  const statusOptions = [
+    { value: 'pending', label: 'Pendiente', color: '#F59E0B', icon: 'time-outline' },
+    { value: 'processing', label: 'Procesando', color: '#3B82F6', icon: 'sync-outline' },
+    { value: 'shipped', label: 'Enviado', color: '#8B5CF6', icon: 'airplane-outline' },
+    { value: 'delivered', label: 'Entregado', color: '#10B981', icon: 'checkmark-circle-outline' },
+    { value: 'cancelled', label: 'Cancelado', color: '#EF4444', icon: 'close-circle-outline' }
   ];
 
-  // Cargar pedidos desde Firebase
+  // 🆕 OPCIONES DE RAZÓN DE ELIMINACIÓN
+  const deleteReasons = [
+    'Pedido duplicado',
+    'Error en el sistema',
+    'Solicitud del cliente',
+    'Fraude detectado',
+    'Producto no disponible',
+    'Error de precio',
+    'Otro (especificar en notas)'
+  ];
+
+  // ✅ CARGAR PEDIDOS EN TIEMPO REAL
   useEffect(() => {
     const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, orderBy('createdAt', 'desc'));
+    const ordersQuery = query(
+      ordersRef, 
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
+    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
       const ordersData = [];
-      const userIds = new Set();
-      
+      let totalRevenue = 0;
+      const statusCount = {
+        total: 0,
+        pending: 0,
+        processing: 0,
+        shipped: 0,
+        delivered: 0,
+        cancelled: 0
+      };
+
       snapshot.forEach((doc) => {
-        const orderData = { id: doc.id, ...doc.data() };
-        ordersData.push(orderData);
-        if (orderData.userId) {
-          userIds.add(orderData.userId);
+        const order = { id: doc.id, ...doc.data() };
+        ordersData.push(order);
+        
+        // Calcular estadísticas
+        statusCount.total++;
+        statusCount[order.status] = (statusCount[order.status] || 0) + 1;
+        
+        if (order.status !== 'cancelled') {
+          totalRevenue += order.totals?.total || 0;
         }
       });
 
-      // Cargar información de usuarios
-      const userDetailsMap = {};
-      for (const userId of userIds) {
-        try {
-          const userRef = doc(db, 'users', userId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            userDetailsMap[userId] = userSnap.data();
-          }
-        } catch (error) {
-          console.error('Error loading user:', userId, error);
-        }
-      }
-
-      setUserDetails(userDetailsMap);
       setOrders(ordersData);
+      setStats({ ...statusCount, totalRevenue });
       setLoading(false);
-    }, (error) => {
-      console.error('Error loading orders:', error);
-      setLoading(false);
+      
+      // Configurar paginación
+      if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length === 20);
+      } else {
+        setHasMore(false);
+      }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Filtrar pedidos por estado
-  const filteredOrders = selectedStatus === 'all' 
-    ? orders 
-    : orders.filter(order => order.status === selectedStatus);
+  // ✅ FILTRAR PEDIDOS
+  useEffect(() => {
+    let filtered = orders;
 
-  // Función de refresh
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+    // Filtrar por estado
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(order => order.status === selectedStatus);
+    }
 
-  // Actualizar estado del pedido
-  const updateOrderStatus = async (orderId, newStatus) => {
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(order => 
+        order.orderNumber?.toLowerCase().includes(query) ||
+        order.userEmail?.toLowerCase().includes(query) ||
+        order.shippingAddress?.firstName?.toLowerCase().includes(query) ||
+        order.shippingAddress?.lastName?.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredOrders(filtered);
+  }, [orders, selectedStatus, searchQuery]);
+
+  // 🆕 CARGAR MÁS PEDIDOS
+  const loadMoreOrders = async () => {
+    if (!hasMore || loadingMore || !lastVisible) return;
+
     try {
-      const orderRef = doc(db, 'orders', orderId);
-      await updateDoc(orderRef, {
-        status: newStatus,
-        updatedAt: new Date(),
-      });
-      Alert.alert('Éxito', 'Estado del pedido actualizado');
+      setLoadingMore(true);
+      
+      const ordersRef = collection(db, 'orders');
+      const nextQuery = query(
+        ordersRef,
+        orderBy('createdAt', 'desc'),
+        startAfter(lastVisible),
+        limit(20)
+      );
+
+      const snapshot = await getDocs(nextQuery);
+      
+      if (snapshot.docs.length > 0) {
+        const newOrders = [];
+        snapshot.forEach((doc) => {
+          newOrders.push({ id: doc.id, ...doc.data() });
+        });
+
+        setOrders(prev => [...prev, ...newOrders]);
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length === 20);
+      } else {
+        setHasMore(false);
+      }
     } catch (error) {
-      console.error('Error updating order status:', error);
-      Alert.alert('Error', 'No se pudo actualizar el estado del pedido');
+      console.error('Error loading more orders:', error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
-  // Mostrar opciones de estado
-  const showStatusOptions = (order) => {
-    const statusOptions = orderStatuses
-      .filter(status => status.id !== 'all' && status.id !== order.status)
-      .map(status => ({
-        text: status.name,
-        onPress: () => updateOrderStatus(order.id, status.id)
-      }));
+  // ✅ ACTUALIZAR ESTADO DEL PEDIDO
+  const updateOrderStatus = async () => {
+    if (!selectedOrder || !newStatus) return;
 
+    try {
+      setUpdating(true);
+      
+      const orderRef = doc(db, 'orders', selectedOrder.id);
+      const updateData = {
+        status: newStatus,
+        updatedAt: new Date(),
+        ...(adminNotes && { adminNotes }),
+        ...(trackingNumber && { trackingNumber })
+      };
+
+      await updateDoc(orderRef, updateData);
+      
+      setShowStatusModal(false);
+      setNewStatus('');
+      setAdminNotes('');
+      setTrackingNumber('');
+      
+      Alert.alert('Éxito', 'Estado del pedido actualizado correctamente');
+    } catch (error) {
+      console.error('Error updating order:', error);
+      Alert.alert('Error', 'No se pudo actualizar el estado del pedido');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // ✅ ACTUALIZAR NÚMERO DE SEGUIMIENTO
+  const updateTrackingNumber = async () => {
+    if (!selectedOrder || !trackingNumber.trim()) return;
+
+    try {
+      setUpdating(true);
+      
+      const orderRef = doc(db, 'orders', selectedOrder.id);
+      await updateDoc(orderRef, {
+        trackingNumber: trackingNumber.trim(),
+        updatedAt: new Date(),
+        ...(selectedOrder.status === 'pending' && { status: 'processing' })
+      });
+      
+      setShowTrackingModal(false);
+      setTrackingNumber('');
+      
+      Alert.alert('Éxito', 'Número de seguimiento actualizado');
+    } catch (error) {
+      console.error('Error updating tracking:', error);
+      Alert.alert('Error', 'No se pudo actualizar el número de seguimiento');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // 🆕 ELIMINAR PEDIDO CON REGISTRO MÍNIMO
+  const deleteOrder = async () => {
+    if (!selectedOrder || !deleteReason.trim()) {
+      Alert.alert('Error', 'Por favor selecciona una razón para la eliminación');
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      
+      console.log('🗑️ Iniciando eliminación del pedido:', selectedOrder.orderNumber);
+      
+      // 🆕 CREAR REGISTRO MÍNIMO EN COLECCIÓN 'deleted_orders'
+      const deletedOrderRecord = {
+        // Información básica para auditoría
+        originalOrderId: selectedOrder.id,
+        orderNumber: selectedOrder.orderNumber,
+        userId: selectedOrder.userId,
+        userEmail: selectedOrder.userEmail,
+        
+        // Información financiera mínima
+        totalAmount: selectedOrder.totals?.total || 0,
+        itemCount: selectedOrder.items?.length || 0,
+        
+        // Fechas importantes
+        originalCreatedAt: selectedOrder.createdAt,
+        deletedAt: new Date(),
+        
+        // Información de eliminación
+        deleteReason: deleteReason.trim(),
+        deletedBy: 'admin', // Podrías usar auth.currentUser.email aquí
+        
+        // Estado al momento de eliminación
+        lastStatus: selectedOrder.status,
+        
+        // Información mínima del cliente (para estadísticas)
+        customerName: `${selectedOrder.shippingAddress?.firstName || ''} ${selectedOrder.shippingAddress?.lastName || ''}`.trim(),
+        
+        // Metadatos
+        platform: selectedOrder.platform || 'mobile',
+        version: selectedOrder.version || '1.0.0'
+      };
+
+      console.log('📝 Creando registro de eliminación:', deletedOrderRecord);
+      
+      // Guardar registro en colección 'deleted_orders'
+      const deletedOrdersRef = collection(db, 'deleted_orders');
+      await addDoc(deletedOrdersRef, deletedOrderRecord);
+      
+      console.log('✅ Registro de eliminación creado');
+      
+      // 🗑️ ELIMINAR EL PEDIDO ORIGINAL
+      const orderRef = doc(db, 'orders', selectedOrder.id);
+      await deleteDoc(orderRef);
+      
+      console.log('✅ Pedido original eliminado');
+      
+      // Cerrar modales y limpiar estados
+      setShowDeleteModal(false);
+      setShowOrderModal(false);
+      setDeleteReason('');
+      setSelectedOrder(null);
+      
+      Alert.alert(
+        'Pedido Eliminado', 
+        `El pedido #${selectedOrder.orderNumber} ha sido eliminado correctamente. Se ha guardado un registro para auditoría.`,
+        [{ text: 'OK' }]
+      );
+      
+    } catch (error) {
+      console.error('❌ Error eliminando pedido:', error);
+      Alert.alert(
+        'Error', 
+        'No se pudo eliminar el pedido. Por favor, inténtalo de nuevo.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // 🆕 CONFIRMAR ELIMINACIÓN
+  const confirmDelete = () => {
     Alert.alert(
-      'Cambiar Estado',
-      `Pedido #${order.orderNumber}`,
+      'Confirmar Eliminación',
+      `¿Estás seguro de que quieres eliminar el pedido #${selectedOrder?.orderNumber}?\n\nEsta acción no se puede deshacer, pero se guardará un registro para auditoría.`,
       [
-        ...statusOptions,
-        { text: 'Cancelar', style: 'cancel' }
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => setShowDeleteModal(true)
+        }
       ]
     );
   };
 
-  // Mostrar detalle del pedido
-  const showOrderDetailModal = (order) => {
-    setSelectedOrder(order);
-    setShowOrderDetail(true);
-  };
-
-  // Formatear fecha
+  // ✅ FORMATEAR FECHA
   const formatDate = (timestamp) => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (!timestamp) return 'Fecha no disponible';
+    
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
+    }
   };
 
-  // Formatear precio
-  const formatPrice = (price) => `$${(parseFloat(price) || 0).toFixed(2)}`;
-
-  // Obtener color del estado
+  // ✅ OBTENER COLOR DEL ESTADO
   const getStatusColor = (status) => {
-    const statusObj = orderStatuses.find(s => s.id === status);
-    return statusObj ? statusObj.color : '#6B7280';
+    const statusOption = statusOptions.find(option => option.value === status);
+    return statusOption?.color || '#6B7280';
   };
 
-  // Obtener texto del estado
-  const getStatusText = (status) => {
-    const statusObj = orderStatuses.find(s => s.id === status);
-    return statusObj ? statusObj.name : 'Desconocido';
+  // ✅ OBTENER ICONO DEL ESTADO
+  const getStatusIcon = (status) => {
+    const statusOption = statusOptions.find(option => option.value === status);
+    return statusOption?.icon || 'help-circle-outline';
   };
 
-  // Obtener información del usuario
-  const getUserInfo = (userId) => {
-    return userDetails[userId] || { 
-      name: 'Usuario desconocido', 
-      email: 'No disponible',
-      phone: 'No disponible'
-    };
+  // ✅ OBTENER LABEL DEL ESTADO
+  const getStatusLabel = (status) => {
+    const statusOption = statusOptions.find(option => option.value === status);
+    return statusOption?.label || status;
   };
 
-  // Renderizar filtro de estado
-  const renderStatusFilter = () => (
-    <View style={styles.statusFilter}>
-      <FlatList
-        data={orderStatuses}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.statusChip,
-              selectedStatus === item.id && styles.statusChipSelected,
-              selectedStatus === item.id && { backgroundColor: item.color }
-            ]}
-            onPress={() => setSelectedStatus(item.id)}
-          >
-            <Text style={[
-              styles.statusChipText,
-              selectedStatus === item.id && styles.statusChipTextSelected
-            ]}>
-              {item.name}
-            </Text>
-            {item.id !== 'all' && (
-              <View style={styles.statusCount}>
-                <Text style={styles.statusCountText}>
-                  {orders.filter(order => order.status === item.id).length}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={styles.statusFilterContent}
-      />
+  // ✅ REFRESH
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Los datos se actualizan automáticamente por el listener
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  // ✅ RENDERIZAR ESTADÍSTICAS
+  const renderStats = () => (
+    <View style={styles.statsContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{stats.total}</Text>
+          <Text style={styles.statLabel}>Total Pedidos</Text>
+        </View>
+        
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#F59E0B' }]}>{stats.pending}</Text>
+          <Text style={styles.statLabel}>Pendientes</Text>
+        </View>
+        
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#3B82F6' }]}>{stats.processing}</Text>
+          <Text style={styles.statLabel}>Procesando</Text>
+        </View>
+        
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#10B981' }]}>{stats.delivered}</Text>
+          <Text style={styles.statLabel}>Entregados</Text>
+        </View>
+        
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: '#8B5CF6' }]}>${stats.totalRevenue.toFixed(2)}</Text>
+          <Text style={styles.statLabel}>Ingresos</Text>
+        </View>
+      </ScrollView>
     </View>
   );
 
-  // Renderizar pedido
-  const renderOrder = ({ item }) => {
-    const userInfo = getUserInfo(item.userId);
-    
-    return (
-      <AdminCard style={styles.orderCard}>
-        <TouchableOpacity onPress={() => showOrderDetailModal(item)}>
-          <View style={styles.orderHeader}>
-            <View style={styles.orderInfo}>
-              <Text style={styles.orderNumber}>#{item.orderNumber}</Text>
-              <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
-            </View>
-            <View style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(item.status) }
-            ]}>
-              <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
-            </View>
-          </View>
-
-          {/* Información del usuario */}
-          <View style={styles.userInfo}>
-            <View style={styles.userIcon}>
-              <Ionicons name="person" size={16} color="#3B82F6" />
-            </View>
-            <View style={styles.userDetails}>
-              <Text style={styles.userName}>{userInfo.name}</Text>
-              <Text style={styles.userEmail}>{userInfo.email}</Text>
-              {userInfo.phone && userInfo.phone !== 'No disponible' && (
-                <Text style={styles.userPhone}>📞 {userInfo.phone}</Text>
-              )}
-            </View>
-          </View>
-
-          {/* Información del pedido */}
-          <View style={styles.orderDetails}>
-            <View style={styles.orderSummary}>
-              <Text style={styles.itemsCount}>
-                {item.items?.length || 0} producto{(item.items?.length || 0) !== 1 ? 's' : ''}
-              </Text>
-              <Text style={styles.orderTotal}>
-                {formatPrice(item.total)}
-              </Text>
-            </View>
-            
-            {/* Información de pago */}
-            {item.paymentInfo && (
-              <View style={styles.paymentInfo}>
-                <Ionicons name="card" size={14} color="#10B981" />
-                <Text style={styles.paymentMethod}>
-                  {item.paymentInfo.method || 'Tarjeta'} 
-                  {item.paymentInfo.last4 && ` ****${item.paymentInfo.last4}`}
-                </Text>
-                {item.paymentInfo.status && (
-                  <View style={[
-                    styles.paymentStatus,
-                    { backgroundColor: item.paymentInfo.status === 'paid' ? '#10B981' : '#F59E0B' }
-                  ]}>
-                    <Text style={styles.paymentStatusText}>
-                      {item.paymentInfo.status === 'paid' ? 'Pagado' : 'Pendiente'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-
-          <View style={styles.orderActions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => showStatusOptions(item)}
-            >
-              <Ionicons name="swap-horizontal-outline" size={16} color="#3B82F6" />
-              <Text style={styles.actionButtonText}>Cambiar Estado</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => showOrderDetailModal(item)}
-            >
-              <Ionicons name="eye-outline" size={16} color="#3B82F6" />
-              <Text style={styles.actionButtonText}>Ver Detalle</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </AdminCard>
-    );
-  };
-
-  // Renderizar modal de detalle
-  const renderOrderDetailModal = () => {
-    if (!selectedOrder) return null;
-    
-    const userInfo = getUserInfo(selectedOrder.userId);
-
-    return (
-      <Modal
-        visible={showOrderDetail}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowOrderDetail(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Detalle del Pedido</Text>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowOrderDetail(false)}
-            >
-              <Ionicons name="close" size={24} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            {/* Información del pedido */}
-            <AdminCard style={styles.detailSection}>
-              <Text style={styles.detailSectionTitle}>Información del Pedido</Text>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Número:</Text>
-                <Text style={styles.detailValue}>#{selectedOrder.orderNumber}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Fecha:</Text>
-                <Text style={styles.detailValue}>{formatDate(selectedOrder.createdAt)}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Estado:</Text>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusColor(selectedOrder.status) }
-                ]}>
-                  <Text style={styles.statusText}>{getStatusText(selectedOrder.status)}</Text>
-                </View>
-              </View>
-            </AdminCard>
-
-            {/* Información del cliente */}
-            <AdminCard style={styles.detailSection}>
-              <Text style={styles.detailSectionTitle}>Información del Cliente</Text>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Nombre:</Text>
-                <Text style={styles.detailValue}>{userInfo.name}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Email:</Text>
-                <Text style={styles.detailValue}>{userInfo.email}</Text>
-              </View>
-              {userInfo.phone && userInfo.phone !== 'No disponible' && (
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Teléfono:</Text>
-                  <Text style={styles.detailValue}>{userInfo.phone}</Text>
-                </View>
-              )}
-            </AdminCard>
-
-            {/* Información de pago */}
-            {selectedOrder.paymentInfo && (
-              <AdminCard style={styles.detailSection}>
-                <Text style={styles.detailSectionTitle}>Información de Pago</Text>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Método:</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedOrder.paymentInfo.method || 'Tarjeta de crédito'}
-                  </Text>
-                </View>
-                {selectedOrder.paymentInfo.last4 && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Tarjeta:</Text>
-                    <Text style={styles.detailValue}>****{selectedOrder.paymentInfo.last4}</Text>
-                  </View>
-                )}
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Estado:</Text>
-                  <View style={[
-                    styles.paymentStatus,
-                    { backgroundColor: selectedOrder.paymentInfo.status === 'paid' ? '#10B981' : '#F59E0B' }
-                  ]}>
-                    <Text style={styles.paymentStatusText}>
-                      {selectedOrder.paymentInfo.status === 'paid' ? 'Pagado' : 'Pendiente'}
-                    </Text>
-                  </View>
-                </View>
-                {selectedOrder.paymentInfo.transactionId && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>ID Transacción:</Text>
-                    <Text style={styles.detailValue}>{selectedOrder.paymentInfo.transactionId}</Text>
-                  </View>
-                )}
-              </AdminCard>
-            )}
-
-            {/* Productos */}
-            <AdminCard style={styles.detailSection}>
-              <Text style={styles.detailSectionTitle}>Productos</Text>
-              {selectedOrder.items?.map((item, index) => (
-                <View key={index} style={styles.productItem}>
-                  <Text style={styles.productName}>{item.productName}</Text>
-                  <Text style={styles.productDetails}>
-                    {item.size && `Talla: ${item.size}`}
-                    {item.color && ` • Color: ${item.color}`}
-                  </Text>
-                  <View style={styles.productPricing}>
-                    <Text style={styles.productQuantity}>Cantidad: {item.quantity}</Text>
-                    <Text style={styles.productPrice}>{formatPrice(item.unitPrice)}</Text>
-                  </View>
-                </View>
-              ))}
-            </AdminCard>
-
-            {/* Totales */}
-            <AdminCard style={styles.detailSection}>
-              <Text style={styles.detailSectionTitle}>Resumen de Pago</Text>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Subtotal:</Text>
-                <Text style={styles.detailValue}>{formatPrice(selectedOrder.subtotal || 0)}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Envío:</Text>
-                <Text style={styles.detailValue}>{formatPrice(selectedOrder.shipping || 0)}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Impuestos:</Text>
-                <Text style={styles.detailValue}>{formatPrice(selectedOrder.tax || 0)}</Text>
-              </View>
-              <View style={[styles.detailRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>Total:</Text>
-                <Text style={styles.totalValue}>{formatPrice(selectedOrder.total)}</Text>
-              </View>
-            </AdminCard>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    );
-  };
-
-  // Renderizar estado vacío
-  const renderEmptyState = () => (
-    <AdminCard style={styles.emptyCard}>
-      <Ionicons name="receipt-outline" size={64} color="#D1D5DB" />
-      <Text style={styles.emptyTitle}>
-        {selectedStatus === 'all' ? 'Sin pedidos' : `Sin pedidos ${getStatusText(selectedStatus).toLowerCase()}`}
-      </Text>
-      <Text style={styles.emptySubtitle}>
-        {selectedStatus === 'all' 
-          ? 'Los pedidos aparecerán aquí cuando los usuarios realicen compras'
-          : 'No hay pedidos con este estado actualmente'
-        }
-      </Text>
-      {selectedStatus !== 'all' && (
-        <AdminButton
-          title="Ver Todos los Pedidos"
-          onPress={() => setSelectedStatus('all')}
-          variant="secondary"
-          style={styles.emptyButton}
+  // ✅ RENDERIZAR FILTROS
+  const renderFilters = () => (
+    <View style={styles.filtersContainer}>
+      {/* Búsqueda */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#9CA3AF" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar por número, email o nombre..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor="#9CA3AF"
         />
-      )}
-    </AdminCard>
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Filtros de estado */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilters}>
+        <TouchableOpacity
+          style={[styles.statusFilter, selectedStatus === 'all' && styles.statusFilterActive]}
+          onPress={() => setSelectedStatus('all')}
+        >
+          <Text style={[styles.statusFilterText, selectedStatus === 'all' && styles.statusFilterTextActive]}>
+            Todos
+          </Text>
+        </TouchableOpacity>
+        
+        {statusOptions.map((status) => (
+          <TouchableOpacity
+            key={status.value}
+            style={[
+              styles.statusFilter, 
+              selectedStatus === status.value && styles.statusFilterActive,
+              { borderColor: status.color }
+            ]}
+            onPress={() => setSelectedStatus(status.value)}
+          >
+            <Ionicons 
+              name={status.icon} 
+              size={16} 
+              color={selectedStatus === status.value ? '#fff' : status.color} 
+            />
+            <Text style={[
+              styles.statusFilterText, 
+              selectedStatus === status.value && styles.statusFilterTextActive,
+              { color: selectedStatus === status.value ? '#fff' : status.color }
+            ]}>
+              {status.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
   );
 
-  // Calcular estadísticas rápidas
-  const totalOrders = orders.length;
-  const pendingOrders = orders.filter(order => order.status === 'pending').length;
-  const totalRevenue = orders
-    .filter(order => order.status !== 'cancelled')
-    .reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
+  // 🆕 RENDERIZAR TARJETA DE PEDIDO CON TOTAL ABAJO Y BOTÓN ELIMINAR
+  const renderOrderCard = (order) => (
+    <TouchableOpacity
+      key={order.id}
+      style={styles.orderCard}
+      onPress={() => {
+        setSelectedOrder(order);
+        setShowOrderModal(true);
+      }}
+    >
+      {/* Header del pedido - SIN TOTAL */}
+      <View style={styles.orderHeader}>
+        <View style={styles.orderHeaderLeft}>
+          <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+            <Ionicons name={getStatusIcon(order.status)} size={12} color="#fff" />
+            <Text style={styles.statusBadgeText}>{getStatusLabel(order.status)}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Información del cliente */}
+      <View style={styles.orderInfo}>
+        <View style={styles.orderInfoRow}>
+          <Ionicons name="person" size={16} color="#6B7280" />
+          <Text style={styles.orderInfoText}>
+            {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}
+          </Text>
+        </View>
+        
+        <View style={styles.orderInfoRow}>
+          <Ionicons name="mail" size={16} color="#6B7280" />
+          <Text style={styles.orderInfoText}>{order.userEmail}</Text>
+        </View>
+        
+        <View style={styles.orderInfoRow}>
+          <Ionicons name="calendar" size={16} color="#6B7280" />
+          <Text style={styles.orderInfoText}>{formatDate(order.createdAt)}</Text>
+        </View>
+      </View>
+
+      {/* Items del pedido */}
+      <View style={styles.orderItems}>
+        <Text style={styles.orderItemsTitle}>
+          {order.items?.length || 0} producto{(order.items?.length || 0) !== 1 ? 's' : ''}
+        </Text>
+        {order.items?.slice(0, 2).map((item, index) => (
+          <Text key={index} style={styles.orderItemText}>
+            • {item.productName} x{item.quantity}
+          </Text>
+        ))}
+        {(order.items?.length || 0) > 2 && (
+          <Text style={styles.orderItemText}>
+            • +{(order.items?.length || 0) - 2} más...
+          </Text>
+        )}
+      </View>
+
+      {/* 🆕 TOTAL DEL PEDIDO ABAJO */}
+      <View style={styles.orderTotalContainer}>
+        <View style={styles.orderTotalRow}>
+          <View style={styles.orderTotalLeft}>
+            <Ionicons name="cash" size={16} color="#10B981" />
+            <Text style={styles.orderTotalLabel}>Total del Pedido:</Text>
+          </View>
+          <Text style={styles.orderTotal}>${order.totals?.total?.toFixed(2) || '0.00'}</Text>
+        </View>
+      </View>
+
+      {/* 🆕 ACCIONES RÁPIDAS CON BOTÓN ELIMINAR */}
+      <View style={styles.orderActions}>
+        <TouchableOpacity
+          style={styles.quickAction}
+          onPress={(e) => {
+            e.stopPropagation();
+            setSelectedOrder(order);
+            setNewStatus(order.status);
+            setAdminNotes(order.adminNotes || '');
+            setShowStatusModal(true);
+          }}
+        >
+          <Ionicons name="create-outline" size={16} color="#3B82F6" />
+          <Text style={styles.quickActionText}>Estado</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.quickAction}
+          onPress={(e) => {
+            e.stopPropagation();
+            setSelectedOrder(order);
+            setTrackingNumber(order.trackingNumber || '');
+            setShowTrackingModal(true);
+          }}
+        >
+          <Ionicons name="location-outline" size={16} color="#10B981" />
+          <Text style={styles.quickActionText}>Tracking</Text>
+        </TouchableOpacity>
+        
+        {/* 🆕 BOTÓN ELIMINAR */}
+        <TouchableOpacity
+          style={[styles.quickAction, styles.deleteAction]}
+          onPress={(e) => {
+            e.stopPropagation();
+            setSelectedOrder(order);
+            confirmDelete();
+          }}
+        >
+          <Ionicons name="trash-outline" size={16} color="#EF4444" />
+          <Text style={[styles.quickActionText, styles.deleteActionText]}>Eliminar</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // 🆕 RENDERIZAR MODAL DE ELIMINACIÓN
+  const renderDeleteModal = () => (
+    <Modal
+      visible={showDeleteModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowDeleteModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <View style={styles.deleteModalHeader}>
+            <Ionicons name="warning" size={32} color="#EF4444" />
+            <Text style={styles.deleteModalTitle}>Eliminar Pedido</Text>
+          </View>
+          
+          <Text style={styles.deleteModalSubtitle}>
+            Pedido: #{selectedOrder?.orderNumber}
+          </Text>
+          
+          <Text style={styles.deleteModalDescription}>
+            Selecciona la razón para eliminar este pedido. Se guardará un registro mínimo para auditoría.
+          </Text>
+          
+          <View style={styles.deleteReasonsContainer}>
+            {deleteReasons.map((reason, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.deleteReasonOption,
+                  deleteReason === reason && styles.deleteReasonOptionSelected
+                ]}
+                onPress={() => setDeleteReason(reason)}
+              >
+                <Ionicons 
+                  name={deleteReason === reason ? "radio-button-on" : "radio-button-off"} 
+                  size={20} 
+                  color={deleteReason === reason ? "#EF4444" : "#9CA3AF"} 
+                />
+                <Text style={[
+                  styles.deleteReasonText,
+                  deleteReason === reason && styles.deleteReasonTextSelected
+                ]}>
+                  {reason}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => {
+                setShowDeleteModal(false);
+                setDeleteReason('');
+              }}
+            >
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.modalDeleteButton, !deleteReason && styles.modalDeleteButtonDisabled]}
+              onPress={deleteOrder}
+              disabled={deleting || !deleteReason}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="trash" size={16} color="#fff" />
+                  <Text style={styles.modalDeleteText}>Eliminar</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // ✅ RENDERIZAR MODAL DE DETALLE CON BOTÓN ELIMINAR
+  const renderOrderModal = () => (
+    <Modal
+      visible={showOrderModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowOrderModal(false)}
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={() => setShowOrderModal(false)}
+          >
+            <Ionicons name="close" size={24} color="#6B7280" />
+          </TouchableOpacity>
+          
+          <Text style={styles.modalTitle}>
+            Pedido #{selectedOrder?.orderNumber}
+          </Text>
+          
+          {/* 🆕 BOTÓN ELIMINAR EN EL HEADER */}
+          <TouchableOpacity
+            style={styles.modalDeleteHeaderButton}
+            onPress={confirmDelete}
+          >
+            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          {selectedOrder && (
+            <>
+              {/* Estado y fecha */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Estado del Pedido</Text>
+                <View style={styles.modalRow}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status) }]}>
+                    <Ionicons name={getStatusIcon(selectedOrder.status)} size={14} color="#fff" />
+                    <Text style={styles.statusBadgeText}>{getStatusLabel(selectedOrder.status)}</Text>
+                  </View>
+                  <Text style={styles.modalDate}>{formatDate(selectedOrder.createdAt)}</Text>
+                </View>
+              </View>
+
+              {/* Información del cliente */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Cliente</Text>
+                <Text style={styles.modalText}>
+                  {selectedOrder.shippingAddress?.firstName} {selectedOrder.shippingAddress?.lastName}
+                </Text>
+                <Text style={styles.modalText}>{selectedOrder.userEmail}</Text>
+                {selectedOrder.shippingAddress?.phone && (
+                  <Text style={styles.modalText}>{selectedOrder.shippingAddress.phone}</Text>
+                )}
+              </View>
+
+              {/* Dirección de envío */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Dirección de Envío</Text>
+                <Text style={styles.modalText}>{selectedOrder.shippingAddress?.address1}</Text>
+                {selectedOrder.shippingAddress?.address2 && (
+                  <Text style={styles.modalText}>{selectedOrder.shippingAddress.address2}</Text>
+                )}
+                <Text style={styles.modalText}>
+                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.postalCode}
+                </Text>
+                <Text style={styles.modalText}>{selectedOrder.shippingAddress?.country}</Text>
+              </View>
+
+              {/* Productos */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Productos</Text>
+                {selectedOrder.items?.map((item, index) => (
+                  <View key={index} style={styles.modalProductItem}>
+                    <View style={styles.modalProductLeft}>
+                      <Text style={styles.modalProductName}>{item.productName}</Text>
+                      {item.size && <Text style={styles.modalProductDetail}>Talla: {item.size}</Text>}
+                      {item.color && <Text style={styles.modalProductDetail}>Color: {item.color}</Text>}
+                    </View>
+                    <View style={styles.modalProductRight}>
+                      <Text style={styles.modalProductPrice}>${item.totalPrice?.toFixed(2)}</Text>
+                      <Text style={styles.modalProductQuantity}>x{item.quantity}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              {/* Totales */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Resumen</Text>
+                <View style={styles.modalTotalRow}>
+                  <Text style={styles.modalTotalLabel}>Subtotal</Text>
+                  <Text style={styles.modalTotalValue}>${selectedOrder.totals?.subtotal?.toFixed(2)}</Text>
+                </View>
+                <View style={styles.modalTotalRow}>
+                  <Text style={styles.modalTotalLabel}>Impuestos</Text>
+                  <Text style={styles.modalTotalValue}>${selectedOrder.totals?.tax?.toFixed(2)}</Text>
+                </View>
+                <View style={styles.modalTotalRow}>
+                  <Text style={styles.modalTotalLabel}>Envío</Text>
+                  <Text style={styles.modalTotalValue}>
+                    {selectedOrder.totals?.shipping === 0 ? 'Gratis' : `$${selectedOrder.totals?.shipping?.toFixed(2)}`}
+                  </Text>
+                </View>
+                <View style={[styles.modalTotalRow, styles.modalTotalRowFinal]}>
+                  <Text style={styles.modalTotalLabelFinal}>Total</Text>
+                  <Text style={styles.modalTotalValueFinal}>${selectedOrder.totals?.total?.toFixed(2)}</Text>
+                </View>
+              </View>
+
+              {/* Método de pago */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Método de Pago</Text>
+                <Text style={styles.modalText}>{selectedOrder.paymentMethod?.name}</Text>
+                {selectedOrder.paymentMethod?.lastFourDigits && (
+                  <Text style={styles.modalText}>
+                    •••• •••• •••• {selectedOrder.paymentMethod.lastFourDigits}
+                  </Text>
+                )}
+              </View>
+
+              {/* Tracking */}
+              {selectedOrder.trackingNumber && (
+                <View style={styles.modalSection}>
+                  <Text style={styles.modalSectionTitle}>Número de Seguimiento</Text>
+                  <Text style={styles.modalText}>{selectedOrder.trackingNumber}</Text>
+                </View>
+              )}
+
+              {/* Notas del admin */}
+              {selectedOrder.adminNotes && (
+                <View style={styles.modalSection}>
+                  <Text style={styles.modalSectionTitle}>Notas del Administrador</Text>
+                  <Text style={styles.modalText}>{selectedOrder.adminNotes}</Text>
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  // ✅ RENDERIZAR MODAL DE ESTADO
+  const renderStatusModal = () => (
+    <Modal
+      visible={showStatusModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowStatusModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <Text style={styles.modalCardTitle}>Actualizar Estado</Text>
+          
+          <View style={styles.statusOptionsContainer}>
+            {statusOptions.map((status) => (
+              <TouchableOpacity
+                key={status.value}
+                style={[
+                  styles.statusOption,
+                  newStatus === status.value && styles.statusOptionSelected
+                ]}
+                onPress={() => setNewStatus(status.value)}
+              >
+                <Ionicons 
+                  name={status.icon} 
+                  size={20} 
+                  color={newStatus === status.value ? '#fff' : status.color} 
+                />
+                <Text style={[
+                  styles.statusOptionText,
+                  newStatus === status.value && styles.statusOptionTextSelected
+                ]}>
+                  {status.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TextInput
+            style={styles.notesInput}
+            placeholder="Notas del administrador (opcional)"
+            value={adminNotes}
+            onChangeText={setAdminNotes}
+            multiline
+            numberOfLines={3}
+          />
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowStatusModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalConfirmButton}
+              onPress={updateOrderStatus}
+              disabled={updating || !newStatus}
+            >
+              {updating ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.modalConfirmText}>Actualizar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // ✅ RENDERIZAR MODAL DE TRACKING
+  const renderTrackingModal = () => (
+    <Modal
+      visible={showTrackingModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowTrackingModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <Text style={styles.modalCardTitle}>Número de Seguimiento</Text>
+          
+          <TextInput
+            style={styles.trackingInput}
+            placeholder="Ingresa el número de seguimiento"
+            value={trackingNumber}
+            onChangeText={setTrackingNumber}
+            autoCapitalize="characters"
+          />
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowTrackingModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalConfirmButton}
+              onPress={updateTrackingNumber}
+              disabled={updating || !trackingNumber.trim()}
+            >
+              {updating ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.modalConfirmText}>Guardar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   if (loading) {
     return (
@@ -497,43 +962,75 @@ const AdminOrdersScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AdminHeader
-        title="Pedidos"
-        subtitle={`${totalOrders} pedidos • ${pendingOrders} pendientes`}
-        rightComponent={
-          <View style={styles.headerStats}>
-            <Text style={styles.revenueText}>{formatPrice(totalRevenue)}</Text>
-            <Text style={styles.revenueLabel}>Ingresos</Text>
-          </View>
-        }
-      />
-
-      {renderStatusFilter()}
-
-      <View style={styles.resultsContainer}>
-        <Text style={styles.resultsText}>
-          {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
-          {selectedStatus !== 'all' && ` • ${getStatusText(selectedStatus)}`}
-        </Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Gestión de Pedidos</Text>
+        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
+          <Ionicons name="refresh" size={24} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={filteredOrders}
-        renderItem={renderOrder}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#3B82F6"
-          />
-        }
-        ListEmptyComponent={renderEmptyState}
-      />
+      {/* Estadísticas */}
+      {renderStats()}
 
-      {renderOrderDetailModal()}
+      {/* Filtros */}
+      {renderFilters()}
+
+      {/* Lista de pedidos */}
+      <ScrollView
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
+          
+          if (isCloseToBottom && hasMore && !loadingMore) {
+            loadMoreOrders();
+          }
+        }}
+        scrollEventThrottle={400}
+      >
+        {filteredOrders.length > 0 ? (
+          <>
+            {filteredOrders.map(renderOrderCard)}
+            
+            {/* Indicador de carga más */}
+            {loadingMore && (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color="#3B82F6" />
+                <Text style={styles.loadingMoreText}>Cargando más pedidos...</Text>
+              </View>
+            )}
+            
+            {!hasMore && filteredOrders.length > 10 && (
+              <View style={styles.endContainer}>
+                <Text style={styles.endText}>No hay más pedidos</Text>
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="receipt-outline" size={64} color="#D1D5DB" />
+            <Text style={styles.emptyTitle}>
+              {searchQuery || selectedStatus !== 'all' ? 'No se encontraron pedidos' : 'No hay pedidos aún'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {searchQuery || selectedStatus !== 'all' 
+                ? 'Intenta cambiar los filtros de búsqueda'
+                : 'Los pedidos aparecerán aquí cuando los usuarios realicen compras'
+              }
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Modales */}
+      {renderOrderModal()}
+      {renderStatusModal()}
+      {renderTrackingModal()}
+      {renderDeleteModal()}
     </SafeAreaView>
   );
 };
@@ -544,238 +1041,283 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  refreshButton: {
+    padding: 8,
+  },
+
   // Loading
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
   },
   loadingText: {
-    marginTop: 16,
     fontSize: 16,
     color: '#6B7280',
   },
-  
-  // Header Stats
-  headerStats: {
-    alignItems: 'flex-end',
-  },
-  revenueText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  revenueLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  
-  // Status Filter
-  statusFilter: {
+
+  // Estadísticas
+  statsContainer: {
     backgroundColor: '#fff',
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  statusFilterContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  statCard: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    minWidth: 100,
   },
-  statusChip: {
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+
+  // Filtros
+  filtersContainer: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#111827',
+  },
+  statusFilters: {
+    flexDirection: 'row',
+  },
+  statusFilter: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     marginRight: 8,
-    gap: 6,
+    gap: 4,
   },
-  statusChipSelected: {
+  statusFilterActive: {
     backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
-  statusChipText: {
+  statusFilterText: {
     fontSize: 12,
     fontWeight: '500',
     color: '#6B7280',
   },
-  statusChipTextSelected: {
+  statusFilterTextActive: {
     color: '#fff',
   },
-  statusCount: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 20,
-    alignItems: 'center',
+
+  // Lista de pedidos
+  scrollContainer: {
+    flex: 1,
+    padding: 16,
   },
-  statusCountText: {
+  orderCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  orderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  orderHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  orderNumber: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusBadgeText: {
     fontSize: 10,
     fontWeight: '600',
     color: '#fff',
   },
-  
-  // Results
-  resultsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+  orderInfo: {
+    marginBottom: 12,
+    gap: 4,
   },
-  resultsText: {
+  orderInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  orderInfoText: {
     fontSize: 14,
     color: '#6B7280',
   },
-  
-  // List
-  listContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  
-  // Order Card
-  orderCard: {
-    marginBottom: 16,
-  },
-  orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  orderItems: {
     marginBottom: 12,
   },
-  orderInfo: {
-    flex: 1,
-  },
-  orderNumber: {
-    fontSize: 16,
+  orderItemsTitle: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
-  orderDate: {
+  orderItemText: {
     fontSize: 12,
     color: '#6B7280',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   
-  // User Info
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#F8FAFC',
+  // 🆕 ESTILOS PARA TOTAL ABAJO
+  orderTotalContainer: {
+    backgroundColor: '#F0FDF4',
     borderRadius: 8,
-    gap: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10B981',
   },
-  userIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  userEmail: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
-  userPhone: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  
-  // Order Details
-  orderDetails: {
-    marginBottom: 16,
-  },
-  orderSummary: {
+  orderTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  itemsCount: {
+  orderTotalLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  orderTotalLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    fontWeight: '600',
+    color: '#065F46',
   },
   orderTotal: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: '#059669',
   },
   
-  // Payment Info
-  paymentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  paymentMethod: {
-    fontSize: 12,
-    color: '#6B7280',
-    flex: 1,
-  },
-  paymentStatus: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  paymentStatusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#fff',
-    textTransform: 'uppercase',
-  },
-  
-  // Actions
   orderActions: {
     flexDirection: 'row',
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    gap: 12,
   },
-  actionButton: {
+  quickAction: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    backgroundColor: '#F3F4F6',
     borderRadius: 6,
-    backgroundColor: '#EFF6FF',
     gap: 4,
-    flex: 1,
   },
-  actionButtonText: {
+  quickActionText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#3B82F6',
+    color: '#6B7280',
   },
   
+  // 🆕 ESTILOS PARA BOTÓN ELIMINAR
+  deleteAction: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  deleteActionText: {
+    color: '#EF4444',
+  },
+
+  // Estados vacíos
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+
+  // Carga más
+  loadingMoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  endContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  endText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+
   // Modal
   modalContainer: {
     flex: 1,
@@ -785,127 +1327,291 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  modalCloseButton: {
+    padding: 8,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+  // 🆕 BOTÓN ELIMINAR EN HEADER DEL MODAL
+  modalDeleteHeaderButton: {
+    padding: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
   },
   modalContent: {
     flex: 1,
     padding: 16,
   },
-  
-  // Detail Sections
-  detailSection: {
+  modalSection: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
   },
-  detailSectionTitle: {
+  modalSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 12,
   },
-  detailRow: {
+  modalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  detailLabel: {
+  modalDate: {
     fontSize: 14,
     color: '#6B7280',
-    flex: 1,
   },
-  detailValue: {
+  modalText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
-    flex: 2,
-    textAlign: 'right',
+    color: '#6B7280',
+    marginBottom: 4,
   },
-  totalRow: {
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  totalValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  
-  // Product Items
-  productItem: {
+  modalProductItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  productName: {
+  modalProductLeft: {
+    flex: 1,
+  },
+  modalProductName: {
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  productDetails: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  productPricing: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productQuantity: {
+  modalProductDetail: {
     fontSize: 12,
     color: '#6B7280',
   },
-  productPrice: {
+  modalProductRight: {
+    alignItems: 'flex-end',
+  },
+  modalProductPrice: {
     fontSize: 14,
     fontWeight: '600',
     color: '#111827',
   },
-  
-  // Empty State
-  emptyCard: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+  modalProductQuantity: {
+    fontSize: 12,
     color: '#6B7280',
-    marginTop: 16,
+  },
+  modalTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  modalTotalRowFinal: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 8,
+    marginTop: 8,
+  },
+  modalTotalLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  modalTotalValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  modalTotalLabelFinal: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  modalTotalValueFinal: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3B82F6',
+  },
+
+  // Modal overlay
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalCardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+
+  // 🆕 ESTILOS PARA MODAL DE ELIMINACIÓN
+  deleteModalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  deleteModalSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    textAlign: 'center',
     marginBottom: 8,
   },
-  emptySubtitle: {
+  deleteModalDescription: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 32,
+    marginBottom: 20,
+    lineHeight: 20,
   },
-  emptyButton: {
-    paddingHorizontal: 32,
+  deleteReasonsContainer: {
+    gap: 8,
+    marginBottom: 20,
+  },
+  deleteReasonOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 12,
+  },
+  deleteReasonOptionSelected: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#EF4444',
+  },
+  deleteReasonText: {
+    fontSize: 14,
+    color: '#111827',
+    flex: 1,
+  },
+  deleteReasonTextSelected: {
+    color: '#EF4444',
+    fontWeight: '500',
+  },
+
+  // Status options
+  statusOptionsContainer: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  statusOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 8,
+  },
+  statusOptionSelected: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  statusOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  statusOptionTextSelected: {
+    color: '#fff',
+  },
+
+  // Inputs
+  notesInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#111827',
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  trackingInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#111827',
+    marginBottom: 16,
+  },
+
+  // Modal actions
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  // 🆕 BOTÓN ELIMINAR EN MODAL
+  modalDeleteButton: {
+    flex: 1,
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  modalDeleteButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  modalDeleteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 
