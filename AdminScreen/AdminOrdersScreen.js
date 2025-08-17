@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '600',
     color: '#111827',
   },
