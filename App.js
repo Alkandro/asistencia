@@ -8,6 +8,7 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next"; // Importar traducción
 import "./i18n"; // Importar configuración de idiomas
+import { ActivityTrackerProvider } from './Components/ActivityTracker';
 
 // Importar los nuevos stacks
 import AuthStack from "./Stacks/AuthStack";
@@ -103,6 +104,7 @@ const App = () => {
 
   // Configuración de la navegación
   return (
+    <ActivityTrackerProvider>
     <PaperProvider>
     <NavigationContainer>
     {!user ? (
@@ -120,6 +122,7 @@ const App = () => {
     )}
   </NavigationContainer>
   </PaperProvider>
+  </ActivityTrackerProvider>
 );
 };
 
