@@ -417,6 +417,7 @@ import AdminProductsScreen from './AdminProductsScreen';
 import AdminOrdersScreen from './AdminOrdersScreen';
 import AdminProductManagementScreen from '../ShopAdmin/AdminProductManagementScreen';
 import AdminCategoryBackgroundsScreen from './AdminCategoryBackgroundsScreen';
+import AdminPaymentsScreen from './AdminPaymentsScreen';
 
 // ✅ RUTAS CON ICONOS CORREGIDOS Y VERIFICADOS
 const routes = [
@@ -468,6 +469,12 @@ const routes = [
     icon: 'image-outline', 
     iconFocused: 'image' 
   },
+  {
+    key: 'payments',
+    title: 'Pagos',
+    component: AdminPaymentsScreen,
+    icon: 'card-outline'
+  },
 ];
 
 // ✅ MAPEO DE ESCENAS CORREGIDO
@@ -480,6 +487,7 @@ const renderScene = SceneMap({
   messages: AdminMessagesScreen,
   backgrounds: AdminCategoryBackgroundsScreen,
   settings: AdminSettingsScreen,
+  payments: AdminPaymentsScreen,
 });
 
 const AdminTabNavigator = () => {

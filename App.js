@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import { useTranslation } from "react-i18next"; // Importar traducción
 import "./i18n"; // Importar configuración de idiomas
 import { ActivityTrackerProvider } from './Components/ActivityTracker';
+import { StripeProvider } from '@stripe/stripe-react-native';
 
 // Importar los nuevos stacks
 import AuthStack from "./Stacks/AuthStack";
@@ -104,6 +105,10 @@ const App = () => {
 
   // Configuración de la navegación
   return (
+    <StripeProvider
+      publishableKey="pk_test_51RzadiCieSMJi0JPkgrvc3JOLBMrc2NRiYL5VEATTNHoSzojFMu2B9NwUmOPiCgxB4LPONWhqkOr5hLVas8t04Ym00B2B1b6rC"
+      // merchantIdentifier="merchant.com.tu-app" // Para Apple Pay
+    >
     <ActivityTrackerProvider>
     <PaperProvider>
     <NavigationContainer>
@@ -123,6 +128,7 @@ const App = () => {
   </NavigationContainer>
   </PaperProvider>
   </ActivityTrackerProvider>
+  </StripeProvider>
 );
 };
 

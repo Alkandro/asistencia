@@ -6,6 +6,7 @@ import UserProfileScreen from "../LoginScreens/UserProfileScreen";
 import AdminTabNavigator from "../AdminScreen/AdminTabNavigator";
 import AdminProductManagementScreen from "../ShopAdmin/AdminProductManagementScreen";
 import { useTranslation } from "react-i18next";
+import AdminPaymentsScreen from '../AdminScreen/AdminPaymentsScreen';
 
 const Stack = createStackNavigator();
 
@@ -30,6 +31,11 @@ const AdminStack = () => {
           headerBackTitleVisible: false,
         }}
       />
+      <Stack.Screen 
+  name="AdminPayments" 
+  component={AdminPaymentsScreen} 
+  options={{ title: 'Gestión de Pagos' }}
+/>
       <Stack.Screen
         name="UserProfileScreen"
         component={UserProfileScreen}
