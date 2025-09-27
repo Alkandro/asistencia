@@ -1,1077 +1,9 @@
-// // AdminPaymentsScreen.js - Panel de administración completo para pagos
-// import React, { useState, useEffect } from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   FlatList,
-//   TouchableOpacity,
-//   Alert,
-//   Modal,
-//   TextInput,
-//   ActivityIndicator,
-//   SafeAreaView,
-//   RefreshControl,
-// } from 'react-native';
-// import { Ionicons } from '@expo/vector-icons';
-// import { 
-//   collection, 
-//   query, 
-//   orderBy, 
-//   onSnapshot, 
-//   updateDoc, 
-//   doc, 
-//   where,
-//   Timestamp 
-// } from 'firebase/firestore';
-// import { db } from '../firebase';
-
-// const AdminPaymentsScreen = () => {
-//   // Estados principales
-//   const [payments, setPayments] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [refreshing, setRefreshing] = useState(false);
-  
-//   // Estados de filtros
-//   const [selectedFilter, setSelectedFilter] = useState('all');
-//   const [searchQuery, setSearchQuery] = useState('');
-  
-//   // Estados de modales
-//   const [selectedPayment, setSelectedPayment] = useState(null);
-//   const [detailModalVisible, setDetailModalVisible] = useState(false);
-//   const [refundModalVisible, setRefundModalVisible] = useState(false);
-//   const [refundAmount, setRefundAmount] = useState('');
-//   const [refundReason, setRefundReason] = useState('');
-  
-//   // Estados de estadísticas
-//   const [stats, setStats] = useState({
-//     totalPayments: 0,
-//     successfulPayments: 0,
-//     failedPayments: 0,
-//     pendingPayments: 0,
-//     totalRevenue: 0,
-//     todayRevenue: 0
-//   });
-
-//   // 🔄 CARGAR PAGOS DESDE FIREBASE
-//   useEffect(() => {
-//     console.log('💳 Configurando listener para pagos...');
-    
-//     const paymentsRef = collection(db, 'orders');
-//     const paymentsQuery = query(
-//       paymentsRef,
-//       orderBy('createdAt', 'desc')
-//     );
-
-//     const unsubscribe = onSnapshot(paymentsQuery, (snapshot) => {
-//       const paymentsList = [];
-//       let totalRevenue = 0;
-//       let todayRevenue = 0;
-//       let successfulCount = 0;
-//       let failedCount = 0;
-//       let pendingCount = 0;
-      
-//       const today = new Date();
-//       today.setHours(0, 0, 0, 0);
-
-//       snapshot.forEach((doc) => {
-//         const data = doc.data();
-//         const payment = { id: doc.id, ...data };
-//         paymentsList.push(payment);
-
-//         // Calcular estadísticas
-//         const paymentDate = data.createdAt?.toDate() || new Date();
-//         const amount = data.totals?.total || 0;
-
-//         if (data.paymentStatus === 'paid' || data.paymentStatus === 'succeeded') {
-//           totalRevenue += amount;
-//           successfulCount++;
-          
-//           if (paymentDate >= today) {
-//             todayRevenue += amount;
-//           }
-//         } else if (data.paymentStatus === 'failed' || data.paymentStatus === 'canceled') {
-//           failedCount++;
-//         } else {
-//           pendingCount++;
-//         }
-//       });
-
-//       setPayments(paymentsList);
-//       setStats({
-//         totalPayments: paymentsList.length,
-//         successfulPayments: successfulCount,
-//         failedPayments: failedCount,
-//         pendingPayments: pendingCount,
-//         totalRevenue: totalRevenue,
-//         todayRevenue: todayRevenue
-//       });
-      
-//       setLoading(false);
-//       console.log('💳 Pagos cargados:', paymentsList.length);
-//     }, (error) => {
-//       console.error('❌ Error cargando pagos:', error);
-//       setLoading(false);
-//     });
-
-//     return () => unsubscribe();
-//   }, []);
-
-//   // 🎨 OBTENER COLOR DEL ESTADO DE PAGO
-//   const getPaymentStatusColor = (status) => {
-//     switch (status) {
-//       case 'paid':
-//       case 'succeeded':
-//         return '#10B981';
-//       case 'pending':
-//         return '#F59E0B';
-//       case 'failed':
-//       case 'canceled':
-//         return '#EF4444';
-//       case 'refunded':
-//         return '#6B7280';
-//       default:
-//         return '#9CA3AF';
-//     }
-//   };
-
-//   // 🎨 OBTENER ETIQUETA DEL ESTADO
-//   const getPaymentStatusLabel = (status) => {
-//     switch (status) {
-//       case 'paid':
-//       case 'succeeded':
-//         return 'Exitoso';
-//       case 'pending':
-//         return 'Pendiente';
-//       case 'failed':
-//         return 'Fallido';
-//       case 'canceled':
-//         return 'Cancelado';
-//       case 'refunded':
-//         return 'Reembolsado';
-//       default:
-//         return 'Desconocido';
-//     }
-//   };
-
-//   // 🎨 OBTENER ICONO DEL MÉTODO DE PAGO
-//   const getPaymentMethodIcon = (method) => {
-//     switch (method) {
-//       case 'stripe':
-//         return 'card-outline';
-//       case 'cash_on_delivery':
-//         return 'cash-outline';
-//       case 'paypal':
-//         return 'logo-paypal';
-//       default:
-//         return 'help-circle-outline';
-//     }
-//   };
-
-//   // 🎨 OBTENER ETIQUETA DEL MÉTODO DE PAGO
-//   const getPaymentMethodLabel = (method) => {
-//     switch (method) {
-//       case 'stripe':
-//         return 'Tarjeta';
-//       case 'cash_on_delivery':
-//         return 'Contraentrega';
-//       case 'paypal':
-//         return 'PayPal';
-//       default:
-//         return 'Otro';
-//     }
-//   };
-
-//   // 🔄 ACTUALIZAR ESTADO DE PAGO
-//   const updatePaymentStatus = async (paymentId, newStatus) => {
-//     try {
-//       console.log('🔄 Actualizando estado de pago:', paymentId, 'a', newStatus);
-      
-//       await updateDoc(doc(db, 'orders', paymentId), {
-//         paymentStatus: newStatus,
-//         updatedAt: new Date()
-//       });
-      
-//       Alert.alert('✅ Éxito', 'Estado de pago actualizado correctamente');
-      
-//     } catch (error) {
-//       console.error('❌ Error actualizando estado:', error);
-//       Alert.alert('Error', 'No se pudo actualizar el estado del pago');
-//     }
-//   };
-
-//   // 💰 PROCESAR REEMBOLSO
-//   const processRefund = async () => {
-//     try {
-//       if (!selectedPayment || !refundAmount) {
-//         Alert.alert('Error', 'Datos de reembolso incompletos');
-//         return;
-//       }
-
-//       const amount = parseFloat(refundAmount);
-//       const maxAmount = selectedPayment.totals?.total || 0;
-
-//       if (amount <= 0 || amount > maxAmount) {
-//         Alert.alert('Error', `El monto debe ser entre $0.01 y $${maxAmount.toFixed(2)}`);
-//         return;
-//       }
-
-//       console.log('💰 Procesando reembolso:', {
-//         paymentId: selectedPayment.id,
-//         amount: amount,
-//         reason: refundReason
-//       });
-
-//       // En producción, aquí harías la llamada a Stripe para procesar el reembolso
-//       // const refund = await stripe.refunds.create({
-//       //   payment_intent: selectedPayment.paymentIntentId,
-//       //   amount: Math.round(amount * 100), // Stripe usa centavos
-//       //   reason: 'requested_by_customer'
-//       // });
-
-//       // Actualizar en Firebase
-//       await updateDoc(doc(db, 'orders', selectedPayment.id), {
-//         paymentStatus: 'refunded',
-//         refundAmount: amount,
-//         refundReason: refundReason,
-//         refundDate: new Date(),
-//         updatedAt: new Date()
-//       });
-
-//       setRefundModalVisible(false);
-//       setRefundAmount('');
-//       setRefundReason('');
-//       setSelectedPayment(null);
-      
-//       Alert.alert('✅ Reembolso Procesado', `Se ha procesado un reembolso de $${amount.toFixed(2)}`);
-
-//     } catch (error) {
-//       console.error('❌ Error procesando reembolso:', error);
-//       Alert.alert('Error', 'No se pudo procesar el reembolso');
-//     }
-//   };
-
-//   // 🔍 FILTRAR PAGOS
-//   const getFilteredPayments = () => {
-//     let filtered = payments;
-
-//     // Filtrar por estado
-//     if (selectedFilter !== 'all') {
-//       filtered = filtered.filter(payment => {
-//         switch (selectedFilter) {
-//           case 'successful':
-//             return payment.paymentStatus === 'paid' || payment.paymentStatus === 'succeeded';
-//           case 'pending':
-//             return payment.paymentStatus === 'pending';
-//           case 'failed':
-//             return payment.paymentStatus === 'failed' || payment.paymentStatus === 'canceled';
-//           case 'refunded':
-//             return payment.paymentStatus === 'refunded';
-//           default:
-//             return true;
-//         }
-//       });
-//     }
-
-//     // Filtrar por búsqueda
-//     if (searchQuery.trim()) {
-//       const query = searchQuery.toLowerCase();
-//       filtered = filtered.filter(payment => 
-//         payment.orderNumber?.toLowerCase().includes(query) ||
-//         payment.userEmail?.toLowerCase().includes(query) ||
-//         payment.paymentIntentId?.toLowerCase().includes(query)
-//       );
-//     }
-
-//     return filtered;
-//   };
-
-//   // 🎨 RENDERIZAR ESTADÍSTICAS
-//   const renderStats = () => (
-//     <View style={styles.statsContainer}>
-//       <View style={styles.statsRow}>
-//         <View style={[styles.statCard, styles.statCardRevenue]}>
-//           <Ionicons name="trending-up" size={24} color="#10B981" />
-//           <Text style={styles.statValue}>${stats.totalRevenue.toFixed(2)}</Text>
-//           <Text style={styles.statLabel}>Ingresos Totales</Text>
-//         </View>
-        
-//         <View style={[styles.statCard, styles.statCardToday]}>
-//           <Ionicons name="today" size={24} color="#3B82F6" />
-//           <Text style={styles.statValue}>${stats.todayRevenue.toFixed(2)}</Text>
-//           <Text style={styles.statLabel}>Hoy</Text>
-//         </View>
-//       </View>
-      
-//       <View style={styles.statsRow}>
-//         <View style={styles.statCardSmall}>
-//           <Text style={[styles.statValueSmall, { color: '#10B981' }]}>{stats.successfulPayments}</Text>
-//           <Text style={styles.statLabelSmall}>Exitosos</Text>
-//         </View>
-        
-//         <View style={styles.statCardSmall}>
-//           <Text style={[styles.statValueSmall, { color: '#F59E0B' }]}>{stats.pendingPayments}</Text>
-//           <Text style={styles.statLabelSmall}>Pendientes</Text>
-//         </View>
-        
-//         <View style={styles.statCardSmall}>
-//           <Text style={[styles.statValueSmall, { color: '#EF4444' }]}>{stats.failedPayments}</Text>
-//           <Text style={styles.statLabelSmall}>Fallidos</Text>
-//         </View>
-        
-//         <View style={styles.statCardSmall}>
-//           <Text style={[styles.statValueSmall, { color: '#6B7280' }]}>{stats.totalPayments}</Text>
-//           <Text style={styles.statLabelSmall}>Total</Text>
-//         </View>
-//       </View>
-//     </View>
-//   );
-
-//   // 🎨 RENDERIZAR FILTROS
-//   const renderFilters = () => (
-//     <View style={styles.filtersContainer}>
-//       <View style={styles.filterButtons}>
-//         {[
-//           { key: 'all', label: 'Todos' },
-//           { key: 'successful', label: 'Exitosos' },
-//           { key: 'pending', label: 'Pendientes' },
-//           { key: 'failed', label: 'Fallidos' },
-//           { key: 'refunded', label: 'Reembolsados' }
-//         ].map((filter) => (
-//           <TouchableOpacity
-//             key={filter.key}
-//             style={[
-//               styles.filterButton,
-//               selectedFilter === filter.key && styles.filterButtonActive
-//             ]}
-//             onPress={() => setSelectedFilter(filter.key)}
-//           >
-//             <Text style={[
-//               styles.filterButtonText,
-//               selectedFilter === filter.key && styles.filterButtonTextActive
-//             ]}>
-//               {filter.label}
-//             </Text>
-//           </TouchableOpacity>
-//         ))}
-//       </View>
-      
-//       <View style={styles.searchContainer}>
-//         <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
-//         <TextInput
-//           style={styles.searchInput}
-//           placeholder="Buscar por pedido, email o ID..."
-//           value={searchQuery}
-//           onChangeText={setSearchQuery}
-//           placeholderTextColor="#9CA3AF"
-//         />
-//         {searchQuery.length > 0 && (
-//           <TouchableOpacity onPress={() => setSearchQuery('')}>
-//             <Ionicons name="close-circle" size={20} color="#6B7280" />
-//           </TouchableOpacity>
-//         )}
-//       </View>
-//     </View>
-//   );
-
-//   // 🎨 RENDERIZAR ITEM DE PAGO
-//   const renderPaymentItem = ({ item }) => (
-//     <TouchableOpacity
-//       style={styles.paymentCard}
-//       onPress={() => {
-//         setSelectedPayment(item);
-//         setDetailModalVisible(true);
-//       }}
-//     >
-//       <View style={styles.paymentHeader}>
-//         <View style={styles.paymentInfo}>
-//           <Text style={styles.paymentOrderNumber}>{item.orderNumber}</Text>
-//           <Text style={styles.paymentEmail}>{item.userEmail}</Text>
-//         </View>
-        
-//         <View style={styles.paymentAmount}>
-//           <Text style={styles.paymentAmountText}>${(item.totals?.total || 0).toFixed(2)}</Text>
-//           <View style={[styles.paymentStatus, { backgroundColor: getPaymentStatusColor(item.paymentStatus) }]}>
-//             <Text style={styles.paymentStatusText}>{getPaymentStatusLabel(item.paymentStatus)}</Text>
-//           </View>
-//         </View>
-//       </View>
-      
-//       <View style={styles.paymentDetails}>
-//         <View style={styles.paymentMethod}>
-//           <Ionicons name={getPaymentMethodIcon(item.paymentMethod)} size={16} color="#6B7280" />
-//           <Text style={styles.paymentMethodText}>{getPaymentMethodLabel(item.paymentMethod)}</Text>
-//         </View>
-        
-//         <Text style={styles.paymentDate}>
-//           {item.createdAt?.toDate().toLocaleDateString('es-ES', {
-//             day: '2-digit',
-//             month: '2-digit',
-//             year: '2-digit',
-//             hour: '2-digit',
-//             minute: '2-digit'
-//           })}
-//         </Text>
-//       </View>
-//     </TouchableOpacity>
-//   );
-
-//   // 🎨 RENDERIZAR MODAL DE DETALLES
-//   const renderDetailModal = () => (
-//     <Modal
-//       visible={detailModalVisible}
-//       animationType="slide"
-//       presentationStyle="pageSheet"
-//     >
-//       <SafeAreaView style={styles.modalContainer}>
-//         <View style={styles.modalHeader}>
-//           <Text style={styles.modalTitle}>Detalles del Pago</Text>
-//           <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
-//             <Ionicons name="close" size={24} color="#6B7280" />
-//           </TouchableOpacity>
-//         </View>
-        
-//         {selectedPayment && (
-//           <View style={styles.modalContent}>
-//             {/* Información básica */}
-//             <View style={styles.detailSection}>
-//               <Text style={styles.detailSectionTitle}>Información General</Text>
-//               <View style={styles.detailRow}>
-//                 <Text style={styles.detailLabel}>Número de Pedido:</Text>
-//                 <Text style={styles.detailValue}>{selectedPayment.orderNumber}</Text>
-//               </View>
-//               <View style={styles.detailRow}>
-//                 <Text style={styles.detailLabel}>Cliente:</Text>
-//                 <Text style={styles.detailValue}>{selectedPayment.userEmail}</Text>
-//               </View>
-//               <View style={styles.detailRow}>
-//                 <Text style={styles.detailLabel}>Fecha:</Text>
-//                 <Text style={styles.detailValue}>
-//                   {selectedPayment.createdAt?.toDate().toLocaleString('es-ES')}
-//                 </Text>
-//               </View>
-//             </View>
-
-//             {/* Información de pago */}
-//             <View style={styles.detailSection}>
-//               <Text style={styles.detailSectionTitle}>Información de Pago</Text>
-//               <View style={styles.detailRow}>
-//                 <Text style={styles.detailLabel}>Método:</Text>
-//                 <Text style={styles.detailValue}>{getPaymentMethodLabel(selectedPayment.paymentMethod)}</Text>
-//               </View>
-//               <View style={styles.detailRow}>
-//                 <Text style={styles.detailLabel}>Estado:</Text>
-//                 <View style={[styles.detailStatus, { backgroundColor: getPaymentStatusColor(selectedPayment.paymentStatus) }]}>
-//                   <Text style={styles.detailStatusText}>{getPaymentStatusLabel(selectedPayment.paymentStatus)}</Text>
-//                 </View>
-//               </View>
-//               <View style={styles.detailRow}>
-//                 <Text style={styles.detailLabel}>Monto Total:</Text>
-//                 <Text style={[styles.detailValue, styles.detailAmount]}>
-//                   ${(selectedPayment.totals?.total || 0).toFixed(2)}
-//                 </Text>
-//               </View>
-//               {selectedPayment.paymentIntentId && (
-//                 <View style={styles.detailRow}>
-//                   <Text style={styles.detailLabel}>Payment Intent ID:</Text>
-//                   <Text style={styles.detailValue}>{selectedPayment.paymentIntentId}</Text>
-//                 </View>
-//               )}
-//             </View>
-
-//             {/* Productos */}
-//             <View style={styles.detailSection}>
-//               <Text style={styles.detailSectionTitle}>Productos ({selectedPayment.items?.length || 0})</Text>
-//               {selectedPayment.items?.map((item, index) => (
-//                 <View key={index} style={styles.productRow}>
-//                   <Text style={styles.productName}>{item.productName}</Text>
-//                   <Text style={styles.productDetails}>
-//                     ${(item.unitPrice || 0).toFixed(2)} x {item.quantity || 1}
-//                   </Text>
-//                   <Text style={styles.productTotal}>
-//                     ${((item.unitPrice || 0) * (item.quantity || 1)).toFixed(2)}
-//                   </Text>
-//                 </View>
-//               ))}
-//             </View>
-
-//             {/* Acciones */}
-//             <View style={styles.modalActions}>
-//               {selectedPayment.paymentStatus === 'pending' && (
-//                 <TouchableOpacity
-//                   style={[styles.actionButton, styles.actionButtonSuccess]}
-//                   onPress={() => updatePaymentStatus(selectedPayment.id, 'paid')}
-//                 >
-//                   <Ionicons name="checkmark" size={20} color="#fff" />
-//                   <Text style={styles.actionButtonText}>Marcar como Pagado</Text>
-//                 </TouchableOpacity>
-//               )}
-              
-//               {(selectedPayment.paymentStatus === 'paid' || selectedPayment.paymentStatus === 'succeeded') && (
-//                 <TouchableOpacity
-//                   style={[styles.actionButton, styles.actionButtonRefund]}
-//                   onPress={() => {
-//                     setDetailModalVisible(false);
-//                     setRefundModalVisible(true);
-//                   }}
-//                 >
-//                   <Ionicons name="return-down-back" size={20} color="#fff" />
-//                   <Text style={styles.actionButtonText}>Procesar Reembolso</Text>
-//                 </TouchableOpacity>
-//               )}
-              
-//               {selectedPayment.paymentStatus === 'pending' && (
-//                 <TouchableOpacity
-//                   style={[styles.actionButton, styles.actionButtonDanger]}
-//                   onPress={() => updatePaymentStatus(selectedPayment.id, 'failed')}
-//                 >
-//                   <Ionicons name="close" size={20} color="#fff" />
-//                   <Text style={styles.actionButtonText}>Marcar como Fallido</Text>
-//                 </TouchableOpacity>
-//               )}
-//             </View>
-//           </View>
-//         )}
-//       </SafeAreaView>
-//     </Modal>
-//   );
-
-//   // 🎨 RENDERIZAR MODAL DE REEMBOLSO
-//   const renderRefundModal = () => (
-//     <Modal
-//       visible={refundModalVisible}
-//       animationType="slide"
-//       transparent={true}
-//     >
-//       <View style={styles.refundModalOverlay}>
-//         <View style={styles.refundModalContent}>
-//           <Text style={styles.refundModalTitle}>Procesar Reembolso</Text>
-          
-//           <Text style={styles.refundModalSubtitle}>
-//             Pedido: {selectedPayment?.orderNumber}
-//           </Text>
-//           <Text style={styles.refundModalAmount}>
-//             Monto máximo: ${(selectedPayment?.totals?.total || 0).toFixed(2)}
-//           </Text>
-          
-//           <TextInput
-//             style={styles.refundInput}
-//             placeholder="Monto a reembolsar"
-//             value={refundAmount}
-//             onChangeText={setRefundAmount}
-//             keyboardType="numeric"
-//           />
-          
-//           <TextInput
-//             style={[styles.refundInput, styles.refundInputMultiline]}
-//             placeholder="Razón del reembolso (opcional)"
-//             value={refundReason}
-//             onChangeText={setRefundReason}
-//             multiline
-//             numberOfLines={3}
-//           />
-          
-//           <View style={styles.refundModalActions}>
-//             <TouchableOpacity
-//               style={[styles.refundButton, styles.refundButtonCancel]}
-//               onPress={() => {
-//                 setRefundModalVisible(false);
-//                 setRefundAmount('');
-//                 setRefundReason('');
-//               }}
-//             >
-//               <Text style={styles.refundButtonText}>Cancelar</Text>
-//             </TouchableOpacity>
-            
-//             <TouchableOpacity
-//               style={[styles.refundButton, styles.refundButtonConfirm]}
-//               onPress={processRefund}
-//             >
-//               <Text style={styles.refundButtonText}>Procesar Reembolso</Text>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-//       </View>
-//     </Modal>
-//   );
-
-//   const onRefresh = React.useCallback(() => {
-//     setRefreshing(true);
-//     setTimeout(() => setRefreshing(false), 1000);
-//   }, []);
-
-//   if (loading) {
-//     return (
-//       <SafeAreaView style={styles.container}>
-//         <View style={styles.loadingContainer}>
-//           <ActivityIndicator size="large" color="#3B82F6" />
-//           <Text style={styles.loadingText}>Cargando pagos...</Text>
-//         </View>
-//       </SafeAreaView>
-//     );
-//   }
-
-//   const filteredPayments = getFilteredPayments();
-
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <View style={styles.header}>
-//         <Text style={styles.headerTitle}>Gestión de Pagos</Text>
-//         <Text style={styles.headerSubtitle}>{filteredPayments.length} pago{filteredPayments.length !== 1 ? 's' : ''}</Text>
-//       </View>
-
-//       <FlatList
-//         data={filteredPayments}
-//         keyExtractor={(item) => item.id}
-//         renderItem={renderPaymentItem}
-//         ListHeaderComponent={() => (
-//           <View>
-//             {renderStats()}
-//             {renderFilters()}
-//           </View>
-//         )}
-//         contentContainerStyle={styles.listContainer}
-//         showsVerticalScrollIndicator={false}
-//         refreshControl={
-//           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-//         }
-//         ListEmptyComponent={() => (
-//           <View style={styles.emptyState}>
-//             <Ionicons name="card-outline" size={64} color="#D1D5DB" />
-//             <Text style={styles.emptyStateTitle}>No hay pagos</Text>
-//             <Text style={styles.emptyStateSubtitle}>
-//               Los pagos aparecerán aquí cuando los usuarios realicen compras
-//             </Text>
-//           </View>
-//         )}
-//       />
-
-//       {renderDetailModal()}
-//       {renderRefundModal()}
-//     </SafeAreaView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#F9FAFB',
-//   },
-//   header: {
-//     paddingHorizontal: 20,
-//     paddingVertical: 16,
-//     backgroundColor: '#fff',
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#E5E7EB',
-//   },
-//   headerTitle: {
-//     fontSize: 24,
-//     fontWeight: '700',
-//     color: '#111827',
-//   },
-//   headerSubtitle: {
-//     fontSize: 14,
-//     color: '#6B7280',
-//     marginTop: 4,
-//   },
-  
-//   // Estadísticas
-//   statsContainer: {
-//     padding: 16,
-//   },
-//   statsRow: {
-//     flexDirection: 'row',
-//     gap: 12,
-//     marginBottom: 12,
-//   },
-//   statCard: {
-//     flex: 1,
-//     backgroundColor: '#fff',
-//     borderRadius: 12,
-//     padding: 16,
-//     alignItems: 'center',
-//   },
-//   statCardRevenue: {
-//     borderLeftWidth: 4,
-//     borderLeftColor: '#10B981',
-//   },
-//   statCardToday: {
-//     borderLeftWidth: 4,
-//     borderLeftColor: '#3B82F6',
-//   },
-//   statValue: {
-//     fontSize: 20,
-//     fontWeight: '700',
-//     color: '#111827',
-//     marginTop: 8,
-//   },
-//   statLabel: {
-//     fontSize: 12,
-//     color: '#6B7280',
-//     marginTop: 4,
-//   },
-//   statCardSmall: {
-//     flex: 1,
-//     backgroundColor: '#fff',
-//     borderRadius: 8,
-//     padding: 12,
-//     alignItems: 'center',
-//   },
-//   statValueSmall: {
-//     fontSize: 18,
-//     fontWeight: '700',
-//   },
-//   statLabelSmall: {
-//     fontSize: 11,
-//     color: '#6B7280',
-//     marginTop: 2,
-//   },
-  
-//   // Filtros
-//   filtersContainer: {
-//     paddingHorizontal: 16,
-//     paddingBottom: 16,
-//   },
-//   filterButtons: {
-//     flexDirection: 'row',
-//     gap: 8,
-//     marginBottom: 12,
-//   },
-//   filterButton: {
-//     paddingHorizontal: 12,
-//     paddingVertical: 6,
-//     borderRadius: 16,
-//     backgroundColor: '#F3F4F6',
-//   },
-//   filterButtonActive: {
-//     backgroundColor: '#3B82F6',
-//   },
-//   filterButtonText: {
-//     fontSize: 12,
-//     fontWeight: '600',
-//     color: '#6B7280',
-//   },
-//   filterButtonTextActive: {
-//     color: '#fff',
-//   },
-//   searchContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     backgroundColor: '#fff',
-//     borderRadius: 8,
-//     paddingHorizontal: 12,
-//     borderWidth: 1,
-//     borderColor: '#E5E7EB',
-//   },
-//   searchIcon: {
-//     marginRight: 8,
-//   },
-//   searchInput: {
-//     flex: 1,
-//     paddingVertical: 12,
-//     fontSize: 14,
-//     color: '#111827',
-//   },
-  
-//   // Lista
-//   listContainer: {
-//     paddingBottom: 20,
-//   },
-//   paymentCard: {
-//     backgroundColor: '#fff',
-//     marginHorizontal: 16,
-//     marginBottom: 12,
-//     borderRadius: 12,
-//     padding: 16,
-//     borderWidth: 1,
-//     borderColor: '#E5E7EB',
-//   },
-//   paymentHeader: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'flex-start',
-//     marginBottom: 12,
-//   },
-//   paymentInfo: {
-//     flex: 1,
-//   },
-//   paymentOrderNumber: {
-//     fontSize: 16,
-//     fontWeight: '600',
-//     color: '#111827',
-//     marginBottom: 4,
-//   },
-//   paymentEmail: {
-//     fontSize: 14,
-//     color: '#6B7280',
-//   },
-//   paymentAmount: {
-//     alignItems: 'flex-end',
-//   },
-//   paymentAmountText: {
-//     fontSize: 18,
-//     fontWeight: '700',
-//     color: '#111827',
-//     marginBottom: 4,
-//   },
-//   paymentStatus: {
-//     paddingHorizontal: 8,
-//     paddingVertical: 4,
-//     borderRadius: 12,
-//   },
-//   paymentStatusText: {
-//     fontSize: 12,
-//     fontWeight: '600',
-//     color: '#fff',
-//   },
-//   paymentDetails: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//   },
-//   paymentMethod: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//   },
-//   paymentMethodText: {
-//     fontSize: 14,
-//     color: '#6B7280',
-//     marginLeft: 6,
-//   },
-//   paymentDate: {
-//     fontSize: 12,
-//     color: '#9CA3AF',
-//   },
-  
-//   // Modal de detalles
-//   modalContainer: {
-//     flex: 1,
-//     backgroundColor: '#F9FAFB',
-//   },
-//   modalHeader: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     paddingHorizontal: 20,
-//     paddingVertical: 16,
-//     backgroundColor: '#fff',
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#E5E7EB',
-//   },
-//   modalTitle: {
-//     fontSize: 18,
-//     fontWeight: '600',
-//     color: '#111827',
-//   },
-//   modalContent: {
-//     flex: 1,
-//     padding: 16,
-//   },
-//   detailSection: {
-//     backgroundColor: '#fff',
-//     borderRadius: 12,
-//     padding: 16,
-//     marginBottom: 16,
-//   },
-//   detailSectionTitle: {
-//     fontSize: 16,
-//     fontWeight: '600',
-//     color: '#111827',
-//     marginBottom: 12,
-//   },
-//   detailRow: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     paddingVertical: 8,
-//   },
-//   detailLabel: {
-//     fontSize: 14,
-//     color: '#6B7280',
-//     flex: 1,
-//   },
-//   detailValue: {
-//     fontSize: 14,
-//     color: '#111827',
-//     flex: 1,
-//     textAlign: 'right',
-//   },
-//   detailAmount: {
-//     fontSize: 16,
-//     fontWeight: '700',
-//   },
-//   detailStatus: {
-//     paddingHorizontal: 8,
-//     paddingVertical: 4,
-//     borderRadius: 12,
-//   },
-//   detailStatusText: {
-//     fontSize: 12,
-//     fontWeight: '600',
-//     color: '#fff',
-//   },
-//   productRow: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     paddingVertical: 8,
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#F3F4F6',
-//   },
-//   productName: {
-//     flex: 2,
-//     fontSize: 14,
-//     color: '#111827',
-//   },
-//   productDetails: {
-//     flex: 1,
-//     fontSize: 12,
-//     color: '#6B7280',
-//     textAlign: 'center',
-//   },
-//   productTotal: {
-//     flex: 1,
-//     fontSize: 14,
-//     fontWeight: '600',
-//     color: '#111827',
-//     textAlign: 'right',
-//   },
-//   modalActions: {
-//     gap: 12,
-//   },
-//   actionButton: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     paddingVertical: 12,
-//     borderRadius: 8,
-//     gap: 8,
-//   },
-//   actionButtonSuccess: {
-//     backgroundColor: '#10B981',
-//   },
-//   actionButtonRefund: {
-//     backgroundColor: '#F59E0B',
-//   },
-//   actionButtonDanger: {
-//     backgroundColor: '#EF4444',
-//   },
-//   actionButtonText: {
-//     fontSize: 14,
-//     fontWeight: '600',
-//     color: '#fff',
-//   },
-  
-//   // Modal de reembolso
-//   refundModalOverlay: {
-//     flex: 1,
-//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     padding: 20,
-//   },
-//   refundModalContent: {
-//     backgroundColor: '#fff',
-//     borderRadius: 12,
-//     padding: 20,
-//     width: '100%',
-//     maxWidth: 400,
-//   },
-//   refundModalTitle: {
-//     fontSize: 18,
-//     fontWeight: '600',
-//     color: '#111827',
-//     marginBottom: 8,
-//   },
-//   refundModalSubtitle: {
-//     fontSize: 14,
-//     color: '#6B7280',
-//     marginBottom: 4,
-//   },
-//   refundModalAmount: {
-//     fontSize: 14,
-//     color: '#10B981',
-//     fontWeight: '600',
-//     marginBottom: 16,
-//   },
-//   refundInput: {
-//     borderWidth: 1,
-//     borderColor: '#E5E7EB',
-//     borderRadius: 8,
-//     paddingHorizontal: 12,
-//     paddingVertical: 10,
-//     fontSize: 14,
-//     marginBottom: 12,
-//   },
-//   refundInputMultiline: {
-//     height: 80,
-//     textAlignVertical: 'top',
-//   },
-//   refundModalActions: {
-//     flexDirection: 'row',
-//     gap: 12,
-//     marginTop: 8,
-//   },
-//   refundButton: {
-//     flex: 1,
-//     paddingVertical: 12,
-//     borderRadius: 8,
-//     alignItems: 'center',
-//   },
-//   refundButtonCancel: {
-//     backgroundColor: '#F3F4F6',
-//   },
-//   refundButtonConfirm: {
-//     backgroundColor: '#F59E0B',
-//   },
-//   refundButtonText: {
-//     fontSize: 14,
-//     fontWeight: '600',
-//     color: '#111827',
-//   },
-  
-//   // Estados vacíos y carga
-//   loadingContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-//   loadingText: {
-//     fontSize: 16,
-//     color: '#6B7280',
-//     marginTop: 12,
-//   },
-//   emptyState: {
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     paddingVertical: 64,
-//   },
-//   emptyStateTitle: {
-//     fontSize: 18,
-//     fontWeight: '600',
-//     color: '#6B7280',
-//     marginTop: 16,
-//     marginBottom: 8,
-//   },
-//   emptyStateSubtitle: {
-//     fontSize: 14,
-//     color: '#9CA3AF',
-//     textAlign: 'center',
-//     paddingHorizontal: 32,
-//   },
-// });
-
-// export default AdminPaymentsScreen;
-
-
-
-
 // AdminPaymentsScreen_ADAPTADO.js - Panel de administración de pagos adaptado
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -1080,6 +12,7 @@ import {
   TextInput,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { 
   collection, 
@@ -1093,6 +26,34 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+
+// // ✅ NUEVA FUNCIÓN PARA FORMATO DE MONEDA LOCALIZADO funcion universal
+// const formatCurrency = (amount, locale = 'es-ES', currency = 'USD') => {
+//   // Asegurarse de que amount es un número
+//   const numberAmount = Number(amount) || 0;
+  
+//   return new Intl.NumberFormat(locale, {
+//     style: 'currency',
+//     currency: currency,
+//     minimumFractionDigits: 0,
+//     maximumFractionDigits: 0,
+//   }).format(numberAmount);
+// };
+
+
+// ✅ FUNCIÓN OPTIMIZADA PARA YEN JAPONÉS (JPY) SIN DECIMALES
+const formatCurrency = (amount) => {
+  const numberAmount = Number(amount) || 0;
+  
+  // Usamos el locale japonés ('ja-JP') y la divisa 'JPY'.
+  return new Intl.NumberFormat('ja-JP', { 
+    style: 'currency',
+    currency: 'JPY',
+    // Aseguramos que no haya decimales
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numberAmount);
+};
 
 const AdminPaymentsScreen = () => {
   // ✅ ESTADOS PRINCIPALES
@@ -1358,7 +319,7 @@ const AdminPaymentsScreen = () => {
       case 'pending': return '#F59E0B';
       case 'failed': return '#EF4444';
       case 'refunded': return '#6B7280';
-      default: return '#6B7280';
+      default: return null;
     }
   };
 
@@ -1369,7 +330,7 @@ const AdminPaymentsScreen = () => {
       case 'pending': return 'time';
       case 'failed': return 'close-circle';
       case 'refunded': return 'return-down-back';
-      default: return 'help-circle';
+      default: return null;
     }
   };
 
@@ -1380,7 +341,7 @@ const AdminPaymentsScreen = () => {
       case 'pending': return 'Pendiente';
       case 'failed': return 'Fallido';
       case 'refunded': return 'Reembolsado';
-      default: return 'Desconocido';
+      default: return '';
     }
   };
 
@@ -1391,7 +352,7 @@ const AdminPaymentsScreen = () => {
       case 'card': return 'card';
       case 'cash_on_delivery':
       case 'cash_pickup': return 'cash';
-      default: return 'help-circle';
+      default: return '';
     }
   };
 
@@ -1402,7 +363,7 @@ const AdminPaymentsScreen = () => {
       case 'card': return 'Tarjeta';
       case 'cash_on_delivery': return 'Contraentrega';
       case 'cash_pickup': return 'Efectivo en tienda';
-      default: return 'Desconocido';
+      default: return '';
     }
   };
 
@@ -1411,7 +372,8 @@ const AdminPaymentsScreen = () => {
     <View style={styles.statsContainer}>
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>${stats.totalRevenue.toFixed(2)}</Text>
+          <Text style={styles.statValue}>{formatCurrency(stats.totalRevenue)}
+            </Text>
           <Text style={styles.statLabel}>Ingresos Totales</Text>
         </View>
         
@@ -1481,10 +443,12 @@ const AdminPaymentsScreen = () => {
       <View style={styles.paymentHeader}>
         <View style={styles.paymentHeaderLeft}>
           <Text style={styles.paymentOrderNumber}>#{payment.orderNumber}</Text>
+          {getStatusColor(payment.status) !== null && (
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(payment.status) }]}>
             <Ionicons name={getStatusIcon(payment.status)} size={12} color="#fff" />
             <Text style={styles.statusBadgeText}>{getStatusLabel(payment.status)}</Text>
           </View>
+          )}
         </View>
         
         <View style={styles.paymentMethodBadge}>
@@ -1505,7 +469,7 @@ const AdminPaymentsScreen = () => {
         <View style={styles.paymentTotalContent}>
           <Ionicons name="cash-outline" size={16} color="#10B981" />
           <Text style={styles.paymentTotalLabel}>Total:</Text>
-          <Text style={styles.paymentTotalValue}>${payment.amount.toFixed(2)}</Text>
+          <Text style={styles.paymentTotalValue}>{formatCurrency(payment.amount)}</Text>
         </View>
       </View>
 
@@ -1567,7 +531,7 @@ const AdminPaymentsScreen = () => {
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Monto:</Text>
-                <Text style={styles.detailValue}>${selectedPayment.amount.toFixed(2)}</Text>
+                <Text style={styles.detailValue}> {formatCurrency(selectedPayment.amount)}</Text>
               </View>
               {selectedPayment.paymentIntentId && (
                 <View style={styles.detailRow}>
@@ -1597,7 +561,7 @@ const AdminPaymentsScreen = () => {
                 <View key={index} style={styles.productItem}>
                   <Text style={styles.productName}>{item.productName}</Text>
                   <Text style={styles.productDetails}>
-                    ${item.unitPrice?.toFixed(2)} x {item.quantity} = ${item.totalPrice?.toFixed(2)}
+                  {formatCurrency(item.unitPrice)} x {item.quantity} = {formatCurrency(item.totalPrice)}
                   </Text>
                 </View>
               ))}
@@ -1609,21 +573,21 @@ const AdminPaymentsScreen = () => {
                 <Text style={styles.detailSectionTitle}>Totales</Text>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Subtotal:</Text>
-                  <Text style={styles.detailValue}>${selectedPayment.totals.subtotal?.toFixed(2)}</Text>
+                  <Text style={styles.detailValue}>{formatCurrency(selectedPayment.totals.subtotal)}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Impuestos:</Text>
-                  <Text style={styles.detailValue}>${selectedPayment.totals.tax?.toFixed(2)}</Text>
+                  <Text style={styles.detailValue}>{formatCurrency(selectedPayment.totals.tax)}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Envío:</Text>
                   <Text style={styles.detailValue}>
-                    {selectedPayment.totals.shipping === 0 ? 'Gratis' : `$${selectedPayment.totals.shipping?.toFixed(2)}`}
+                    {selectedPayment.totals.shipping === 0 ? 'Gratis' : formatCurrency(selectedPayment.totals.shipping)}
                   </Text>
                 </View>
                 <View style={[styles.detailRow, styles.totalRow]}>
                   <Text style={styles.totalLabel}>Total:</Text>
-                  <Text style={styles.totalValue}>${selectedPayment.totals.total?.toFixed(2)}</Text>
+                  <Text style={styles.totalValue}>{formatCurrency(selectedPayment.totals.total)}</Text>
                 </View>
               </View>
             )}
@@ -1670,7 +634,7 @@ const AdminPaymentsScreen = () => {
               Pedido: {selectedPayment?.orderNumber}
             </Text>
             <Text style={styles.refundModalAmount}>
-              Monto máximo: ${selectedPayment?.amount?.toFixed(2)}
+              Monto máximo: {formatCurrency(selectedPayment?.amount)}
             </Text>
 
             <View style={styles.refundInputGroup}>
@@ -1737,7 +701,7 @@ const AdminPaymentsScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Gestión de Pagos</Text>
+        <Text style={styles.headerTitle}>Gestión</Text>
         <TouchableOpacity
           style={styles.refreshButton}
           onPress={onRefresh}
@@ -1868,13 +832,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 10,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 8,
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -1939,7 +903,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   paymentOrderNumber: {
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: '600',
     color: '#111827',
   },
@@ -1959,7 +923,6 @@ const styles = StyleSheet.create({
   paymentMethodBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -2098,11 +1061,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   detailLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#6B7280',
   },
   detailValue: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '500',
     color: '#111827',
   },
@@ -2140,7 +1103,7 @@ const styles = StyleSheet.create({
   
   // Acciones
   actionsContainer: {
-    marginTop: 20,
+    marginBottom: 40,
   },
   refundButton: {
     flexDirection: 'row',

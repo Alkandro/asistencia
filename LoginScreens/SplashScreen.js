@@ -53,9 +53,9 @@ const AnimatedMessage = () => {
 
   return (
     <View style={styles.contentContainer}>
-      <Animated.View style={[styles.textContainer, animatedTextStyle]}>
+      {/* <Animated.View style={[styles.textContainer, animatedTextStyle]}>
         <Text style={styles.text}>{t("Welcome!")}</Text>
-      </Animated.View>
+      </Animated.View> */}
       <Animated.View style={[styles.messageContainer1, animatedStyle2]}>
         <Image 
           source={require('../assets/fotos/tashiroblack.png')}
