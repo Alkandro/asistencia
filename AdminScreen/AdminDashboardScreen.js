@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
 
   // Secciones
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 16,

@@ -64,7 +64,7 @@ const App = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsSplashLoading(false);
-    }, 14000); // Puedes ajustar el tiempo aquí
+    }, 3000); // Puedes ajustar el tiempo aquí
     return () => clearTimeout(timer);
   }, []);
 
